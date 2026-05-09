@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-8 sm:max-w-3xl sm:px-8">
       <div className="flex flex-1 flex-col justify-between gap-10">
-        <section className="rounded-[2rem] border border-border bg-surface/90 p-6 shadow-[0_18px_60px_rgba(23,18,15,0.08)] backdrop-blur sm:p-10">
+        <section className="rounded-4xl border border-border bg-surface/90 p-6 shadow-[0_18px_60px_rgba(23,18,15,0.08)] backdrop-blur sm:p-10">
           <div className="mb-6 inline-flex rounded-full border border-border bg-background px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted">
             V1 Foundation
           </div>
