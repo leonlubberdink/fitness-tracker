@@ -1,0 +1,11 @@
+import { requireUser } from "@/features/auth/session";
+
+export default async function AppLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  await requireUser();
+
+  return children;
+}
