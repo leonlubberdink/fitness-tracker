@@ -1,3 +1,4 @@
+import Alert from "@mui/material/Alert";
 import SearchRounded from "@mui/icons-material/SearchRounded";
 import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
@@ -14,10 +15,13 @@ import { requireUser } from "@/features/auth/session";
 import { getExercisesForUser } from "@/features/exercises/queries";
 
 import { ExerciseCreateForm } from "./exercise-create-form";
+import { ExerciseDeleteButton } from "./exercise-delete-button";
 
 type ExercisesPageProps = {
   searchParams?: Promise<{
+    error?: string;
     q?: string;
+    success?: string;
   }>;
 };
 
@@ -30,11 +34,25 @@ export default async function ExercisesPage({
 }: ExercisesPageProps) {
   const user = await requireUser();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const errorMessage = resolvedSearchParams?.error?.trim() ?? "";
   const query = resolvedSearchParams?.q?.trim() ?? "";
+  const successMessage = resolvedSearchParams?.success?.trim() ?? "";
   const exerciseList = await getExercisesForUser(user.id, query);
 
   return (
     <Stack spacing={2.5}>
+      {errorMessage ? (
+        <Alert severity="error" variant="filled">
+          {errorMessage}
+        </Alert>
+      ) : null}
+
+      {successMessage ? (
+        <Alert severity="success" variant="filled">
+          {successMessage}
+        </Alert>
+      ) : null}
+
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
         <Stack spacing={1.5}>
           <Typography variant="h1">Exercises</Typography>
@@ -106,6 +124,11 @@ export default async function ExercisesPage({
                       sx={{ borderRadius: "8px", px: 2, py: 1.75 }}
                     >
                       <ListItem disablePadding>
+                        <ExerciseDeleteButton
+                          exerciseId={exercise.id}
+                          exerciseName={exercise.name}
+                          searchQuery={query}
+                        />
                         <ListItemText
                           primary={
                             <Typography variant="body1" fontWeight={700}>
