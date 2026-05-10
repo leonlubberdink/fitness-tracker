@@ -25,3 +25,30 @@ export async function getExercisesForUser(userId: string, searchQuery?: string) 
     )
     .orderBy(asc(exercises.name), asc(exercises.createdAt));
 }
+
+export async function searchExercisesForUser(
+  userId: string,
+  searchQuery?: string,
+  limit = 12,
+) {
+  const normalizedQuery = searchQuery?.trim();
+
+  return db
+    .select({
+      id: exercises.id,
+      name: exercises.name,
+      category: exercises.category,
+      defaultUnit: exercises.defaultUnit,
+    })
+    .from(exercises)
+    .where(
+      normalizedQuery
+        ? and(
+            eq(exercises.userId, userId),
+            ilike(exercises.name, `%${normalizedQuery}%`),
+          )
+        : eq(exercises.userId, userId),
+    )
+    .orderBy(asc(exercises.name), asc(exercises.createdAt))
+    .limit(limit);
+}

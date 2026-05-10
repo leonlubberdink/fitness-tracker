@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 
 import { db } from "@/db/client";
 import {
-  exercises,
   workoutExerciseEntries,
   workoutSessions,
   workoutSets,
 } from "@/db/schema";
+import { searchExercisesForUser } from "@/features/exercises/queries";
 
 type WorkoutEntryRow = {
   id: string;
@@ -58,16 +58,7 @@ export async function getOpenWorkoutSessionForUser(userId: string) {
 }
 
 export async function getExerciseOptionsForUser(userId: string) {
-  return db
-    .select({
-      id: exercises.id,
-      name: exercises.name,
-      category: exercises.category,
-      defaultUnit: exercises.defaultUnit,
-    })
-    .from(exercises)
-    .where(eq(exercises.userId, userId))
-    .orderBy(asc(exercises.name));
+  return searchExercisesForUser(userId);
 }
 
 export async function getWorkoutSessionForLogging(

@@ -6,9 +6,13 @@ import {
   addExerciseEntryAction,
   addSetAction,
   completeWorkoutSessionAction,
+  removeExerciseEntryAction,
+  removeSetAction,
   updateSetAction,
 } from "@/features/workouts/actions";
 import { requireWorkoutSessionForLogging } from "@/features/workouts/queries";
+
+import { ExercisePickerForm } from "./exercise-picker-form";
 
 type WorkoutPageProps = {
   params: Promise<{
@@ -124,33 +128,11 @@ export default async function WorkoutPage({ params }: WorkoutPageProps) {
               </Link>
             </div>
           ) : (
-            <form action={addExerciseEntryAction} className="space-y-4">
-              <input type="hidden" name="sessionId" value={session.id} />
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-foreground">
-                  Exercise
-                </span>
-                <select
-                  name="exerciseId"
-                  className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none"
-                  required
-                >
-                  <option value="">Select an exercise</option>
-                  {session.exerciseOptions.map((exercise) => (
-                    <option key={exercise.id} value={exercise.id}>
-                      {exercise.name} · {exercise.category}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                type="submit"
-                className="flex min-h-11 w-full items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground"
-              >
-                Add to workout
-              </button>
-            </form>
+            <ExercisePickerForm
+              sessionId={session.id}
+              initialExercises={session.exerciseOptions}
+              addExerciseEntryAction={addExerciseEntryAction}
+            />
           )}
         </div>
 
@@ -193,15 +175,27 @@ export default async function WorkoutPage({ params }: WorkoutPageProps) {
                       </p>
                     </div>
 
-                    <form action={addSetAction}>
-                      <input type="hidden" name="entryId" value={entry.id} />
-                      <button
-                        type="submit"
-                        className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-                      >
-                        Add set
-                      </button>
-                    </form>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                      <form action={addSetAction}>
+                        <input type="hidden" name="entryId" value={entry.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
+                        >
+                          Add set
+                        </button>
+                      </form>
+
+                      <form action={removeExerciseEntryAction}>
+                        <input type="hidden" name="entryId" value={entry.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-foreground hover:text-background"
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -209,7 +203,7 @@ export default async function WorkoutPage({ params }: WorkoutPageProps) {
                       <form
                         key={set.id}
                         action={updateSetAction}
-                        className="grid gap-3 rounded-[1.25rem] border border-border bg-surface px-3 py-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto]"
+                        className="grid gap-3 rounded-[1.25rem] border border-border bg-surface px-3 py-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto_auto]"
                       >
                         <input type="hidden" name="setId" value={set.id} />
                         <div className="flex items-center text-sm font-semibold text-foreground">
@@ -252,6 +246,19 @@ export default async function WorkoutPage({ params }: WorkoutPageProps) {
                         >
                           Save
                         </button>
+
+                        {entry.sets.length > 1 ? (
+                          <button
+                            type="submit"
+                            formAction={removeSetAction}
+                            formNoValidate
+                            className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-border bg-background px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-foreground hover:text-background sm:self-end"
+                          >
+                            Delete
+                          </button>
+                        ) : (
+                          <div className="hidden sm:block" />
+                        )}
                       </form>
                     ))}
                   </div>

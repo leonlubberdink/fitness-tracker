@@ -72,6 +72,7 @@ async function requireEntryForOpenSession(userId: string, entryId: string) {
     .select({
       entryId: workoutExerciseEntries.id,
       sessionId: workoutSessions.id,
+      sortOrder: workoutExerciseEntries.sortOrder,
     })
     .from(workoutExerciseEntries)
     .innerJoin(
@@ -98,7 +99,9 @@ async function requireSetForOpenSession(userId: string, setId: string) {
   const [setRecord] = await db
     .select({
       setId: workoutSets.id,
+      entryId: workoutExerciseEntries.id,
       sessionId: workoutSessions.id,
+      setNumber: workoutSets.setNumber,
     })
     .from(workoutSets)
     .innerJoin(
@@ -284,4 +287,98 @@ export async function completeWorkoutSessionAction(formData: FormData) {
   revalidatePath("/history");
   revalidatePath(`/workouts/${sessionId}`);
   redirect("/history");
+}
+
+export async function removeSetAction(formData: FormData) {
+  const user = await requireUser();
+  const setId = parseString(formData, "setId");
+
+  if (!setId) {
+    return;
+  }
+
+  const setRecord = await requireSetForOpenSession(user.id, setId);
+
+  await db.transaction(async (tx) => {
+    const entrySets = await tx
+      .select({
+        id: workoutSets.id,
+        setNumber: workoutSets.setNumber,
+      })
+      .from(workoutSets)
+      .where(eq(workoutSets.workoutExerciseEntryId, setRecord.entryId))
+      .orderBy(workoutSets.setNumber);
+
+    if (entrySets.length <= 1) {
+      return;
+    }
+
+    await tx.delete(workoutSets).where(eq(workoutSets.id, setId));
+
+    const remainingSets = entrySets.filter((set) => set.id !== setId);
+
+    for (const [index, set] of remainingSets.entries()) {
+      const nextSetNumber = index + 1;
+
+      if (set.setNumber === nextSetNumber) {
+        continue;
+      }
+
+      await tx
+        .update(workoutSets)
+        .set({
+          setNumber: nextSetNumber,
+        })
+        .where(eq(workoutSets.id, set.id));
+    }
+  });
+
+  revalidatePath(`/workouts/${setRecord.sessionId}`);
+}
+
+export async function removeExerciseEntryAction(formData: FormData) {
+  const user = await requireUser();
+  const entryId = parseString(formData, "entryId");
+
+  if (!entryId) {
+    return;
+  }
+
+  const entry = await requireEntryForOpenSession(user.id, entryId);
+
+  await db.transaction(async (tx) => {
+    const sessionEntries = await tx
+      .select({
+        id: workoutExerciseEntries.id,
+        sortOrder: workoutExerciseEntries.sortOrder,
+      })
+      .from(workoutExerciseEntries)
+      .where(eq(workoutExerciseEntries.workoutSessionId, entry.sessionId))
+      .orderBy(workoutExerciseEntries.sortOrder);
+
+    await tx
+      .delete(workoutExerciseEntries)
+      .where(eq(workoutExerciseEntries.id, entryId));
+
+    const remainingEntries = sessionEntries.filter(
+      (sessionEntry) => sessionEntry.id !== entryId,
+    );
+
+    for (const [index, sessionEntry] of remainingEntries.entries()) {
+      const nextSortOrder = index + 1;
+
+      if (sessionEntry.sortOrder === nextSortOrder) {
+        continue;
+      }
+
+      await tx
+        .update(workoutExerciseEntries)
+        .set({
+          sortOrder: nextSortOrder,
+        })
+        .where(eq(workoutExerciseEntries.id, sessionEntry.id));
+    }
+  });
+
+  revalidatePath(`/workouts/${entry.sessionId}`);
 }
