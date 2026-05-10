@@ -7,8 +7,7 @@ import { redirect } from "next/navigation";
 
 import { db } from "@/db/client";
 import { sessions, users } from "@/db/schema";
-
-const SESSION_COOKIE_NAME = "liftlog_session";
+import { SESSION_COOKIE_NAME } from "./constants";
 const SESSION_TTL_DAYS = Number(process.env.SESSION_TTL_DAYS ?? "30");
 const SESSION_TTL_MS = SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
 

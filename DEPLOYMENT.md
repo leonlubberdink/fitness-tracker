@@ -57,6 +57,8 @@ docker compose logs -f db
 
 The app is bound to `127.0.0.1:3000`. Put Caddy or Nginx in front of it for TLS and public access.
 
+Backup and restore commands are documented in [BACKUPS.md](/d:/Projects/Coding/fitness-app/BACKUPS.md).
+
 ## 3. Seed the first login user
 
 Create or update a seeded user inside the running app container:

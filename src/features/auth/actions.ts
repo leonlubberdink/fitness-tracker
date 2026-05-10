@@ -15,6 +15,12 @@ import {
   readSessionToken,
 } from "./session";
 import { verifyPassword } from "./password";
+import {
+  checkLoginRateLimit,
+  clearLoginRateLimit,
+  getClientIpAddress,
+  recordFailedLoginAttempt,
+} from "./rate-limit";
 import type { LoginActionState } from "./state";
 import { loginSchema } from "./validation";
 
@@ -57,6 +63,18 @@ export async function loginAction(
 
   const email = normalizeEmail(parsedInput.data.email);
   const password = parsedInput.data.password;
+  const ipAddress = await getClientIpAddress();
+  const rateLimitStatus = await checkLoginRateLimit(ipAddress, email);
+
+  if (rateLimitStatus.blocked) {
+    return {
+      error: `Too many login attempts. Try again in about ${rateLimitStatus.retryAfterMinutes} minute${rateLimitStatus.retryAfterMinutes === 1 ? "" : "s"}.`,
+      fieldErrors: {},
+      values: {
+        email,
+      },
+    };
+  }
 
   const [user] = await db
     .select({
@@ -70,6 +88,8 @@ export async function loginAction(
     .limit(1);
 
   if (!user || !user.isActive) {
+    await recordFailedLoginAttempt(ipAddress, email);
+
     return {
       error: "Invalid email or password.",
       fieldErrors: {},
@@ -82,6 +102,8 @@ export async function loginAction(
   const passwordMatches = await verifyPassword(password, user.passwordHash);
 
   if (!passwordMatches) {
+    await recordFailedLoginAttempt(ipAddress, email);
+
     return {
       error: "Invalid email or password.",
       fieldErrors: {},
@@ -99,6 +121,7 @@ export async function loginAction(
     })
     .where(eq(users.id, user.id));
 
+  await clearLoginRateLimit(ipAddress, email);
   await createUserSession(user.id);
   revalidatePath("/", "layout");
   redirect("/");

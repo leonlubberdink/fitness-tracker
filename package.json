@@ -12,6 +12,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:runtime": "node scripts/run-migrations.mjs",
+    "db:backup": "node scripts/backup-db.mjs",
+    "db:restore": "node scripts/restore-db.mjs",
     "users:seed": "node --env-file-if-exists=.env --import tsx scripts/seed-user.ts"
   },
   "dependencies": {
