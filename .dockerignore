@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+.env
+.env.local
+.env.*.local
+tsconfig.tsbuildinfo
+npm-debug.log
+pnpm-debug.log

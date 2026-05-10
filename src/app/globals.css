@@ -8,6 +8,11 @@
   --border: rgba(23, 18, 15, 0.12);
   --accent: #186045;
   --accent-foreground: #f6f1e8;
+  --app-font-sans:
+    "Segoe UI", "Aptos", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+  --app-font-mono:
+    "Cascadia Code", "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
 }
 
 @theme inline {
@@ -18,8 +23,8 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--app-font-sans);
+  --font-mono: var(--app-font-mono);
 }
 
 * {
@@ -36,7 +41,7 @@ body {
     radial-gradient(circle at top, rgba(24, 96, 69, 0.14), transparent 32%),
     linear-gradient(180deg, #f8f2e8 0%, var(--background) 50%, #efe7db 100%);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--app-font-sans);
 }
 
 a {

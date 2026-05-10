@@ -261,3 +261,27 @@ export async function updateSetAction(formData: FormData) {
 
   revalidatePath(`/workouts/${setRecord.sessionId}`);
 }
+
+export async function completeWorkoutSessionAction(formData: FormData) {
+  const user = await requireUser();
+  const sessionId = parseString(formData, "sessionId");
+
+  if (!sessionId) {
+    return;
+  }
+
+  await requireOpenSession(user.id, sessionId);
+
+  await db
+    .update(workoutSessions)
+    .set({
+      completedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(workoutSessions.id, sessionId));
+
+  revalidatePath("/");
+  revalidatePath("/history");
+  revalidatePath(`/workouts/${sessionId}`);
+  redirect("/history");
+}

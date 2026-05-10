@@ -5,6 +5,7 @@ import { requireUser } from "@/features/auth/session";
 import {
   addExerciseEntryAction,
   addSetAction,
+  completeWorkoutSessionAction,
   updateSetAction,
 } from "@/features/workouts/actions";
 import { requireWorkoutSessionForLogging } from "@/features/workouts/queries";
@@ -68,6 +69,21 @@ export default async function WorkoutPage({ params }: WorkoutPageProps) {
             >
               Exercises
             </Link>
+            <Link
+              href="/history"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
+            >
+              History
+            </Link>
+            <form action={completeWorkoutSessionAction}>
+              <input type="hidden" name="sessionId" value={session.id} />
+              <button
+                type="submit"
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground shadow-[0_14px_30px_rgba(24,96,69,0.18)]"
+              >
+                Finish workout
+              </button>
+            </form>
             <form action={logoutAction}>
               <button
                 type="submit"

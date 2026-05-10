@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { db } from "@/db/client";
@@ -148,4 +148,143 @@ export async function requireWorkoutSessionForLogging(
   }
 
   return session;
+}
+
+type CompletedWorkoutSessionRow = {
+  id: string;
+  performedOn: string;
+  startedAt: Date;
+  completedAt: Date | null;
+};
+
+type CompletedWorkoutEntry = ReturnType<typeof groupEntriesWithSets>[number];
+
+type CompletedWorkoutSession = CompletedWorkoutSessionRow & {
+  exerciseCount: number;
+  totalSets: number;
+  entries: CompletedWorkoutEntry[];
+};
+
+export async function getCompletedWorkoutHistoryForUser(
+  userId: string,
+  limit = 30,
+) {
+  const sessionRows = await db
+    .select({
+      id: workoutSessions.id,
+      performedOn: workoutSessions.performedOn,
+      startedAt: workoutSessions.startedAt,
+      completedAt: workoutSessions.completedAt,
+    })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.userId, userId),
+        isNotNull(workoutSessions.completedAt),
+      ),
+    )
+    .orderBy(
+      desc(workoutSessions.performedOn),
+      desc(workoutSessions.startedAt),
+      desc(workoutSessions.id),
+    )
+    .limit(limit);
+
+  if (sessionRows.length === 0) {
+    return [];
+  }
+
+  const sessionIds = sessionRows.map((session) => session.id);
+
+  const [entryRows, setRows] = await Promise.all([
+    db
+      .select({
+        id: workoutExerciseEntries.id,
+        workoutSessionId: workoutExerciseEntries.workoutSessionId,
+        exerciseId: workoutExerciseEntries.exerciseId,
+        exerciseNameSnapshot: workoutExerciseEntries.exerciseNameSnapshot,
+        exerciseCategorySnapshot:
+          workoutExerciseEntries.exerciseCategorySnapshot,
+        unitSnapshot: workoutExerciseEntries.unitSnapshot,
+        sortOrder: workoutExerciseEntries.sortOrder,
+        createdAt: workoutExerciseEntries.createdAt,
+      })
+      .from(workoutExerciseEntries)
+      .where(inArray(workoutExerciseEntries.workoutSessionId, sessionIds))
+      .orderBy(
+        desc(workoutExerciseEntries.workoutSessionId),
+        asc(workoutExerciseEntries.sortOrder),
+      ),
+    db
+      .select({
+        id: workoutSets.id,
+        workoutExerciseEntryId: workoutSets.workoutExerciseEntryId,
+        setNumber: workoutSets.setNumber,
+        reps: workoutSets.reps,
+        weight: workoutSets.weight,
+        createdAt: workoutSets.createdAt,
+      })
+      .from(workoutSets)
+      .innerJoin(
+        workoutExerciseEntries,
+        eq(workoutSets.workoutExerciseEntryId, workoutExerciseEntries.id),
+      )
+      .where(inArray(workoutExerciseEntries.workoutSessionId, sessionIds))
+      .orderBy(
+        desc(workoutExerciseEntries.workoutSessionId),
+        asc(workoutExerciseEntries.sortOrder),
+        asc(workoutSets.setNumber),
+      ),
+  ]);
+
+  const entriesWithSets = groupEntriesWithSets(entryRows, setRows);
+  const entriesBySessionId = new Map<string, CompletedWorkoutEntry[]>();
+
+  for (const entry of entriesWithSets) {
+    const sessionEntries =
+      entriesBySessionId.get(entry.workoutSessionId) ?? [];
+    sessionEntries.push(entry);
+    entriesBySessionId.set(entry.workoutSessionId, sessionEntries);
+  }
+
+  const completedSessions: CompletedWorkoutSession[] = sessionRows.map(
+    (session) => {
+      const entries = entriesBySessionId.get(session.id) ?? [];
+      const totalSets = entries.reduce(
+        (count, entry) => count + entry.sets.length,
+        0,
+      );
+
+      return {
+        ...session,
+        entries,
+        exerciseCount: entries.length,
+        totalSets,
+      };
+    },
+  );
+
+  const historyByDate = new Map<
+    string,
+    {
+      performedOn: string;
+      sessions: CompletedWorkoutSession[];
+    }
+  >();
+
+  for (const session of completedSessions) {
+    const dateGroup = historyByDate.get(session.performedOn);
+
+    if (dateGroup) {
+      dateGroup.sessions.push(session);
+      continue;
+    }
+
+    historyByDate.set(session.performedOn, {
+      performedOn: session.performedOn,
+      sessions: [session],
+    });
+  }
+
+  return Array.from(historyByDate.values());
 }

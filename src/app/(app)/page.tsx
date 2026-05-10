@@ -88,6 +88,22 @@ export default async function Home() {
             </p>
           </Link>
 
+          <Link
+            href="/history"
+            className="rounded-[1.75rem] border border-border bg-surface px-5 py-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)] transition-transform hover:-translate-y-0.5"
+          >
+            <div className="text-sm font-medium uppercase tracking-[0.16em] text-muted">
+              Review
+            </div>
+            <div className="mt-2 text-xl font-semibold text-foreground">
+              Workout History
+            </div>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Open completed sessions by date and inspect the exercises and
+              sets you logged.
+            </p>
+          </Link>
+
           <form
             action={logoutAction}
             className="rounded-[1.75rem] border border-border bg-surface px-5 py-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)] lg:col-span-2"
