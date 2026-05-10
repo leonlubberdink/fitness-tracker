@@ -2,125 +2,118 @@
 
 ## Overview
 
-This app ships with a simple three-container deployment:
+This repo is ready for a simple VPS deployment with three containers:
 
-- `caddy`: public HTTPS reverse proxy with automatic certificates
+- `caddy`: public reverse proxy with automatic HTTPS
 - `app`: Next.js production server
 - `db`: PostgreSQL 17 with a named Docker volume
 
-The app runs database migrations automatically every time the container starts.
+The app runs database migrations on container startup, and the included GitHub Actions workflow can deploy every push to `master` over SSH.
 
-## 1. Prepare the server
+## 1. Point the domain
 
-Install Docker Engine and Docker Compose on your VPS.
+For `fit.leonlubberdink.com`, create this DNS record before the first deploy:
 
-Clone the repository onto the server, then create the production env file:
+- type: `A`
+- name/host: `fit`
+- value: your VPS public IPv4 address
+
+If your VPS also has IPv6, add an `AAAA` record for `fit` as well.
+
+Then make sure the VPS firewall allows:
+
+- `22/tcp` for SSH
+- `80/tcp` for HTTP
+- `443/tcp` for HTTPS
+
+Caddy will request the TLS certificate automatically once the domain resolves to the VPS.
+
+## 2. Prepare the VPS
+
+Install Docker Engine, Docker Compose, and Git on the VPS. Then clone the repository into a stable app directory such as `/srv/fitness-tracker`:
 
 ```bash
+git clone https://github.com/leonlubberdink/fitness-tracker.git /srv/fitness-tracker
+cd /srv/fitness-tracker
 cp .env.example .env
 ```
 
-Update these values in `.env`:
-
-- `POSTGRES_PASSWORD`
-- `APP_DOMAIN`
-- `APP_URL`
-- `SESSION_TTL_DAYS` if you want a non-default session lifetime
-
-Keep the host-side `DATABASE_URL` for local scripts and ad-hoc maintenance commands:
+Update `.env` for production:
 
 ```env
-DATABASE_URL=postgresql://fitness_app:your-strong-password@localhost:5432/fitness_app
+POSTGRES_PASSWORD=use-a-strong-password
+DATABASE_URL=postgresql://fitness_app:use-a-strong-password@localhost:5432/fitness_app
+APP_DOMAIN=fit.leonlubberdink.com
+APP_URL=https://fit.leonlubberdink.com
+SESSION_TTL_DAYS=30
 ```
 
-Inside Docker Compose:
-
-- the app container connects to the `db` service using `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`
-- the `caddy` service terminates HTTPS and proxies traffic to the internal `app` service
-
-Set the public URL to your real HTTPS domain:
-
-```env
-APP_DOMAIN=fitness.example.com
-APP_URL=https://fitness.example.com
-```
-
-Before starting the stack, point your domain’s DNS A record at the VPS public IP address.
-
-## 2. Start the stack
-
-Build and start Caddy, the app, and the database:
+Start the stack once manually:
 
 ```bash
 docker compose up -d --build
-```
-
-Check container status:
-
-```bash
 docker compose ps
 ```
 
-Stream logs:
+Check that the site is live:
 
 ```bash
-docker compose logs -f caddy
-docker compose logs -f app
-docker compose logs -f db
+curl https://fit.leonlubberdink.com/api/health
 ```
 
-Useful operational checks:
-
-```bash
-curl https://fitness.example.com/api/health
-docker compose logs -f app
-```
-
-The app container emits structured JSON logs for:
-
-- login success
-- login failure
-- login rate-limit blocks
-- logout
-- workout completion
-
-Only Caddy is exposed publicly on ports `80` and `443`. The Next.js app stays on the internal Docker network.
-
-On the first startup, Caddy will request and store TLS certificates automatically. If certificate issuance fails, check:
-
-- the domain resolves to the VPS
-- ports `80` and `443` are open on the VPS firewall
-- no other process is already using those ports
+If the first HTTPS request fails, verify DNS, ports `80` and `443`, and that nothing else is already bound to those ports.
 
 Backup and restore commands are documented in [BACKUPS.md](/d:/Projects/Coding/fitness-app/BACKUPS.md).
 
 ## 3. Seed the first login user
 
-Create or update a seeded user inside the running app container:
+Create the first user inside the running app container:
 
 ```bash
 docker compose exec app node --import tsx scripts/seed-user.ts --email you@example.com --password "change-this-password"
 ```
 
-Only seeded users can log in. There is no public signup flow in v1.
+Only seeded users can log in.
 
-## 4. Update the app
+## 4. Enable GitHub deployment
 
-Deploy new changes with:
+This repo now includes `.github/workflows/deploy.yml`. It deploys on every push to `master` and can also be run manually from the Actions tab.
+
+Create a GitHub environment named `production`, then add these environment secrets:
+
+- `VPS_HOST`: your server IP or hostname
+- `VPS_USER`: the SSH user that owns `/srv/fitness-tracker`
+- `VPS_PORT`: usually `22`
+- `VPS_APP_DIR`: the absolute deploy path, for example `/srv/fitness-tracker`
+- `VPS_SSH_KEY`: the private SSH key GitHub Actions should use
+- `VPS_KNOWN_HOSTS`: the server host key line from `ssh-keyscan -H your-server`
+- `APP_URL`: `https://fit.leonlubberdink.com`
+
+The workflow SSHes into the VPS and runs [scripts/deploy-vps.sh](/d:/Projects/Coding/fitness-app/scripts/deploy-vps.sh), which:
+
+- verifies the deploy directory is clean
+- pulls the latest `master`
+- rebuilds the containers with `docker compose up -d --build --remove-orphans`
+- waits for the app healthcheck to pass
+
+Because the current `origin` remote is public HTTPS, the VPS can pull updates without extra GitHub credentials. If you later make the repository private, switch the server remote to SSH and add a read-only deploy key on the VPS.
+
+## 5. Day-to-day operations
+
+Useful commands on the VPS:
 
 ```bash
-docker compose up -d --build
+docker compose ps
+docker compose logs -f caddy
+docker compose logs -f app
+docker compose logs -f db
 ```
 
-Because the app runs migrations on startup, schema changes are applied during deployment.
-
-If you change the proxy config, restart Caddy as well:
+Manual redeploy:
 
 ```bash
-docker compose up -d caddy
+APP_DIR=/srv/fitness-tracker BRANCH=master bash scripts/deploy-vps.sh
 ```
-
-## 5. Stop or remove the stack
 
 Stop containers:
 

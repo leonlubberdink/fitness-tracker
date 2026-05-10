@@ -3,7 +3,7 @@ services:
     image: caddy:2.10
     depends_on:
       app:
-        condition: service_started
+        condition: service_healthy
     environment:
       APP_DOMAIN: ${APP_DOMAIN:-localhost}
     ports:
@@ -31,6 +31,18 @@ services:
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
     expose:
       - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   db:
