@@ -1,8 +1,8 @@
 import CheckCircleRounded from "@mui/icons-material/CheckCircleRounded";
+import AddBoxRounded from "@mui/icons-material/AddBoxRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
-import NorthEastRounded from "@mui/icons-material/NorthEastRounded";
 import RepeatRounded from "@mui/icons-material/RepeatRounded";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -150,43 +150,43 @@ function SetEditor({
         <input type="hidden" name="setId" value={set.id} />
 
         <Stack spacing={1.5}>
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={0}
+            alignItems="flex-start"
+            sx={{ columnGap: 1.75 }}
+          >
             <Chip
               label={`Set ${set.setNumber}`}
               color={emphasize ? "primary" : "default"}
               variant="outlined"
+              sx={{ mt: 1, flexShrink: 0 }}
             />
-            {emphasize ? (
-              <Typography variant="caption" color="primary.light">
-                current input row
-              </Typography>
-            ) : null}
+            <Grid container spacing={1.25} sx={{ flex: 1, minWidth: 0 }}>
+              <Grid size={6}>
+                <TextField
+                  fullWidth
+                  label="Reps"
+                  name="reps"
+                  type="number"
+                  inputProps={{ min: 1, step: 1, inputMode: "numeric" }}
+                  defaultValue={set.reps}
+                  required
+                />
+              </Grid>
+              <Grid size={6}>
+                <TextField
+                  fullWidth
+                  label={entry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"}
+                  name="weight"
+                  type="number"
+                  inputProps={{ min: 0, step: 0.5, inputMode: "decimal" }}
+                  defaultValue={set.weight}
+                  required
+                />
+              </Grid>
+            </Grid>
           </Stack>
-
-          <Grid container spacing={1.25}>
-            <Grid size={6}>
-              <TextField
-                fullWidth
-                label="Reps"
-                name="reps"
-                type="number"
-                inputProps={{ min: 1, step: 1, inputMode: "numeric" }}
-                defaultValue={set.reps}
-                required
-              />
-            </Grid>
-            <Grid size={6}>
-              <TextField
-                fullWidth
-                label={entry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"}
-                name="weight"
-                type="number"
-                inputProps={{ min: 0, step: 0.5, inputMode: "decimal" }}
-                defaultValue={set.weight}
-                required
-              />
-            </Grid>
-          </Grid>
 
           <Stack direction="row" spacing={1}>
             <Button type="submit" variant="contained" sx={{ flex: 1 }}>
@@ -428,7 +428,7 @@ export default async function WorkoutPage({
               <Button
                 type="submit"
                 variant="outlined"
-                startIcon={<NorthEastRounded />}
+                startIcon={<AddBoxRounded />}
                 fullWidth
               >
                 Log next set
