@@ -33,8 +33,8 @@ export function AppShell({ children, email, workoutHref }: AppShellProps) {
           <Toolbar
             disableGutters
             sx={{
-              minHeight: 76,
-              gap: 2,
+              minHeight: 72,
+              gap: 1.5,
               pt: "max(4px, env(safe-area-inset-top))",
             }}
           >
@@ -67,6 +67,7 @@ export function AppShell({ children, email, workoutHref }: AppShellProps) {
                 sx={{
                   border: `1px solid ${alpha("#d7e1e7", 0.08)}`,
                   bgcolor: alpha("#ffffff", 0.02),
+                  borderRadius: "10px",
                 }}
               >
                 <LogoutRounded />
@@ -81,7 +82,7 @@ export function AppShell({ children, email, workoutHref }: AppShellProps) {
         component="main"
         sx={{
           px: 2,
-          pt: 3,
+          pt: 2.5,
           pb: "calc(104px + env(safe-area-inset-bottom))",
         }}
       >

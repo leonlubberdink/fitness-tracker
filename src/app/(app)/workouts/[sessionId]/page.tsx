@@ -1,6 +1,7 @@
 import CheckCircleRounded from "@mui/icons-material/CheckCircleRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
+import NorthEastRounded from "@mui/icons-material/NorthEastRounded";
 import RepeatRounded from "@mui/icons-material/RepeatRounded";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -94,6 +95,8 @@ export default async function WorkoutPage({
     (count, entry) => count + entry.sets.length,
     0,
   );
+  const currentEntry = session.entries.at(-1) ?? null;
+  const displayEntries = [...session.entries].reverse();
 
   return (
     <Stack spacing={2.5}>
@@ -103,7 +106,7 @@ export default async function WorkoutPage({
         </Alert>
       ) : null}
 
-      <Paper elevation={0} sx={{ borderRadius: "16px", px: 3, py: 3.5 }}>
+      <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
         <Stack spacing={2.5}>
           <Stack spacing={1.5}>
             <Chip
@@ -119,11 +122,55 @@ export default async function WorkoutPage({
             </Typography>
           </Stack>
 
+          {currentEntry ? (
+            <Paper
+              elevation={0}
+              sx={{
+                px: 2,
+                py: 1.75,
+                borderRadius: "8px",
+                bgcolor: "rgba(139,194,172,0.08)",
+                borderColor: "rgba(139,194,172,0.18)",
+              }}
+            >
+              <Stack spacing={1}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="flex-start"
+                  spacing={1}
+                >
+                  <Stack spacing={0.5} minWidth={0}>
+                    <Typography variant="overline" color="primary.light">
+                      Current exercise
+                    </Typography>
+                    <Typography variant="h3">{currentEntry.exerciseNameSnapshot}</Typography>
+                  </Stack>
+                  <Chip
+                    label={`${currentEntry.sets.length} logged`}
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                  />
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  {currentEntry.previousSet
+                    ? `Last completed: ${formatPreviousSet(currentEntry.previousSet)}`
+                    : "No completed history for this exercise yet."}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Next likely action: log the next set here, or add the next
+                  exercise when this block is done.
+                </Typography>
+              </Stack>
+            </Paper>
+          ) : null}
+
           <Grid container spacing={1.5}>
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: "12px", bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Exercises
@@ -134,7 +181,7 @@ export default async function WorkoutPage({
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: "12px", bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Sets
@@ -145,7 +192,7 @@ export default async function WorkoutPage({
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: "12px", bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Started
@@ -172,20 +219,20 @@ export default async function WorkoutPage({
         </Stack>
       </Paper>
 
-      <Paper elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 2.5 }}>
+      <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
         <Stack spacing={2.5}>
           <Stack spacing={0.75}>
             <Typography variant="h3">Add the next exercise</Typography>
             <Typography color="text.secondary">
               Search your library, choose the next movement, and let the first
-              set appear automatically.
+              set appear automatically so you can keep the flow moving.
             </Typography>
           </Stack>
 
           {session.exerciseOptions.length === 0 ? (
             <Paper
               elevation={0}
-              sx={{ borderRadius: "12px", px: 2, py: 2.5, bgcolor: "rgba(255,255,255,0.02)" }}
+              sx={{ borderRadius: "8px", px: 2, py: 2.5, bgcolor: "rgba(255,255,255,0.02)" }}
             >
               <Stack spacing={1}>
                 <Typography variant="h3" sx={{ fontSize: "1rem" }}>
@@ -211,13 +258,19 @@ export default async function WorkoutPage({
       </Paper>
 
       <Stack spacing={1.5}>
-        <Stack direction="row" spacing={1} alignItems="center" px={0.5}>
-          <InsightsRounded color="primary" />
-          <Typography variant="h3">Exercise entries</Typography>
+        <Stack spacing={0.5} px={0.5}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <InsightsRounded color="primary" />
+            <Typography variant="h3">Logged exercises</Typography>
+          </Stack>
+          <Typography variant="caption" color="text.secondary">
+            Most recent exercise first, so the current block stays closest to
+            your thumb.
+          </Typography>
         </Stack>
 
         {session.entries.length === 0 ? (
-          <Paper elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 3 }}>
+          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.5 }}>
             <Stack spacing={0.75}>
               <Typography variant="h3">Nothing logged yet.</Typography>
               <Typography color="text.secondary">
@@ -227,8 +280,23 @@ export default async function WorkoutPage({
           </Paper>
         ) : (
           <Stack spacing={1.5}>
-            {session.entries.map((entry) => (
-              <Paper key={entry.id} elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 2.5 }}>
+            {displayEntries.map((entry) => {
+              const isCurrent = currentEntry?.id === entry.id;
+
+              return (
+              <Paper
+                key={entry.id}
+                elevation={0}
+                sx={{
+                  borderRadius: "10px",
+                  px: 2,
+                  py: 2.25,
+                  bgcolor: isCurrent ? "rgba(139,194,172,0.05)" : undefined,
+                  borderColor: isCurrent
+                    ? "rgba(139,194,172,0.16)"
+                    : undefined,
+                }}
+              >
                 <Stack spacing={2}>
                   <Stack spacing={1.25}>
                     <Stack
@@ -238,7 +306,23 @@ export default async function WorkoutPage({
                       spacing={1}
                     >
                       <Stack spacing={0.5} minWidth={0}>
-                        <Typography variant="h3">{entry.exerciseNameSnapshot}</Typography>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          flexWrap="wrap"
+                          useFlexGap
+                        >
+                          <Typography variant="h3">{entry.exerciseNameSnapshot}</Typography>
+                          {isCurrent ? (
+                            <Chip
+                              label="Current"
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          ) : null}
+                        </Stack>
                         <Typography color="text.secondary">
                           {entry.exerciseCategorySnapshot} · {formatUnit(entry.unitSnapshot)}
                         </Typography>
@@ -252,7 +336,7 @@ export default async function WorkoutPage({
                           variant="text"
                           color="inherit"
                           startIcon={<DeleteOutlineRounded />}
-                          sx={{ color: "text.secondary" }}
+                          sx={{ color: "text.secondary", minWidth: 0, px: 1 }}
                         >
                           Remove
                         </Button>
@@ -262,7 +346,7 @@ export default async function WorkoutPage({
                     <Paper
                       elevation={0}
                       sx={{
-                        borderRadius: "12px",
+                        borderRadius: "8px",
                         px: 1.75,
                         py: 1.5,
                         bgcolor: "rgba(255,255,255,0.02)",
@@ -287,8 +371,8 @@ export default async function WorkoutPage({
                         key={set.id}
                         elevation={0}
                         sx={{
-                          p: 1.75,
-                          borderRadius: "12px",
+                          p: 1.5,
+                          borderRadius: "8px",
                           bgcolor: "rgba(255,255,255,0.03)",
                         }}
                       >
@@ -308,16 +392,6 @@ export default async function WorkoutPage({
                                 color="primary"
                                 variant="outlined"
                               />
-                              {entry.previousSet ? (
-                                <Typography variant="caption" color="text.secondary">
-                                  Last: {entry.previousSet.reps} reps ·{" "}
-                                  {entry.previousSet.unit === "bodyweight"
-                                    ? entry.previousSet.weight === 0
-                                      ? "BW"
-                                      : `${entry.previousSet.weight} BW`
-                                    : `${entry.previousSet.weight} kg`}
-                                </Typography>
-                              ) : null}
                             </Stack>
 
                             <Grid container spacing={1.25}>
@@ -346,7 +420,7 @@ export default async function WorkoutPage({
                             </Grid>
 
                             <Stack direction="row" spacing={1}>
-                              <Button type="submit" variant="contained" fullWidth>
+                              <Button type="submit" variant="contained" sx={{ flex: 1 }}>
                                 Save set
                               </Button>
 
@@ -357,7 +431,7 @@ export default async function WorkoutPage({
                                   formNoValidate
                                   variant="outlined"
                                   color="inherit"
-                                  fullWidth
+                                  sx={{ minWidth: 88 }}
                                 >
                                   Delete
                                 </Button>
@@ -375,15 +449,16 @@ export default async function WorkoutPage({
                     <Button
                       type="submit"
                       variant="outlined"
-                      startIcon={<RepeatRounded />}
+                      startIcon={isCurrent ? <NorthEastRounded /> : <RepeatRounded />}
                       fullWidth
                     >
-                      Add set
+                      {isCurrent ? "Log next set" : "Add set"}
                     </Button>
                   </form>
                 </Stack>
               </Paper>
-            ))}
+              );
+            })}
           </Stack>
         )}
       </Stack>

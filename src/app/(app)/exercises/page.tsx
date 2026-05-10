@@ -35,7 +35,7 @@ export default async function ExercisesPage({
 
   return (
     <Stack spacing={2.5}>
-      <Paper elevation={0} sx={{ borderRadius: "16px", px: 3, py: 3.5 }}>
+      <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
         <Stack spacing={1.5}>
           <Chip
             label="Reusable exercise library"
@@ -53,7 +53,7 @@ export default async function ExercisesPage({
 
       <Grid container spacing={1.5}>
         <Grid size={{ xs: 12, md: 5 }}>
-          <Paper elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 2.5 }}>
+          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
             <Stack spacing={2.5}>
               <Stack spacing={0.75}>
                 <Typography variant="h3">Create exercise</Typography>
@@ -68,7 +68,7 @@ export default async function ExercisesPage({
         </Grid>
 
         <Grid size={{ xs: 12, md: 7 }}>
-          <Paper elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 2.5 }}>
+          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
             <Stack spacing={2.5}>
               <Stack spacing={1.5}>
                 <Stack spacing={0.75}>
@@ -101,7 +101,7 @@ export default async function ExercisesPage({
                 <Paper
                   elevation={0}
                   sx={{
-                    borderRadius: "12px",
+                    borderRadius: "8px",
                     px: 2,
                     py: 3,
                     bgcolor: "rgba(255,255,255,0.02)",
@@ -124,7 +124,7 @@ export default async function ExercisesPage({
                     <Paper
                       key={exercise.id}
                       elevation={0}
-                      sx={{ borderRadius: "12px", px: 2, py: 1.75 }}
+                      sx={{ borderRadius: "8px", px: 2, py: 1.75 }}
                     >
                       <ListItem disablePadding>
                         <ListItemText

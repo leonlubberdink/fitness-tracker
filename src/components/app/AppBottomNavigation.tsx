@@ -51,15 +51,15 @@ export function AppBottomNavigation({
         zIndex: (currentTheme) => currentTheme.zIndex.appBar,
       }}
     >
-        <Paper
+      <Paper
         elevation={0}
         sx={{
           width: "min(calc(100% - 24px), 420px)",
-          borderRadius: "16px",
+          borderRadius: "12px",
           overflow: "hidden",
-          borderColor: alpha("#d7e1e7", 0.08),
+          borderColor: alpha("#d7e1e7", 0.06),
           pointerEvents: "auto",
-          boxShadow: "0 22px 50px rgba(0, 0, 0, 0.35)",
+          boxShadow: "0 8px 22px rgba(0, 0, 0, 0.2)",
         }}
       >
         <BottomNavigation showLabels value={getNavValue(pathname)}>

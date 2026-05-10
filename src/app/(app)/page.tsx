@@ -51,9 +51,9 @@ export default async function Home() {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: "16px",
-          px: 3,
-          py: 3.5,
+          borderRadius: "12px",
+          px: 2.5,
+          py: 3,
         }}
       >
         <Stack spacing={2.5}>
@@ -85,7 +85,7 @@ export default async function Home() {
                     elevation={0}
                     sx={{
                       p: 1.75,
-                      borderRadius: "12px",
+                      borderRadius: "8px",
                       bgcolor: "rgba(255,255,255,0.02)",
                     }}
                   >
@@ -102,7 +102,7 @@ export default async function Home() {
                     elevation={0}
                     sx={{
                       p: 1.75,
-                      borderRadius: "12px",
+                      borderRadius: "8px",
                       bgcolor: "rgba(255,255,255,0.02)",
                     }}
                   >
@@ -119,7 +119,7 @@ export default async function Home() {
                     elevation={0}
                     sx={{
                       p: 1.75,
-                      borderRadius: "12px",
+                      borderRadius: "8px",
                       bgcolor: "rgba(255,255,255,0.02)",
                     }}
                   >
@@ -200,9 +200,9 @@ export default async function Home() {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: "14px",
-          px: 2.5,
-          py: 2.25,
+          borderRadius: "10px",
+          px: 2,
+          py: 2,
         }}
       >
         <Stack spacing={1.5}>

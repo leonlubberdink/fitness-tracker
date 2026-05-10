@@ -50,9 +50,9 @@ export default async function LoginPage() {
             component="section"
             elevation={0}
             sx={{
-              borderRadius: "14px",
-              px: 3,
-              py: 3.5,
+              borderRadius: "10px",
+              px: 2.5,
+              py: 3,
             }}
           >
             <Stack spacing={3}>

@@ -5,7 +5,7 @@ import { alpha, createTheme } from "@mui/material/styles";
 const theme = createTheme({
   cssVariables: true,
   shape: {
-    borderRadius: 10,
+    borderRadius: 8,
   },
   spacing: 4,
   palette: {
@@ -93,17 +93,17 @@ const theme = createTheme({
         body: {
           backgroundColor: "#0f1115",
           backgroundImage:
-            "radial-gradient(circle at top, rgba(139, 194, 172, 0.12), transparent 30%), linear-gradient(180deg, #101318 0%, #0f1115 46%, #0b0d11 100%)",
+            "radial-gradient(circle at top, rgba(139, 194, 172, 0.08), transparent 24%), linear-gradient(180deg, #101318 0%, #0f1115 52%, #0c0e12 100%)",
         },
       },
     },
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backdropFilter: "blur(18px)",
-          backgroundColor: "rgba(15, 17, 21, 0.82)",
+          backdropFilter: "blur(12px)",
+          backgroundColor: "rgba(15, 17, 21, 0.88)",
           backgroundImage: "none",
-          borderBottom: `1px solid ${alpha("#d7e1e7", 0.08)}`,
+          borderBottom: `1px solid ${alpha("#d7e1e7", 0.06)}`,
           boxShadow: "none",
         },
       },
@@ -111,9 +111,8 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundImage:
-            "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0))",
-          border: `1px solid ${alpha("#d7e1e7", 0.08)}`,
+          backgroundImage: "none",
+          border: `1px solid ${alpha("#d7e1e7", 0.06)}`,
         },
       },
     },
@@ -123,12 +122,12 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          minHeight: 48,
-          paddingInline: 18,
+          borderRadius: 10,
+          minHeight: 46,
+          paddingInline: 16,
         },
         containedPrimary: {
-          boxShadow: `0 18px 36px ${alpha("#8bc2ac", 0.18)}`,
+          boxShadow: `0 10px 24px ${alpha("#8bc2ac", 0.14)}`,
         },
       },
     },
@@ -140,26 +139,27 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 999,
+          borderRadius: 6,
+          height: 28,
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 14,
-          boxShadow: "0 20px 48px rgba(0, 0, 0, 0.18)",
+          borderRadius: 12,
+          boxShadow: "0 10px 28px rgba(0, 0, 0, 0.14)",
         },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          backgroundColor: alpha("#ffffff", 0.02),
+          borderRadius: 10,
+          backgroundColor: alpha("#ffffff", 0.015),
         },
         notchedOutline: {
-          borderColor: alpha("#d7e1e7", 0.12),
+          borderColor: alpha("#d7e1e7", 0.1),
         },
       },
     },
@@ -167,6 +167,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: alpha("#171b21", 0.92),
+          minHeight: 60,
         },
       },
     },
@@ -174,6 +175,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           minWidth: 64,
+          paddingTop: 8,
+          paddingBottom: 8,
           color: alpha("#f3f6f8", 0.52),
         },
       },
