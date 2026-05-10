@@ -12,6 +12,8 @@ import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import { getCompletedWorkoutHistoryForUser } from "@/features/workouts/queries";
 
+import { HistorySessionDeleteButton } from "./history-session-delete-button";
+
 function formatPerformedOn(performedOn: string) {
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "full",
@@ -39,11 +41,6 @@ function formatSetWeight(unit: "kg" | "bodyweight", weight: number) {
 export default async function HistoryPage() {
   const user = await requireUser();
   const historyGroups = await getCompletedWorkoutHistoryForUser(user.id);
-  const totalSessions = historyGroups.reduce(
-    (count, group) => count + group.sessions.length,
-    0,
-  );
-
   return (
     <Stack spacing={2.5}>
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
@@ -79,116 +76,136 @@ export default async function HistoryPage() {
 
               <Stack spacing={1}>
                 {group.sessions.map((session) => (
-                  <Accordion
+                  <Stack
                     key={session.id}
-                    disableGutters
-                    elevation={0}
-                    sx={{
-                      borderRadius: "10px",
-                      overflow: "hidden",
-                      "&:before": { display: "none" },
-                    }}
+                    direction="row"
+                    alignItems="flex-start"
+                    spacing={1}
                   >
-                    <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                      <Stack spacing={1} width="100%">
-                        <Typography variant="body1" fontWeight={700}>
-                          {formatTime(session.startedAt)} to{" "}
-                          {formatTime(session.completedAt)}
-                        </Typography>
+                    <HistorySessionDeleteButton sessionId={session.id} />
+                    <Accordion
+                      disableGutters
+                      elevation={0}
+                      sx={{
+                        flex: 1,
+                        borderRadius: "10px",
+                        overflow: "hidden",
+                        "&:before": { display: "none" },
+                      }}
+                    >
+                      <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                         <Stack
                           direction="row"
+                          alignItems="center"
+                          justifyContent="space-between"
                           spacing={1}
-                          flexWrap="wrap"
-                          useFlexGap
+                          width="100%"
+                          sx={{ minWidth: 0 }}
                         >
-                          <Chip
-                            label={`${session.exerciseCount} exercises`}
-                            size="small"
-                          />
-                          <Chip
-                            label={`${session.totalSets} sets`}
-                            size="small"
-                          />
-                        </Stack>
-                      </Stack>
-                    </AccordionSummary>
-
-                    <AccordionDetails>
-                      <Stack spacing={1.25}>
-                        {session.entries.map((entry) => (
-                          <Paper
-                            key={entry.id}
-                            elevation={0}
-                            sx={{
-                              borderRadius: "8px",
-                              px: 2,
-                              py: 1.75,
-                              bgcolor: "rgba(255,255,255,0.02)",
-                            }}
+                          <Typography
+                            variant="body1"
+                            fontWeight={700}
+                            noWrap
+                            sx={{ minWidth: 0 }}
                           >
-                            <Stack spacing={1.25}>
-                              <Stack spacing={0.5}>
-                                <Typography variant="body1" fontWeight={700}>
-                                  {entry.exerciseNameSnapshot}
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  {entry.exerciseCategorySnapshot} ·{" "}
-                                  {entry.unitSnapshot === "kg" ? "kg" : "BW"}
-                                </Typography>
-                              </Stack>
+                            {formatTime(session.startedAt)} to{" "}
+                            {formatTime(session.completedAt)}
+                          </Typography>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            flexShrink={0}
+                            useFlexGap
+                          >
+                            <Chip
+                              label={`${session.exerciseCount} exercises`}
+                              size="small"
+                            />
+                            <Chip
+                              label={`${session.totalSets} sets`}
+                              size="small"
+                            />
+                          </Stack>
+                        </Stack>
+                      </AccordionSummary>
 
-                              <Stack spacing={1}>
-                                {entry.sets.map((set) => (
-                                  <Paper
-                                    key={set.id}
-                                    elevation={0}
-                                    sx={{
-                                      px: 1.5,
-                                      py: 1.25,
-                                      borderRadius: "6px",
-                                      bgcolor: "rgba(255,255,255,0.03)",
-                                    }}
+                      <AccordionDetails>
+                        <Stack spacing={1.25}>
+                          {session.entries.map((entry) => (
+                            <Paper
+                              key={entry.id}
+                              elevation={0}
+                              sx={{
+                                borderRadius: "8px",
+                                px: 2,
+                                py: 1.75,
+                                bgcolor: "rgba(255,255,255,0.02)",
+                              }}
+                            >
+                              <Stack spacing={1.25}>
+                                <Stack spacing={0.5}>
+                                  <Typography variant="body1" fontWeight={700}>
+                                    {entry.exerciseNameSnapshot}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
                                   >
-                                    <Stack
-                                      direction="row"
-                                      justifyContent="space-between"
-                                      spacing={1}
-                                      alignItems="center"
+                                    {entry.exerciseCategorySnapshot} ·{" "}
+                                    {entry.unitSnapshot === "kg" ? "kg" : "BW"}
+                                  </Typography>
+                                </Stack>
+
+                                <Stack spacing={1}>
+                                  {entry.sets.map((set) => (
+                                    <Paper
+                                      key={set.id}
+                                      elevation={0}
+                                      sx={{
+                                        px: 1.5,
+                                        py: 1.25,
+                                        borderRadius: "6px",
+                                        bgcolor: "rgba(255,255,255,0.03)",
+                                      }}
                                     >
-                                      <Typography
-                                        variant="body2"
-                                        fontWeight={700}
+                                      <Stack
+                                        direction="row"
+                                        justifyContent="space-between"
+                                        spacing={1}
+                                        alignItems="center"
                                       >
-                                        Set {set.setNumber}
-                                      </Typography>
-                                      <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                      >
-                                        {set.reps} reps
-                                      </Typography>
-                                      <Typography
-                                        variant="body2"
-                                        fontWeight={700}
-                                      >
-                                        {formatSetWeight(
-                                          entry.unitSnapshot,
-                                          set.weight,
-                                        )}
-                                      </Typography>
-                                    </Stack>
-                                  </Paper>
-                                ))}
+                                        <Typography
+                                          variant="body2"
+                                          fontWeight={700}
+                                        >
+                                          Set {set.setNumber}
+                                        </Typography>
+                                        <Typography
+                                          variant="body2"
+                                          color="text.secondary"
+                                        >
+                                          {set.reps} reps
+                                        </Typography>
+                                        <Typography
+                                          variant="body2"
+                                          fontWeight={700}
+                                        >
+                                          {formatSetWeight(
+                                            entry.unitSnapshot,
+                                            set.weight,
+                                          )}
+                                        </Typography>
+                                      </Stack>
+                                    </Paper>
+                                  ))}
+                                </Stack>
                               </Stack>
-                            </Stack>
-                          </Paper>
-                        ))}
-                      </Stack>
-                    </AccordionDetails>
-                  </Accordion>
+                            </Paper>
+                          ))}
+                        </Stack>
+                      </AccordionDetails>
+                    </Accordion>
+                  </Stack>
                 ))}
               </Stack>
             </Stack>

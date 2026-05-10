@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -70,6 +70,25 @@ async function requireOpenSession(userId: string, sessionId: string) {
         eq(workoutSessions.id, sessionId),
         eq(workoutSessions.userId, userId),
         isNull(workoutSessions.completedAt),
+      ),
+    )
+    .limit(1);
+
+  return session ?? null;
+}
+
+async function requireCompletedSession(userId: string, sessionId: string) {
+  const [session] = await db
+    .select({
+      id: workoutSessions.id,
+      userId: workoutSessions.userId,
+    })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.id, sessionId),
+        eq(workoutSessions.userId, userId),
+        isNotNull(workoutSessions.completedAt),
       ),
     )
     .limit(1);
@@ -359,6 +378,35 @@ export async function completeWorkoutSessionAction(formData: FormData) {
   revalidatePath("/history");
   revalidatePath(`/workouts/${sessionId}`);
   redirect("/history");
+}
+
+export async function deleteCompletedWorkoutSessionAction(formData: FormData) {
+  const user = await requireUser();
+  const parsedInput = workoutSessionIdSchema.safeParse({
+    sessionId: getStringValue(formData, "sessionId"),
+  });
+
+  if (!parsedInput.success) {
+    redirect("/history");
+  }
+
+  const { sessionId } = parsedInput.data;
+  const session = await requireCompletedSession(user.id, sessionId);
+
+  if (!session) {
+    redirect("/history");
+  }
+
+  await db.delete(workoutSessions).where(eq(workoutSessions.id, sessionId));
+
+  logInfo("workout.session.deleted", {
+    userId: user.id,
+    sessionId,
+    source: "history",
+  });
+
+  revalidatePath("/");
+  revalidatePath("/history");
 }
 
 export async function removeSetAction(formData: FormData) {
