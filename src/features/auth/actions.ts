@@ -16,6 +16,7 @@ import {
 } from "./session";
 import { verifyPassword } from "./password";
 import type { LoginActionState } from "./state";
+import { loginSchema } from "./validation";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -27,21 +28,35 @@ export async function loginAction(
 ): Promise<LoginActionState> {
   const emailValue = formData.get("email");
   const passwordValue = formData.get("password");
+  const rawEmail = typeof emailValue === "string" ? emailValue : "";
 
   if (typeof emailValue !== "string" || typeof passwordValue !== "string") {
     return {
       error: "Enter your email and password.",
+      fieldErrors: {},
+      values: {
+        email: rawEmail.trim(),
+      },
     };
   }
 
-  const email = normalizeEmail(emailValue);
-  const password = passwordValue;
+  const parsedInput = loginSchema.safeParse({
+    email: emailValue,
+    password: passwordValue,
+  });
 
-  if (!email || !password) {
+  if (!parsedInput.success) {
     return {
-      error: "Enter your email and password.",
+      error: "Check the highlighted fields.",
+      fieldErrors: parsedInput.error.flatten().fieldErrors,
+      values: {
+        email: rawEmail.trim(),
+      },
     };
   }
+
+  const email = normalizeEmail(parsedInput.data.email);
+  const password = parsedInput.data.password;
 
   const [user] = await db
     .select({
@@ -57,6 +72,10 @@ export async function loginAction(
   if (!user || !user.isActive) {
     return {
       error: "Invalid email or password.",
+      fieldErrors: {},
+      values: {
+        email,
+      },
     };
   }
 
@@ -65,6 +84,10 @@ export async function loginAction(
   if (!passwordMatches) {
     return {
       error: "Invalid email or password.",
+      fieldErrors: {},
+      values: {
+        email,
+      },
     };
   }
 

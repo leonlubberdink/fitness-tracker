@@ -13,6 +13,9 @@ export function ExerciseCreateForm() {
     createExerciseAction,
     initialCreateExerciseActionState,
   );
+  const nameError = state.fieldErrors.name?.[0];
+  const categoryError = state.fieldErrors.category?.[0];
+  const defaultUnitError = state.fieldErrors.defaultUnit?.[0];
 
   return (
     <form action={formAction} className="space-y-4">
@@ -22,10 +25,15 @@ export function ExerciseCreateForm() {
           <input
             type="text"
             name="name"
+            defaultValue={state.values.name}
             placeholder="Barbell bench press"
-            className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none placeholder:text-muted"
+            aria-invalid={nameError ? "true" : "false"}
+            className={`w-full rounded-2xl bg-background px-4 py-3 text-sm outline-none placeholder:text-muted ${
+              nameError ? "border border-red-300" : "border border-border"
+            }`}
             required
           />
+          {nameError ? <p className="text-sm text-red-700">{nameError}</p> : null}
         </label>
 
         <label className="block space-y-2">
@@ -33,10 +41,17 @@ export function ExerciseCreateForm() {
           <input
             type="text"
             name="category"
+            defaultValue={state.values.category}
             placeholder="Chest"
-            className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none placeholder:text-muted"
+            aria-invalid={categoryError ? "true" : "false"}
+            className={`w-full rounded-2xl bg-background px-4 py-3 text-sm outline-none placeholder:text-muted ${
+              categoryError ? "border border-red-300" : "border border-border"
+            }`}
             required
           />
+          {categoryError ? (
+            <p className="text-sm text-red-700">{categoryError}</p>
+          ) : null}
         </label>
 
         <label className="block space-y-2">
@@ -45,8 +60,11 @@ export function ExerciseCreateForm() {
           </span>
           <select
             name="defaultUnit"
-            defaultValue="kg"
-            className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none"
+            defaultValue={state.values.defaultUnit}
+            aria-invalid={defaultUnitError ? "true" : "false"}
+            className={`w-full rounded-2xl bg-background px-4 py-3 text-sm outline-none ${
+              defaultUnitError ? "border border-red-300" : "border border-border"
+            }`}
           >
             {EXERCISE_UNITS.map((unit) => (
               <option key={unit} value={unit}>
@@ -54,6 +72,9 @@ export function ExerciseCreateForm() {
               </option>
             ))}
           </select>
+          {defaultUnitError ? (
+            <p className="text-sm text-red-700">{defaultUnitError}</p>
+          ) : null}
         </label>
       </div>
 

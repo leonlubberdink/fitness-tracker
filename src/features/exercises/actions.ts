@@ -9,18 +9,12 @@ import { db } from "@/db/client";
 import { exercises } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
 
-import { EXERCISE_UNITS, type CreateExerciseActionState } from "./state";
+import type { CreateExerciseActionState } from "./state";
+import { createExerciseSchema } from "./validation";
 
-function normalizeInput(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
-}
-
-function isExerciseUnit(value: string): value is (typeof EXERCISE_UNITS)[number] {
-  return EXERCISE_UNITS.includes(value as (typeof EXERCISE_UNITS)[number]);
+function getStringValue(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
 }
 
 export async function createExerciseAction(
@@ -29,23 +23,29 @@ export async function createExerciseAction(
 ): Promise<CreateExerciseActionState> {
   const user = await requireUser();
 
-  const name = normalizeInput(formData.get("name"));
-  const category = normalizeInput(formData.get("category"));
-  const defaultUnit = normalizeInput(formData.get("defaultUnit"));
+  const rawValues = {
+    name: getStringValue(formData, "name"),
+    category: getStringValue(formData, "category"),
+    defaultUnit: getStringValue(formData, "defaultUnit") || "kg",
+  };
 
-  if (!name || !category || !defaultUnit) {
+  const parsedInput = createExerciseSchema.safeParse(rawValues);
+
+  if (!parsedInput.success) {
     return {
-      error: "Name, category, and default unit are required.",
+      error: "Check the highlighted fields.",
       success: null,
+      fieldErrors: parsedInput.error.flatten().fieldErrors,
+      values: {
+        name: rawValues.name.trim(),
+        category: rawValues.category.trim(),
+        defaultUnit:
+          rawValues.defaultUnit === "bodyweight" ? "bodyweight" : "kg",
+      },
     };
   }
 
-  if (!isExerciseUnit(defaultUnit)) {
-    return {
-      error: "Choose a valid default unit.",
-      success: null,
-    };
-  }
+  const { name, category, defaultUnit } = parsedInput.data;
 
   const [existingExercise] = await db
     .select({
@@ -61,6 +61,12 @@ export async function createExerciseAction(
     return {
       error: "An exercise with that name already exists.",
       success: null,
+      fieldErrors: {},
+      values: {
+        name,
+        category,
+        defaultUnit,
+      },
     };
   }
 
@@ -77,5 +83,11 @@ export async function createExerciseAction(
   return {
     error: null,
     success: `Created ${name}.`,
+    fieldErrors: {},
+    values: {
+      name: "",
+      category: "",
+      defaultUnit: "kg",
+    },
   };
 }

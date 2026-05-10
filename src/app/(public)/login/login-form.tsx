@@ -10,6 +10,8 @@ export function LoginForm() {
     loginAction,
     initialLoginActionState,
   );
+  const emailError = state.fieldErrors.email?.[0];
+  const passwordError = state.fieldErrors.password?.[0];
 
   return (
     <form action={formAction} className="space-y-4">
@@ -20,9 +22,14 @@ export function LoginForm() {
           name="email"
           autoComplete="email"
           placeholder="you@example.com"
-          className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none placeholder:text-muted"
+          defaultValue={state.values.email}
+          aria-invalid={emailError ? "true" : "false"}
+          className={`w-full rounded-2xl bg-background px-4 py-3 text-sm outline-none placeholder:text-muted ${
+            emailError ? "border border-red-300" : "border border-border"
+          }`}
           required
         />
+        {emailError ? <p className="text-sm text-red-700">{emailError}</p> : null}
       </label>
 
       <label className="block space-y-2">
@@ -32,9 +39,15 @@ export function LoginForm() {
           name="password"
           autoComplete="current-password"
           placeholder="••••••••"
-          className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none placeholder:text-muted"
+          aria-invalid={passwordError ? "true" : "false"}
+          className={`w-full rounded-2xl bg-background px-4 py-3 text-sm outline-none placeholder:text-muted ${
+            passwordError ? "border border-red-300" : "border border-border"
+          }`}
           required
         />
+        {passwordError ? (
+          <p className="text-sm text-red-700">{passwordError}</p>
+        ) : null}
       </label>
 
       {state.error ? (

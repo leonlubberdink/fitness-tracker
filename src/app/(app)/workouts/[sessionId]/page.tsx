@@ -18,6 +18,9 @@ type WorkoutPageProps = {
   params: Promise<{
     sessionId: string;
   }>;
+  searchParams?: Promise<{
+    error?: string;
+  }>;
 };
 
 function formatWorkoutDate(performedOn: string) {
@@ -36,13 +39,24 @@ function formatUnit(unit: "kg" | "bodyweight") {
   return unit === "kg" ? "kg" : "BW";
 }
 
-export default async function WorkoutPage({ params }: WorkoutPageProps) {
+export default async function WorkoutPage({
+  params,
+  searchParams,
+}: WorkoutPageProps) {
   const user = await requireUser();
   const { sessionId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const session = await requireWorkoutSessionForLogging(user.id, sessionId);
+  const errorMessage = resolvedSearchParams?.error?.trim();
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-6 py-8 sm:max-w-4xl sm:px-8">
+      {errorMessage ? (
+        <div className="rounded-[1.5rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      ) : null}
+
       <section className="rounded-4xl border border-border bg-surface/90 p-6 shadow-[0_18px_60px_rgba(23,18,15,0.08)] backdrop-blur sm:p-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-3">
@@ -177,6 +191,7 @@ export default async function WorkoutPage({ params }: WorkoutPageProps) {
 
                     <div className="flex shrink-0 flex-wrap justify-end gap-2">
                       <form action={addSetAction}>
+                        <input type="hidden" name="sessionId" value={session.id} />
                         <input type="hidden" name="entryId" value={entry.id} />
                         <button
                           type="submit"
@@ -187,6 +202,7 @@ export default async function WorkoutPage({ params }: WorkoutPageProps) {
                       </form>
 
                       <form action={removeExerciseEntryAction}>
+                        <input type="hidden" name="sessionId" value={session.id} />
                         <input type="hidden" name="entryId" value={entry.id} />
                         <button
                           type="submit"
@@ -205,6 +221,7 @@ export default async function WorkoutPage({ params }: WorkoutPageProps) {
                         action={updateSetAction}
                         className="grid gap-3 rounded-[1.25rem] border border-border bg-surface px-3 py-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto_auto]"
                       >
+                        <input type="hidden" name="sessionId" value={session.id} />
                         <input type="hidden" name="setId" value={set.id} />
                         <div className="flex items-center text-sm font-semibold text-foreground">
                           Set {set.setNumber}
