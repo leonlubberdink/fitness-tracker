@@ -40,7 +40,7 @@ export default async function HistoryPage() {
 
   return (
     <Stack spacing={2.5}>
-      <Paper elevation={0} sx={{ borderRadius: 8, px: 3, py: 3.5 }}>
+      <Paper elevation={0} sx={{ borderRadius: "16px", px: 3, py: 3.5 }}>
         <Stack spacing={1.5}>
           <Chip
             label="Completed sessions"
@@ -57,7 +57,7 @@ export default async function HistoryPage() {
       </Paper>
 
       {historyGroups.length === 0 ? (
-        <Paper elevation={0} sx={{ borderRadius: 7, px: 2.5, py: 3 }}>
+        <Paper elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 3 }}>
           <Stack spacing={0.75}>
             <Typography variant="h3">No completed workouts yet.</Typography>
             <Typography color="text.secondary">
@@ -81,7 +81,7 @@ export default async function HistoryPage() {
                     disableGutters
                     elevation={0}
                     sx={{
-                      borderRadius: 6,
+                      borderRadius: "14px",
                       overflow: "hidden",
                       "&:before": { display: "none" },
                     }}
@@ -105,7 +105,7 @@ export default async function HistoryPage() {
                             key={entry.id}
                             elevation={0}
                             sx={{
-                              borderRadius: 5,
+                              borderRadius: "12px",
                               px: 2,
                               py: 1.75,
                               bgcolor: "rgba(255,255,255,0.02)",
@@ -130,7 +130,7 @@ export default async function HistoryPage() {
                                     sx={{
                                       px: 1.5,
                                       py: 1.25,
-                                      borderRadius: 4,
+                                      borderRadius: "10px",
                                       bgcolor: "rgba(255,255,255,0.03)",
                                     }}
                                   >

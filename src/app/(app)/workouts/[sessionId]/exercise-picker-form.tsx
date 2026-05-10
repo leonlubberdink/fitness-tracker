@@ -148,7 +148,7 @@ export function ExercisePickerForm({
             spacing={1}
             sx={{
               p: 2,
-              borderRadius: 5,
+              borderRadius: "12px",
               border: "1px solid",
               borderColor: "divider",
               bgcolor: "rgba(255,255,255,0.02)",
@@ -171,7 +171,7 @@ export function ExercisePickerForm({
             spacing={1.5}
             sx={{
               p: 1.5,
-              borderRadius: 5,
+              borderRadius: "12px",
               border: "1px solid",
               borderColor: "divider",
               bgcolor: "rgba(255,255,255,0.02)",
@@ -213,7 +213,7 @@ export function ExercisePickerForm({
                   key={exercise.id}
                   onClick={() => handleExerciseSelect(exercise)}
                     sx={{
-                      borderRadius: 4,
+                      borderRadius: "10px",
                       border: "1px solid",
                       borderColor: "divider",
                       bgcolor: "background.paper",

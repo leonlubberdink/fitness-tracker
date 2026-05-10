@@ -41,15 +41,17 @@ export default async function Home() {
     : null;
 
   const totalSets =
-    workoutSession?.entries.reduce((count, entry) => count + entry.sets.length, 0) ??
-    0;
+    workoutSession?.entries.reduce(
+      (count, entry) => count + entry.sets.length,
+      0,
+    ) ?? 0;
 
   return (
     <Stack spacing={2.5}>
       <Paper
         elevation={0}
         sx={{
-          borderRadius: 8,
+          borderRadius: "16px",
           px: 3,
           py: 3.5,
         }}
@@ -64,7 +66,9 @@ export default async function Home() {
 
           <Stack spacing={1.25}>
             <Typography variant="h1">
-              {workoutSession ? "Pick up the next set fast." : "Start clean, stay in flow."}
+              {workoutSession
+                ? "Pick!!!!! up the next set fast."
+                : "Start clean, stay in flow."}
             </Typography>
             <Typography color="text.secondary">
               {workoutSession
@@ -79,29 +83,45 @@ export default async function Home() {
                 <Grid size={4}>
                   <Paper
                     elevation={0}
-                    sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                    sx={{
+                      p: 1.75,
+                      borderRadius: "12px",
+                      bgcolor: "rgba(255,255,255,0.02)",
+                    }}
                   >
                     <Typography variant="overline" color="text.secondary">
                       Started
                     </Typography>
-                    <Typography variant="h3">{formatTime(workoutSession.startedAt)}</Typography>
+                    <Typography variant="h3">
+                      {formatTime(workoutSession.startedAt)}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid size={4}>
                   <Paper
                     elevation={0}
-                    sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                    sx={{
+                      p: 1.75,
+                      borderRadius: "12px",
+                      bgcolor: "rgba(255,255,255,0.02)",
+                    }}
                   >
                     <Typography variant="overline" color="text.secondary">
                       Exercises
                     </Typography>
-                    <Typography variant="h3">{workoutSession.entries.length}</Typography>
+                    <Typography variant="h3">
+                      {workoutSession.entries.length}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid size={4}>
                   <Paper
                     elevation={0}
-                    sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                    sx={{
+                      p: 1.75,
+                      borderRadius: "12px",
+                      bgcolor: "rgba(255,255,255,0.02)",
+                    }}
                   >
                     <Typography variant="overline" color="text.secondary">
                       Sets
@@ -139,7 +159,11 @@ export default async function Home() {
       <Grid container spacing={1.5}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <Card elevation={0}>
-            <CardActionArea component={NextLink} href="/exercises" sx={{ p: 2.5 }}>
+            <CardActionArea
+              component={NextLink}
+              href="/exercises"
+              sx={{ p: 2.5 }}
+            >
               <Stack spacing={1.5}>
                 <LibraryBooksRounded color="primary" />
                 <Stack spacing={0.75}>
@@ -154,7 +178,11 @@ export default async function Home() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <Card elevation={0}>
-            <CardActionArea component={NextLink} href="/history" sx={{ p: 2.5 }}>
+            <CardActionArea
+              component={NextLink}
+              href="/history"
+              sx={{ p: 2.5 }}
+            >
               <Stack spacing={1.5}>
                 <HistoryRounded color="primary" />
                 <Stack spacing={0.75}>
@@ -172,7 +200,7 @@ export default async function Home() {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: 7,
+          borderRadius: "14px",
           px: 2.5,
           py: 2.25,
         }}
@@ -185,8 +213,8 @@ export default async function Home() {
           <Divider flexItem />
           <Typography color="text.secondary">
             Keep the workout screen focused on the current set, use the library
-            to add the next exercise inline, and let history stay out of the
-            way until the session is done.
+            to add the next exercise inline, and let history stay out of the way
+            until the session is done.
           </Typography>
         </Stack>
       </Paper>

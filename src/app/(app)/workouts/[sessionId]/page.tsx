@@ -103,7 +103,7 @@ export default async function WorkoutPage({
         </Alert>
       ) : null}
 
-      <Paper elevation={0} sx={{ borderRadius: 8, px: 3, py: 3.5 }}>
+      <Paper elevation={0} sx={{ borderRadius: "16px", px: 3, py: 3.5 }}>
         <Stack spacing={2.5}>
           <Stack spacing={1.5}>
             <Chip
@@ -123,7 +123,7 @@ export default async function WorkoutPage({
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{ p: 1.75, borderRadius: "12px", bgcolor: "rgba(255,255,255,0.02)" }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Exercises
@@ -134,7 +134,7 @@ export default async function WorkoutPage({
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{ p: 1.75, borderRadius: "12px", bgcolor: "rgba(255,255,255,0.02)" }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Sets
@@ -145,7 +145,7 @@ export default async function WorkoutPage({
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{ p: 1.75, borderRadius: "12px", bgcolor: "rgba(255,255,255,0.02)" }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Started
@@ -172,7 +172,7 @@ export default async function WorkoutPage({
         </Stack>
       </Paper>
 
-      <Paper elevation={0} sx={{ borderRadius: 7, px: 2.5, py: 2.5 }}>
+      <Paper elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 2.5 }}>
         <Stack spacing={2.5}>
           <Stack spacing={0.75}>
             <Typography variant="h3">Add the next exercise</Typography>
@@ -185,7 +185,7 @@ export default async function WorkoutPage({
           {session.exerciseOptions.length === 0 ? (
             <Paper
               elevation={0}
-              sx={{ borderRadius: 5, px: 2, py: 2.5, bgcolor: "rgba(255,255,255,0.02)" }}
+              sx={{ borderRadius: "12px", px: 2, py: 2.5, bgcolor: "rgba(255,255,255,0.02)" }}
             >
               <Stack spacing={1}>
                 <Typography variant="h3" sx={{ fontSize: "1rem" }}>
@@ -217,7 +217,7 @@ export default async function WorkoutPage({
         </Stack>
 
         {session.entries.length === 0 ? (
-          <Paper elevation={0} sx={{ borderRadius: 7, px: 2.5, py: 3 }}>
+          <Paper elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 3 }}>
             <Stack spacing={0.75}>
               <Typography variant="h3">Nothing logged yet.</Typography>
               <Typography color="text.secondary">
@@ -228,7 +228,7 @@ export default async function WorkoutPage({
         ) : (
           <Stack spacing={1.5}>
             {session.entries.map((entry) => (
-              <Paper key={entry.id} elevation={0} sx={{ borderRadius: 7, px: 2.5, py: 2.5 }}>
+              <Paper key={entry.id} elevation={0} sx={{ borderRadius: "14px", px: 2.5, py: 2.5 }}>
                 <Stack spacing={2}>
                   <Stack spacing={1.25}>
                     <Stack
@@ -262,7 +262,7 @@ export default async function WorkoutPage({
                     <Paper
                       elevation={0}
                       sx={{
-                        borderRadius: 5,
+                        borderRadius: "12px",
                         px: 1.75,
                         py: 1.5,
                         bgcolor: "rgba(255,255,255,0.02)",
@@ -288,7 +288,7 @@ export default async function WorkoutPage({
                         elevation={0}
                         sx={{
                           p: 1.75,
-                          borderRadius: 5,
+                          borderRadius: "12px",
                           bgcolor: "rgba(255,255,255,0.03)",
                         }}
                       >

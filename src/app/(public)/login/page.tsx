@@ -50,7 +50,7 @@ export default async function LoginPage() {
             component="section"
             elevation={0}
             sx={{
-              borderRadius: 7,
+              borderRadius: "14px",
               px: 3,
               py: 3.5,
             }}

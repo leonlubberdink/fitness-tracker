@@ -51,11 +51,11 @@ export function AppBottomNavigation({
         zIndex: (currentTheme) => currentTheme.zIndex.appBar,
       }}
     >
-      <Paper
+        <Paper
         elevation={0}
         sx={{
           width: "min(calc(100% - 24px), 420px)",
-          borderRadius: 999,
+          borderRadius: "16px",
           overflow: "hidden",
           borderColor: alpha("#d7e1e7", 0.08),
           pointerEvents: "auto",

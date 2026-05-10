@@ -5,7 +5,7 @@ import { alpha, createTheme } from "@mui/material/styles";
 const theme = createTheme({
   cssVariables: true,
   shape: {
-    borderRadius: 18,
+    borderRadius: 10,
   },
   spacing: 4,
   palette: {
@@ -123,7 +123,7 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12,
           minHeight: 48,
           paddingInline: 18,
         },
@@ -147,7 +147,7 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 24,
+          borderRadius: 14,
           boxShadow: "0 20px 48px rgba(0, 0, 0, 0.18)",
         },
       },
@@ -155,7 +155,7 @@ const theme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12,
           backgroundColor: alpha("#ffffff", 0.02),
         },
         notchedOutline: {
