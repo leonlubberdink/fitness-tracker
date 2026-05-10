@@ -68,14 +68,14 @@ export function ExerciseCreateForm() {
         </TextField>
 
         {state.error ? (
-          <Alert severity="error" variant="filled">
-          {state.error}
+          <Alert severity="error" variant="outlined">
+            {state.error}
           </Alert>
         ) : null}
 
         {state.success ? (
-          <Alert severity="success" variant="filled">
-          {state.success}
+          <Alert severity="success" variant="outlined">
+            {state.success}
           </Alert>
         ) : null}
 

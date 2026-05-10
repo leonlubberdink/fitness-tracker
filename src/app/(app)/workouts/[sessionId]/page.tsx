@@ -1,12 +1,15 @@
 import CheckCircleRounded from "@mui/icons-material/CheckCircleRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
+import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
 import NorthEastRounded from "@mui/icons-material/NorthEastRounded";
 import RepeatRounded from "@mui/icons-material/RepeatRounded";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -26,6 +29,12 @@ import {
 import { requireWorkoutSessionForLogging } from "@/features/workouts/queries";
 
 import { ExercisePickerForm } from "./exercise-picker-form";
+
+type WorkoutSessionData = Awaited<
+  ReturnType<typeof requireWorkoutSessionForLogging>
+>;
+type WorkoutEntry = WorkoutSessionData["entries"][number];
+type WorkoutSet = WorkoutEntry["sets"][number];
 
 type WorkoutPageProps = {
   params: Promise<{
@@ -82,6 +91,122 @@ function formatPreviousSet(
   return `${date} · set ${previousSet.setNumber} · ${previousSet.reps} reps · ${weightLabel}`;
 }
 
+function EntryHeader({
+  entry,
+  current = false,
+}: {
+  entry: WorkoutEntry;
+  current?: boolean;
+}) {
+  return (
+    <Stack spacing={0.5} minWidth={0}>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        flexWrap="wrap"
+        useFlexGap
+      >
+        <Typography variant="h3">{entry.exerciseNameSnapshot}</Typography>
+        {current ? (
+          <Chip label="Current" size="small" color="primary" variant="outlined" />
+        ) : null}
+      </Stack>
+      <Typography color="text.secondary">
+        {entry.exerciseCategorySnapshot} · {formatUnit(entry.unitSnapshot)}
+      </Typography>
+    </Stack>
+  );
+}
+
+function SetEditor({
+  sessionId,
+  entry,
+  set,
+  emphasize = false,
+}: {
+  sessionId: string;
+  entry: WorkoutEntry;
+  set: WorkoutSet;
+  emphasize?: boolean;
+}) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 1.5,
+        borderRadius: "8px",
+        bgcolor: emphasize ? "rgba(139,194,172,0.05)" : "rgba(255,255,255,0.03)",
+        borderColor: emphasize ? "rgba(139,194,172,0.16)" : undefined,
+      }}
+    >
+      <form action={updateSetAction}>
+        <input type="hidden" name="sessionId" value={sessionId} />
+        <input type="hidden" name="setId" value={set.id} />
+
+        <Stack spacing={1.5}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Chip
+              label={`Set ${set.setNumber}`}
+              color={emphasize ? "primary" : "default"}
+              variant="outlined"
+            />
+            {emphasize ? (
+              <Typography variant="caption" color="primary.light">
+                current input row
+              </Typography>
+            ) : null}
+          </Stack>
+
+          <Grid container spacing={1.25}>
+            <Grid size={6}>
+              <TextField
+                fullWidth
+                label="Reps"
+                name="reps"
+                type="number"
+                inputProps={{ min: 1, step: 1, inputMode: "numeric" }}
+                defaultValue={set.reps}
+                required
+              />
+            </Grid>
+            <Grid size={6}>
+              <TextField
+                fullWidth
+                label={entry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"}
+                name="weight"
+                type="number"
+                inputProps={{ min: 0, step: 0.5, inputMode: "decimal" }}
+                defaultValue={set.weight}
+                required
+              />
+            </Grid>
+          </Grid>
+
+          <Stack direction="row" spacing={1}>
+            <Button type="submit" variant="contained" sx={{ flex: 1 }}>
+              Save set
+            </Button>
+
+            {entry.sets.length > 1 ? (
+              <Button
+                type="submit"
+                formAction={removeSetAction}
+                formNoValidate
+                variant="outlined"
+                color="inherit"
+                sx={{ minWidth: 88 }}
+              >
+                Delete
+              </Button>
+            ) : null}
+          </Stack>
+        </Stack>
+      </form>
+    </Paper>
+  );
+}
+
 export default async function WorkoutPage({
   params,
   searchParams,
@@ -96,7 +221,8 @@ export default async function WorkoutPage({
     0,
   );
   const currentEntry = session.entries.at(-1) ?? null;
-  const displayEntries = [...session.entries].reverse();
+  const previousEntries = [...session.entries].slice(0, -1).reverse();
+  const currentSetId = currentEntry?.sets.at(-1)?.id;
 
   return (
     <Stack spacing={2.5}>
@@ -144,7 +270,9 @@ export default async function WorkoutPage({
                     <Typography variant="overline" color="primary.light">
                       Current exercise
                     </Typography>
-                    <Typography variant="h3">{currentEntry.exerciseNameSnapshot}</Typography>
+                    <Typography variant="h3">
+                      {currentEntry.exerciseNameSnapshot}
+                    </Typography>
                   </Stack>
                   <Chip
                     label={`${currentEntry.sets.length} logged`}
@@ -170,7 +298,11 @@ export default async function WorkoutPage({
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{
+                  p: 1.75,
+                  borderRadius: "8px",
+                  bgcolor: "rgba(255,255,255,0.02)",
+                }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Exercises
@@ -181,7 +313,11 @@ export default async function WorkoutPage({
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{
+                  p: 1.75,
+                  borderRadius: "8px",
+                  bgcolor: "rgba(255,255,255,0.02)",
+                }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Sets
@@ -192,7 +328,11 @@ export default async function WorkoutPage({
             <Grid size={4}>
               <Paper
                 elevation={0}
-                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
+                sx={{
+                  p: 1.75,
+                  borderRadius: "8px",
+                  bgcolor: "rgba(255,255,255,0.02)",
+                }}
               >
                 <Typography variant="overline" color="text.secondary">
                   Started
@@ -219,10 +359,96 @@ export default async function WorkoutPage({
         </Stack>
       </Paper>
 
+      {currentEntry ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "10px",
+            px: 2,
+            py: 2.25,
+            bgcolor: "rgba(139,194,172,0.04)",
+            borderColor: "rgba(139,194,172,0.14)",
+          }}
+        >
+          <Stack spacing={2}>
+            <Stack spacing={1.25}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="flex-start"
+                spacing={1}
+              >
+                <EntryHeader entry={currentEntry} current />
+
+                <form action={removeExerciseEntryAction}>
+                  <input type="hidden" name="sessionId" value={session.id} />
+                  <input type="hidden" name="entryId" value={currentEntry.id} />
+                  <Button
+                    type="submit"
+                    variant="text"
+                    color="inherit"
+                    startIcon={<DeleteOutlineRounded />}
+                    sx={{ color: "text.secondary", minWidth: 0, px: 1 }}
+                  >
+                    Remove
+                  </Button>
+                </form>
+              </Stack>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: "8px",
+                  px: 1.75,
+                  py: 1.5,
+                  bgcolor: "rgba(255,255,255,0.02)",
+                }}
+              >
+                <Stack spacing={0.5}>
+                  <Typography variant="overline" color="text.secondary">
+                    Last completed set
+                  </Typography>
+                  <Typography variant="body2">
+                    {formatPreviousSet(currentEntry.previousSet)}
+                  </Typography>
+                </Stack>
+              </Paper>
+            </Stack>
+
+            <Stack spacing={1.25}>
+              {currentEntry.sets.map((set) => (
+                <SetEditor
+                  key={set.id}
+                  sessionId={session.id}
+                  entry={currentEntry}
+                  set={set}
+                  emphasize={set.id === currentSetId}
+                />
+              ))}
+            </Stack>
+
+            <form action={addSetAction}>
+              <input type="hidden" name="sessionId" value={session.id} />
+              <input type="hidden" name="entryId" value={currentEntry.id} />
+              <Button
+                type="submit"
+                variant="outlined"
+                startIcon={<NorthEastRounded />}
+                fullWidth
+              >
+                Log next set
+              </Button>
+            </form>
+          </Stack>
+        </Paper>
+      ) : null}
+
       <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
         <Stack spacing={2.5}>
           <Stack spacing={0.75}>
-            <Typography variant="h3">Add the next exercise</Typography>
+            <Typography variant="h3">
+              {currentEntry ? "Add the next exercise" : "Add the first exercise"}
+            </Typography>
             <Typography color="text.secondary">
               Search your library, choose the next movement, and let the first
               set appear automatically so you can keep the flow moving.
@@ -232,7 +458,12 @@ export default async function WorkoutPage({
           {session.exerciseOptions.length === 0 ? (
             <Paper
               elevation={0}
-              sx={{ borderRadius: "8px", px: 2, py: 2.5, bgcolor: "rgba(255,255,255,0.02)" }}
+              sx={{
+                borderRadius: "8px",
+                px: 2,
+                py: 2.5,
+                bgcolor: "rgba(255,255,255,0.02)",
+              }}
             >
               <Stack spacing={1}>
                 <Typography variant="h3" sx={{ fontSize: "1rem" }}>
@@ -257,189 +488,100 @@ export default async function WorkoutPage({
         </Stack>
       </Paper>
 
-      <Stack spacing={1.5}>
-        <Stack spacing={0.5} px={0.5}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <InsightsRounded color="primary" />
-            <Typography variant="h3">Logged exercises</Typography>
+      {currentEntry === null ? (
+        <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.5 }}>
+          <Stack spacing={0.75}>
+            <Typography variant="h3">Nothing logged yet.</Typography>
+            <Typography color="text.secondary">
+              Add the first exercise above to start entering reps and weight.
+            </Typography>
           </Stack>
-          <Typography variant="caption" color="text.secondary">
-            Most recent exercise first, so the current block stays closest to
-            your thumb.
-          </Typography>
-        </Stack>
-
-        {session.entries.length === 0 ? (
-          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.5 }}>
-            <Stack spacing={0.75}>
-              <Typography variant="h3">Nothing logged yet.</Typography>
-              <Typography color="text.secondary">
-                Add the first exercise above to start entering reps and weight.
-              </Typography>
+        </Paper>
+      ) : previousEntries.length > 0 ? (
+        <Stack spacing={1.5}>
+          <Stack spacing={0.5} px={0.5}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <InsightsRounded color="primary" />
+              <Typography variant="h3">Earlier in this workout</Typography>
             </Stack>
-          </Paper>
-        ) : (
-          <Stack spacing={1.5}>
-            {displayEntries.map((entry) => {
-              const isCurrent = currentEntry?.id === entry.id;
+            <Typography variant="caption" color="text.secondary">
+              Previous exercises stay editable, but collapsed so the current
+              block keeps priority.
+            </Typography>
+          </Stack>
 
-              return (
-              <Paper
-                key={entry.id}
-                elevation={0}
-                sx={{
-                  borderRadius: "10px",
-                  px: 2,
-                  py: 2.25,
-                  bgcolor: isCurrent ? "rgba(139,194,172,0.05)" : undefined,
-                  borderColor: isCurrent
-                    ? "rgba(139,194,172,0.16)"
-                    : undefined,
-                }}
-              >
-                <Stack spacing={2}>
-                  <Stack spacing={1.25}>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="flex-start"
-                      spacing={1}
-                    >
-                      <Stack spacing={0.5} minWidth={0}>
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          alignItems="center"
-                          flexWrap="wrap"
-                          useFlexGap
-                        >
-                          <Typography variant="h3">{entry.exerciseNameSnapshot}</Typography>
-                          {isCurrent ? (
-                            <Chip
-                              label="Current"
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                            />
-                          ) : null}
-                        </Stack>
-                        <Typography color="text.secondary">
-                          {entry.exerciseCategorySnapshot} · {formatUnit(entry.unitSnapshot)}
-                        </Typography>
-                      </Stack>
-
-                      <form action={removeExerciseEntryAction}>
-                        <input type="hidden" name="sessionId" value={session.id} />
-                        <input type="hidden" name="entryId" value={entry.id} />
-                        <Button
-                          type="submit"
-                          variant="text"
-                          color="inherit"
-                          startIcon={<DeleteOutlineRounded />}
-                          sx={{ color: "text.secondary", minWidth: 0, px: 1 }}
-                        >
-                          Remove
-                        </Button>
-                      </form>
-                    </Stack>
-
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        borderRadius: "8px",
-                        px: 1.75,
-                        py: 1.5,
-                        bgcolor: "rgba(255,255,255,0.02)",
-                      }}
-                    >
-                      <Stack spacing={0.5}>
-                        <Typography variant="overline" color="text.secondary">
-                          Last completed set
-                        </Typography>
-                        <Typography variant="body2">
-                          {formatPreviousSet(entry.previousSet)}
-                        </Typography>
-                      </Stack>
-                    </Paper>
+          {previousEntries.map((entry) => (
+            <Accordion
+              key={entry.id}
+              disableGutters
+              elevation={0}
+              sx={{
+                borderRadius: "10px",
+                "&:before": { display: "none" },
+                overflow: "hidden",
+              }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
+                <Stack spacing={0.75} width="100%">
+                  <EntryHeader entry={entry} />
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Chip
+                      label={`${entry.sets.length} sets`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={formatPreviousSet(entry.previousSet)}
+                      size="small"
+                      variant="outlined"
+                    />
                   </Stack>
+                </Stack>
+              </AccordionSummary>
 
-                  <Divider flexItem />
+              <AccordionDetails sx={{ pt: 0 }}>
+                <Stack spacing={1.5}>
+                  <form action={removeExerciseEntryAction}>
+                    <input type="hidden" name="sessionId" value={session.id} />
+                    <input type="hidden" name="entryId" value={entry.id} />
+                    <Button
+                      type="submit"
+                      variant="text"
+                      color="inherit"
+                      startIcon={<DeleteOutlineRounded />}
+                      sx={{ color: "text.secondary", minWidth: 0, px: 0 }}
+                    >
+                      Remove exercise
+                    </Button>
+                  </form>
 
-                  <Stack spacing={1.5}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      borderRadius: "8px",
+                      px: 1.75,
+                      py: 1.5,
+                      bgcolor: "rgba(255,255,255,0.02)",
+                    }}
+                  >
+                    <Stack spacing={0.5}>
+                      <Typography variant="overline" color="text.secondary">
+                        Last completed set
+                      </Typography>
+                      <Typography variant="body2">
+                        {formatPreviousSet(entry.previousSet)}
+                      </Typography>
+                    </Stack>
+                  </Paper>
+
+                  <Stack spacing={1.25}>
                     {entry.sets.map((set) => (
-                      <Paper
+                      <SetEditor
                         key={set.id}
-                        elevation={0}
-                        sx={{
-                          p: 1.5,
-                          borderRadius: "8px",
-                          bgcolor: "rgba(255,255,255,0.03)",
-                        }}
-                      >
-                        <form action={updateSetAction}>
-                          <input type="hidden" name="sessionId" value={session.id} />
-                          <input type="hidden" name="setId" value={set.id} />
-
-                          <Stack spacing={1.5}>
-                            <Stack
-                              direction="row"
-                              justifyContent="space-between"
-                              alignItems="center"
-                              spacing={1}
-                            >
-                              <Chip
-                                label={`Set ${set.setNumber}`}
-                                color="primary"
-                                variant="outlined"
-                              />
-                            </Stack>
-
-                            <Grid container spacing={1.25}>
-                              <Grid size={6}>
-                                <TextField
-                                  fullWidth
-                                  label="Reps"
-                                  name="reps"
-                                  type="number"
-                                  inputProps={{ min: 1, step: 1, inputMode: "numeric" }}
-                                  defaultValue={set.reps}
-                                  required
-                                />
-                              </Grid>
-                              <Grid size={6}>
-                                <TextField
-                                  fullWidth
-                                  label={entry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"}
-                                  name="weight"
-                                  type="number"
-                                  inputProps={{ min: 0, step: 0.5, inputMode: "decimal" }}
-                                  defaultValue={set.weight}
-                                  required
-                                />
-                              </Grid>
-                            </Grid>
-
-                            <Stack direction="row" spacing={1}>
-                              <Button type="submit" variant="contained" sx={{ flex: 1 }}>
-                                Save set
-                              </Button>
-
-                              {entry.sets.length > 1 ? (
-                                <Button
-                                  type="submit"
-                                  formAction={removeSetAction}
-                                  formNoValidate
-                                  variant="outlined"
-                                  color="inherit"
-                                  sx={{ minWidth: 88 }}
-                                >
-                                  Delete
-                                </Button>
-                              ) : null}
-                            </Stack>
-                          </Stack>
-                        </form>
-                      </Paper>
+                        sessionId={session.id}
+                        entry={entry}
+                        set={set}
+                      />
                     ))}
                   </Stack>
 
@@ -449,19 +591,18 @@ export default async function WorkoutPage({
                     <Button
                       type="submit"
                       variant="outlined"
-                      startIcon={isCurrent ? <NorthEastRounded /> : <RepeatRounded />}
+                      startIcon={<RepeatRounded />}
                       fullWidth
                     >
-                      {isCurrent ? "Log next set" : "Add set"}
+                      Add set
                     </Button>
                   </form>
                 </Stack>
-              </Paper>
-              );
-            })}
-          </Stack>
-        )}
-      </Stack>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Stack>
+      ) : null}
     </Stack>
   );
 }

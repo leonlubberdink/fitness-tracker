@@ -2,10 +2,13 @@ import EastRounded from "@mui/icons-material/EastRounded";
 import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
 import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
+import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import TimerRounded from "@mui/icons-material/TimerRounded";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardActionArea from "@mui/material/CardActionArea";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
@@ -39,6 +42,7 @@ export default async function Home() {
   const workoutSession = openSession
     ? await getWorkoutSessionForLogging(user.id, openSession.id)
     : null;
+  const currentEntry = workoutSession?.entries.at(-1) ?? null;
 
   const totalSets =
     workoutSession?.entries.reduce(
@@ -79,6 +83,32 @@ export default async function Home() {
 
           {workoutSession ? (
             <Stack spacing={2.5}>
+              {currentEntry ? (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    px: 2,
+                    py: 1.75,
+                    borderRadius: "8px",
+                    bgcolor: "rgba(139,194,172,0.06)",
+                    borderColor: "rgba(139,194,172,0.14)",
+                  }}
+                >
+                  <Stack spacing={0.75}>
+                    <Typography variant="overline" color="primary.light">
+                      Current exercise
+                    </Typography>
+                    <Typography variant="h3">
+                      {currentEntry.exerciseNameSnapshot}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {currentEntry.exerciseCategorySnapshot} ·{" "}
+                      {currentEntry.sets.length} logged sets
+                    </Typography>
+                  </Stack>
+                </Paper>
+              ) : null}
+
               <Grid container spacing={1.5}>
                 <Grid size={4}>
                   <Paper
@@ -156,68 +186,78 @@ export default async function Home() {
         </Stack>
       </Paper>
 
-      <Grid container spacing={1.5}>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <Card elevation={0}>
-            <CardActionArea
-              component={NextLink}
-              href="/exercises"
-              sx={{ p: 2.5 }}
-            >
-              <Stack spacing={1.5}>
-                <LibraryBooksRounded color="primary" />
-                <Stack spacing={0.75}>
-                  <Typography variant="h3">Exercises</Typography>
-                  <Typography color="text.secondary">
-                    Build the reusable library that feeds the workout flow.
-                  </Typography>
-                </Stack>
-              </Stack>
-            </CardActionArea>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <Card elevation={0}>
-            <CardActionArea
-              component={NextLink}
-              href="/history"
-              sx={{ p: 2.5 }}
-            >
-              <Stack spacing={1.5}>
-                <HistoryRounded color="primary" />
-                <Stack spacing={0.75}>
-                  <Typography variant="h3">History</Typography>
-                  <Typography color="text.secondary">
-                    Review completed sessions and compare what you logged.
-                  </Typography>
-                </Stack>
-              </Stack>
-            </CardActionArea>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: "10px",
-          px: 2,
-          py: 2,
-        }}
-      >
-        <Stack spacing={1.5}>
-          <Stack direction="row" spacing={1.25} alignItems="center">
-            <TimerRounded color="primary" />
-            <Typography variant="h3">How this session stays fast</Typography>
-          </Stack>
-          <Divider flexItem />
-          <Typography color="text.secondary">
-            Keep the workout screen focused on the current set, use the library
-            to add the next exercise inline, and let history stay out of the way
-            until the session is done.
+      <Paper elevation={0} sx={{ borderRadius: "10px", px: 0.5, py: 0.5 }}>
+        <Stack spacing={0.5}>
+          <Typography variant="overline" color="text.secondary" sx={{ px: 1.5, pt: 1 }}>
+            Quick routes
           </Typography>
+          <List disablePadding>
+            <ListItemButton component={NextLink} href="/exercises" sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}>
+              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
+                <LibraryBooksRounded />
+              </ListItemIcon>
+              <ListItemText
+                primary="Exercises"
+                secondary="Build the reusable library that feeds the workout flow."
+                secondaryTypographyProps={{ variant: "caption", color: "text.secondary" }}
+              />
+              <ChevronRightRounded color="action" />
+            </ListItemButton>
+            <Divider sx={{ mx: 1.5 }} />
+            <ListItemButton component={NextLink} href="/history" sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}>
+              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
+                <HistoryRounded />
+              </ListItemIcon>
+              <ListItemText
+                primary="History"
+                secondary="Review completed sessions and compare what you logged."
+                secondaryTypographyProps={{ variant: "caption", color: "text.secondary" }}
+              />
+              <ChevronRightRounded color="action" />
+            </ListItemButton>
+          </List>
         </Stack>
       </Paper>
+
+      {workoutSession ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "10px",
+            px: 2,
+            py: 2,
+          }}
+        >
+          <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1.25} alignItems="center">
+              <TimerRounded color="primary" />
+              <Typography variant="h3">Keep the session moving</Typography>
+            </Stack>
+            <Divider flexItem />
+            <Typography color="text.secondary">
+              Continue the workout to log the next set, or add the next exercise
+              if you are moving on to a new block.
+            </Typography>
+          </Stack>
+        </Paper>
+      ) : (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "10px",
+            px: 2,
+            py: 2,
+          }}
+        >
+          <Stack spacing={1.25}>
+            <Typography variant="h3">Ready for the next workout</Typography>
+            <Typography color="text.secondary">
+              Keep the exercise library tidy first, then start a session when
+              you are ready to log in the gym.
+            </Typography>
+          </Stack>
+        </Paper>
+      )}
     </Stack>
   );
 }

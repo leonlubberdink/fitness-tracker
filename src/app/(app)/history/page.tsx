@@ -1,4 +1,5 @@
 import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -7,6 +8,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import { getCompletedWorkoutHistoryForUser } from "@/features/workouts/queries";
 
@@ -37,6 +39,10 @@ function formatSetWeight(unit: "kg" | "bodyweight", weight: number) {
 export default async function HistoryPage() {
   const user = await requireUser();
   const historyGroups = await getCompletedWorkoutHistoryForUser(user.id);
+  const totalSessions = historyGroups.reduce(
+    (count, group) => count + group.sessions.length,
+    0,
+  );
 
   return (
     <Stack spacing={2.5}>
@@ -53,21 +59,34 @@ export default async function HistoryPage() {
             Review finished workouts by date, inspect each exercise, and keep
             the detail dense without turning it into a dashboard.
           </Typography>
+          {totalSessions > 0 ? (
+            <Chip
+              label={`${totalSessions} completed ${totalSessions === 1 ? "session" : "sessions"}`}
+              variant="outlined"
+              sx={{ alignSelf: "flex-start" }}
+            />
+          ) : null}
         </Stack>
       </Paper>
 
       {historyGroups.length === 0 ? (
         <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.5 }}>
-          <Stack spacing={0.75}>
+          <Stack spacing={1.25}>
             <Typography variant="h3">No completed workouts yet.</Typography>
             <Typography color="text.secondary">
               Finish a session and it will appear here with the exercises and
               sets you logged.
             </Typography>
+            <Button component={NextLink} href="/" variant="contained">
+              Start a workout
+            </Button>
           </Stack>
         </Paper>
       ) : (
         <Stack spacing={2}>
+          <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>
+            Most recent dates first. Expand a session only when you need the set-level detail.
+          </Typography>
           {historyGroups.map((group) => (
             <Stack key={group.performedOn} spacing={1.25}>
               <Typography variant="overline" color="text.secondary" sx={{ px: 0.5 }}>
