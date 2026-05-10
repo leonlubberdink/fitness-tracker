@@ -4,6 +4,7 @@ import HomeRounded from "@mui/icons-material/HomeRounded";
 import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
 import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
+import QueryStatsRounded from "@mui/icons-material/QueryStatsRounded";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Box from "@mui/material/Box";
@@ -28,6 +29,10 @@ function getNavValue(pathname: string) {
 
   if (pathname.startsWith("/history")) {
     return "history";
+  }
+
+  if (pathname.startsWith("/statistics")) {
+    return "statistics";
   }
 
   return "home";
@@ -90,6 +95,13 @@ export function AppBottomNavigation({
             href="/history"
             component={NextLink}
             icon={<HistoryRounded />}
+          />
+          <BottomNavigationAction
+            value="statistics"
+            label="Stats"
+            href="/statistics"
+            component={NextLink}
+            icon={<QueryStatsRounded />}
           />
         </BottomNavigation>
       </Paper>

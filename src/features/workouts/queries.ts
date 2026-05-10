@@ -334,3 +334,94 @@ export async function getCompletedWorkoutHistoryForUser(
 
   return Array.from(historyByDate.values());
 }
+
+export async function getExerciseProgressForUser(
+  userId: string,
+  exerciseId: string,
+) {
+  const rows = await db
+    .select({
+      performedOn: workoutSessions.performedOn,
+      sessionId: workoutSessions.id,
+      startedAt: workoutSessions.startedAt,
+      reps: workoutSets.reps,
+      weight: workoutSets.weight,
+      unit: workoutExerciseEntries.unitSnapshot,
+    })
+    .from(workoutSets)
+    .innerJoin(
+      workoutExerciseEntries,
+      eq(workoutSets.workoutExerciseEntryId, workoutExerciseEntries.id),
+    )
+    .innerJoin(
+      workoutSessions,
+      eq(workoutExerciseEntries.workoutSessionId, workoutSessions.id),
+    )
+    .where(
+      and(
+        eq(workoutSessions.userId, userId),
+        eq(workoutExerciseEntries.exerciseId, exerciseId),
+        isNotNull(workoutSessions.completedAt),
+      ),
+    )
+    .orderBy(asc(workoutSessions.performedOn), asc(workoutSessions.startedAt));
+
+  const sessionsById = new Map<
+    string,
+    {
+      performedOn: string;
+      startedAt: Date;
+      unit: "kg" | "bodyweight";
+      sets: { reps: number; weight: number }[];
+    }
+  >();
+
+  for (const row of rows) {
+    const session = sessionsById.get(row.sessionId) ?? {
+      performedOn: row.performedOn,
+      startedAt: row.startedAt,
+      unit: row.unit,
+      sets: [],
+    };
+    session.sets.push({ reps: row.reps, weight: row.weight });
+    sessionsById.set(row.sessionId, session);
+  }
+
+  const sessions = [...sessionsById.values()]
+    .sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
+    .map((session) => {
+      const totalReps = session.sets.reduce((sum, set) => sum + set.reps, 0);
+      const totalVolume = session.sets.reduce(
+        (sum, set) => sum + set.reps * set.weight,
+        0,
+      );
+      const maxWeight = session.sets.reduce(
+        (max, set) => Math.max(max, set.weight),
+        0,
+      );
+
+      return {
+        performedOn: session.performedOn,
+        startedAt: session.startedAt,
+        unit: session.unit,
+        setCount: session.sets.length,
+        totalReps,
+        totalVolume,
+        maxWeight,
+      };
+    });
+
+  const totals = {
+    totalSessions: sessions.length,
+    totalSets: sessions.reduce((sum, session) => sum + session.setCount, 0),
+    totalReps: sessions.reduce((sum, session) => sum + session.totalReps, 0),
+    totalVolume: sessions.reduce((sum, session) => sum + session.totalVolume, 0),
+    currentBestWeight: sessions.at(-1)?.maxWeight ?? 0,
+    allTimeBestWeight: sessions.reduce(
+      (max, session) => Math.max(max, session.maxWeight),
+      0,
+    ),
+  };
+
+  return { sessions, totals };
+}
