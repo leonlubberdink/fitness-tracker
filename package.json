@@ -17,6 +17,12 @@
     "users:seed": "node --env-file-if-exists=.env --import tsx scripts/seed-user.ts"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.2",
+    "@mui/material": "^7.3.2",
+    "@mui/material-nextjs": "^7.3.2",
     "@node-rs/argon2": "^2.0.2",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
@@ -27,7 +33,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
@@ -35,7 +40,6 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
-    "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
   }

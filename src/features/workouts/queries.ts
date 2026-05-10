@@ -29,12 +29,22 @@ type WorkoutSetRow = {
   createdAt: Date;
 };
 
+type PreviousExerciseSet = {
+  performedOn: string;
+  reps: number;
+  setNumber: number;
+  weight: number;
+  unit: "kg" | "bodyweight";
+};
+
 function groupEntriesWithSets(
   entries: WorkoutEntryRow[],
   sets: WorkoutSetRow[],
+  previousSetsByExerciseId: Map<string, PreviousExerciseSet>,
 ) {
   return entries.map((entry) => ({
     ...entry,
+    previousSet: previousSetsByExerciseId.get(entry.exerciseId) ?? null,
     sets: sets.filter((set) => set.workoutExerciseEntryId === entry.id),
   }));
 }
@@ -121,10 +131,55 @@ export async function getWorkoutSessionForLogging(
     getExerciseOptionsForUser(userId),
   ]);
 
+  const exerciseIds = [...new Set(entryRows.map((entry) => entry.exerciseId))];
+  const previousSetsByExerciseId = new Map<string, PreviousExerciseSet>();
+
+  if (exerciseIds.length > 0) {
+    const previousSetRows = await db
+      .select({
+        exerciseId: workoutExerciseEntries.exerciseId,
+        performedOn: workoutSessions.performedOn,
+        unit: workoutExerciseEntries.unitSnapshot,
+        reps: workoutSets.reps,
+        setNumber: workoutSets.setNumber,
+        weight: workoutSets.weight,
+      })
+      .from(workoutSets)
+      .innerJoin(
+        workoutExerciseEntries,
+        eq(workoutSets.workoutExerciseEntryId, workoutExerciseEntries.id),
+      )
+      .innerJoin(
+        workoutSessions,
+        eq(workoutExerciseEntries.workoutSessionId, workoutSessions.id),
+      )
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          inArray(workoutExerciseEntries.exerciseId, exerciseIds),
+          isNotNull(workoutSessions.completedAt),
+        ),
+      )
+      .orderBy(
+        desc(workoutSessions.performedOn),
+        desc(workoutSessions.startedAt),
+        desc(workoutExerciseEntries.sortOrder),
+        desc(workoutSets.setNumber),
+      );
+
+    for (const previousSet of previousSetRows) {
+      if (previousSetsByExerciseId.has(previousSet.exerciseId)) {
+        continue;
+      }
+
+      previousSetsByExerciseId.set(previousSet.exerciseId, previousSet);
+    }
+  }
+
   return {
     ...session,
     exerciseOptions,
-    entries: groupEntriesWithSets(entryRows, setRows),
+    entries: groupEntriesWithSets(entryRows, setRows, previousSetsByExerciseId),
   };
 }
 
@@ -228,7 +283,7 @@ export async function getCompletedWorkoutHistoryForUser(
       ),
   ]);
 
-  const entriesWithSets = groupEntriesWithSets(entryRows, setRows);
+  const entriesWithSets = groupEntriesWithSets(entryRows, setRows, new Map());
   const entriesBySessionId = new Map<string, CompletedWorkoutEntry[]>();
 
   for (const entry of entriesWithSets) {

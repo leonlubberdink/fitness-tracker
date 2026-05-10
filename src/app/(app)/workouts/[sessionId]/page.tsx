@@ -1,6 +1,19 @@
-import Link from "next/link";
+import CheckCircleRounded from "@mui/icons-material/CheckCircleRounded";
+import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
+import InsightsRounded from "@mui/icons-material/InsightsRounded";
+import NorthEastRounded from "@mui/icons-material/NorthEastRounded";
+import RepeatRounded from "@mui/icons-material/RepeatRounded";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 
-import { logoutAction } from "@/features/auth/actions";
+import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import {
   addExerciseEntryAction,
@@ -39,6 +52,36 @@ function formatUnit(unit: "kg" | "bodyweight") {
   return unit === "kg" ? "kg" : "BW";
 }
 
+function formatPreviousSet(
+  previousSet:
+    | {
+        performedOn: string;
+        reps: number;
+        setNumber: number;
+        weight: number;
+        unit: "kg" | "bodyweight";
+      }
+    | null,
+) {
+  if (!previousSet) {
+    return "No completed history yet.";
+  }
+
+  const date = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${previousSet.performedOn}T00:00:00`));
+
+  const weightLabel =
+    previousSet.unit === "bodyweight"
+      ? previousSet.weight === 0
+        ? "BW"
+        : `${previousSet.weight} BW`
+      : `${previousSet.weight} kg`;
+
+  return `${date} · set ${previousSet.setNumber} · ${previousSet.reps} reps · ${weightLabel}`;
+}
+
 export default async function WorkoutPage({
   params,
   searchParams,
@@ -48,99 +91,162 @@ export default async function WorkoutPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const session = await requireWorkoutSessionForLogging(user.id, sessionId);
   const errorMessage = resolvedSearchParams?.error?.trim();
+  const totalSets = session.entries.reduce(
+    (count, entry) => count + entry.sets.length,
+    0,
+  );
+  const currentEntry = session.entries.at(-1) ?? null;
+  const displayEntries = [...session.entries].reverse();
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-6 py-8 sm:max-w-4xl sm:px-8">
+    <Stack spacing={2.5}>
       {errorMessage ? (
-        <div className="rounded-[1.5rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <Alert severity="error" variant="filled">
           {errorMessage}
-        </div>
+        </Alert>
       ) : null}
 
-      <section className="rounded-4xl border border-border bg-surface/90 p-6 shadow-[0_18px_60px_rgba(23,18,15,0.08)] backdrop-blur sm:p-10">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-border bg-background px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted">
-              Workout In Progress
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                Log session
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted sm:text-base">
-                {formatWorkoutDate(session.performedOn)} starting at{" "}
-                {formatWorkoutTime(session.startedAt)}.
-              </p>
-            </div>
-          </div>
+      <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
+        <Stack spacing={2.5}>
+          <Stack spacing={1.5}>
+            <Chip
+              label="Workout in progress"
+              color="primary"
+              variant="outlined"
+              sx={{ alignSelf: "flex-start" }}
+            />
+            <Typography variant="h1">Log the current block fast.</Typography>
+            <Typography color="text.secondary">
+              {formatWorkoutDate(session.performedOn)} starting at{" "}
+              {formatWorkoutTime(session.startedAt)}.
+            </Typography>
+          </Stack>
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
+          {currentEntry ? (
+            <Paper
+              elevation={0}
+              sx={{
+                px: 2,
+                py: 1.75,
+                borderRadius: "8px",
+                bgcolor: "rgba(139,194,172,0.08)",
+                borderColor: "rgba(139,194,172,0.18)",
+              }}
             >
-              Home
-            </Link>
-            <Link
-              href="/exercises"
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-            >
-              Exercises
-            </Link>
-            <Link
-              href="/history"
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-            >
-              History
-            </Link>
-            <form action={completeWorkoutSessionAction}>
-              <input type="hidden" name="sessionId" value={session.id} />
-              <button
-                type="submit"
-                className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground shadow-[0_14px_30px_rgba(24,96,69,0.18)]"
-              >
-                Finish workout
-              </button>
-            </form>
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-              >
-                Log out
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
+              <Stack spacing={1}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="flex-start"
+                  spacing={1}
+                >
+                  <Stack spacing={0.5} minWidth={0}>
+                    <Typography variant="overline" color="primary.light">
+                      Current exercise
+                    </Typography>
+                    <Typography variant="h3">{currentEntry.exerciseNameSnapshot}</Typography>
+                  </Stack>
+                  <Chip
+                    label={`${currentEntry.sets.length} logged`}
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                  />
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  {currentEntry.previousSet
+                    ? `Last completed: ${formatPreviousSet(currentEntry.previousSet)}`
+                    : "No completed history for this exercise yet."}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Next likely action: log the next set here, or add the next
+                  exercise when this block is done.
+                </Typography>
+              </Stack>
+            </Paper>
+          ) : null}
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        <div className="rounded-[2rem] border border-border bg-surface p-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)]">
-          <div className="mb-5 space-y-2">
-            <h2 className="text-xl font-semibold text-foreground">
-              Add exercise
-            </h2>
-            <p className="text-sm leading-6 text-muted">
-              Pick an exercise from your reusable library and the first set will
-              be created automatically.
-            </p>
-          </div>
+          <Grid container spacing={1.5}>
+            <Grid size={4}>
+              <Paper
+                elevation={0}
+                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
+              >
+                <Typography variant="overline" color="text.secondary">
+                  Exercises
+                </Typography>
+                <Typography variant="h3">{session.entries.length}</Typography>
+              </Paper>
+            </Grid>
+            <Grid size={4}>
+              <Paper
+                elevation={0}
+                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
+              >
+                <Typography variant="overline" color="text.secondary">
+                  Sets
+                </Typography>
+                <Typography variant="h3">{totalSets}</Typography>
+              </Paper>
+            </Grid>
+            <Grid size={4}>
+              <Paper
+                elevation={0}
+                sx={{ p: 1.75, borderRadius: "8px", bgcolor: "rgba(255,255,255,0.02)" }}
+              >
+                <Typography variant="overline" color="text.secondary">
+                  Started
+                </Typography>
+                <Typography variant="h3">
+                  {formatWorkoutTime(session.startedAt)}
+                </Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+
+          <form action={completeWorkoutSessionAction}>
+            <input type="hidden" name="sessionId" value={session.id} />
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              startIcon={<CheckCircleRounded />}
+              fullWidth
+            >
+              Finish workout
+            </Button>
+          </form>
+        </Stack>
+      </Paper>
+
+      <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
+        <Stack spacing={2.5}>
+          <Stack spacing={0.75}>
+            <Typography variant="h3">Add the next exercise</Typography>
+            <Typography color="text.secondary">
+              Search your library, choose the next movement, and let the first
+              set appear automatically so you can keep the flow moving.
+            </Typography>
+          </Stack>
 
           {session.exerciseOptions.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-border bg-background/70 px-5 py-6">
-              <p className="text-base font-medium text-foreground">
-                No exercises available yet.
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Create exercises first, then come back here to log your workout.
-              </p>
-              <Link
-                href="/exercises"
-                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground"
-              >
-                Go to exercises
-              </Link>
-            </div>
+            <Paper
+              elevation={0}
+              sx={{ borderRadius: "8px", px: 2, py: 2.5, bgcolor: "rgba(255,255,255,0.02)" }}
+            >
+              <Stack spacing={1}>
+                <Typography variant="h3" sx={{ fontSize: "1rem" }}>
+                  No exercises available yet.
+                </Typography>
+                <Typography color="text.secondary">
+                  Create exercises first, then come back here to keep logging in
+                  one flow.
+                </Typography>
+                <Button component={NextLink} href="/exercises" variant="contained">
+                  Go to exercises
+                </Button>
+              </Stack>
+            </Paper>
           ) : (
             <ExercisePickerForm
               sessionId={session.id}
@@ -148,143 +254,214 @@ export default async function WorkoutPage({
               addExerciseEntryAction={addExerciseEntryAction}
             />
           )}
-        </div>
+        </Stack>
+      </Paper>
 
-        <div className="rounded-[2rem] border border-border bg-surface p-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)]">
-          <div className="mb-5 space-y-2">
-            <h2 className="text-xl font-semibold text-foreground">
-              Exercise entries
-            </h2>
-            <p className="text-sm leading-6 text-muted">
-              Update reps and weight inline. Add sets as you progress through
-              the session.
-            </p>
-          </div>
+      <Stack spacing={1.5}>
+        <Stack spacing={0.5} px={0.5}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <InsightsRounded color="primary" />
+            <Typography variant="h3">Logged exercises</Typography>
+          </Stack>
+          <Typography variant="caption" color="text.secondary">
+            Most recent exercise first, so the current block stays closest to
+            your thumb.
+          </Typography>
+        </Stack>
 
-          {session.entries.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-border bg-background/70 px-5 py-8 text-center">
-              <p className="text-base font-medium text-foreground">
-                No exercises in this session yet.
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Add your first exercise from the panel on the left to start
-                logging sets.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {session.entries.map((entry) => (
-                <section
-                  key={entry.id}
-                  className="rounded-[1.5rem] border border-border bg-background/75 p-4"
-                >
-                  <div className="mb-4 flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-base font-semibold text-foreground">
-                        {entry.exerciseNameSnapshot}
-                      </h3>
-                      <p className="text-sm text-muted">
-                        {entry.exerciseCategorySnapshot} ·{" "}
-                        {formatUnit(entry.unitSnapshot)}
-                      </p>
-                    </div>
+        {session.entries.length === 0 ? (
+          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.5 }}>
+            <Stack spacing={0.75}>
+              <Typography variant="h3">Nothing logged yet.</Typography>
+              <Typography color="text.secondary">
+                Add the first exercise above to start entering reps and weight.
+              </Typography>
+            </Stack>
+          </Paper>
+        ) : (
+          <Stack spacing={1.5}>
+            {displayEntries.map((entry) => {
+              const isCurrent = currentEntry?.id === entry.id;
 
-                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                      <form action={addSetAction}>
-                        <input type="hidden" name="sessionId" value={session.id} />
-                        <input type="hidden" name="entryId" value={entry.id} />
-                        <button
-                          type="submit"
-                          className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
+              return (
+              <Paper
+                key={entry.id}
+                elevation={0}
+                sx={{
+                  borderRadius: "10px",
+                  px: 2,
+                  py: 2.25,
+                  bgcolor: isCurrent ? "rgba(139,194,172,0.05)" : undefined,
+                  borderColor: isCurrent
+                    ? "rgba(139,194,172,0.16)"
+                    : undefined,
+                }}
+              >
+                <Stack spacing={2}>
+                  <Stack spacing={1.25}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="flex-start"
+                      spacing={1}
+                    >
+                      <Stack spacing={0.5} minWidth={0}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          flexWrap="wrap"
+                          useFlexGap
                         >
-                          Add set
-                        </button>
-                      </form>
+                          <Typography variant="h3">{entry.exerciseNameSnapshot}</Typography>
+                          {isCurrent ? (
+                            <Chip
+                              label="Current"
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          ) : null}
+                        </Stack>
+                        <Typography color="text.secondary">
+                          {entry.exerciseCategorySnapshot} · {formatUnit(entry.unitSnapshot)}
+                        </Typography>
+                      </Stack>
 
                       <form action={removeExerciseEntryAction}>
                         <input type="hidden" name="sessionId" value={session.id} />
                         <input type="hidden" name="entryId" value={entry.id} />
-                        <button
+                        <Button
                           type="submit"
-                          className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-foreground hover:text-background"
+                          variant="text"
+                          color="inherit"
+                          startIcon={<DeleteOutlineRounded />}
+                          sx={{ color: "text.secondary", minWidth: 0, px: 1 }}
                         >
                           Remove
-                        </button>
+                        </Button>
                       </form>
-                    </div>
-                  </div>
+                    </Stack>
 
-                  <div className="space-y-3">
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        borderRadius: "8px",
+                        px: 1.75,
+                        py: 1.5,
+                        bgcolor: "rgba(255,255,255,0.02)",
+                      }}
+                    >
+                      <Stack spacing={0.5}>
+                        <Typography variant="overline" color="text.secondary">
+                          Last completed set
+                        </Typography>
+                        <Typography variant="body2">
+                          {formatPreviousSet(entry.previousSet)}
+                        </Typography>
+                      </Stack>
+                    </Paper>
+                  </Stack>
+
+                  <Divider flexItem />
+
+                  <Stack spacing={1.5}>
                     {entry.sets.map((set) => (
-                      <form
+                      <Paper
                         key={set.id}
-                        action={updateSetAction}
-                        className="grid gap-3 rounded-[1.25rem] border border-border bg-surface px-3 py-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto_auto]"
+                        elevation={0}
+                        sx={{
+                          p: 1.5,
+                          borderRadius: "8px",
+                          bgcolor: "rgba(255,255,255,0.03)",
+                        }}
                       >
-                        <input type="hidden" name="sessionId" value={session.id} />
-                        <input type="hidden" name="setId" value={set.id} />
-                        <div className="flex items-center text-sm font-semibold text-foreground">
-                          Set {set.setNumber}
-                        </div>
+                        <form action={updateSetAction}>
+                          <input type="hidden" name="sessionId" value={session.id} />
+                          <input type="hidden" name="setId" value={set.id} />
 
-                        <label className="block space-y-1">
-                          <span className="text-xs font-medium uppercase tracking-[0.16em] text-muted">
-                            Reps
-                          </span>
-                          <input
-                            type="number"
-                            name="reps"
-                            min="1"
-                            step="1"
-                            defaultValue={set.reps}
-                            className="w-full rounded-2xl border border-border bg-background px-3 py-2 text-sm outline-none"
-                            required
-                          />
-                        </label>
+                          <Stack spacing={1.5}>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                              spacing={1}
+                            >
+                              <Chip
+                                label={`Set ${set.setNumber}`}
+                                color="primary"
+                                variant="outlined"
+                              />
+                            </Stack>
 
-                        <label className="block space-y-1">
-                          <span className="text-xs font-medium uppercase tracking-[0.16em] text-muted">
-                            Weight
-                          </span>
-                          <input
-                            type="number"
-                            name="weight"
-                            min="0"
-                            step="0.5"
-                            defaultValue={set.weight}
-                            className="w-full rounded-2xl border border-border bg-background px-3 py-2 text-sm outline-none"
-                            required
-                          />
-                        </label>
+                            <Grid container spacing={1.25}>
+                              <Grid size={6}>
+                                <TextField
+                                  fullWidth
+                                  label="Reps"
+                                  name="reps"
+                                  type="number"
+                                  inputProps={{ min: 1, step: 1, inputMode: "numeric" }}
+                                  defaultValue={set.reps}
+                                  required
+                                />
+                              </Grid>
+                              <Grid size={6}>
+                                <TextField
+                                  fullWidth
+                                  label={entry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"}
+                                  name="weight"
+                                  type="number"
+                                  inputProps={{ min: 0, step: 0.5, inputMode: "decimal" }}
+                                  defaultValue={set.weight}
+                                  required
+                                />
+                              </Grid>
+                            </Grid>
 
-                        <button
-                          type="submit"
-                          className="inline-flex min-h-10 items-center justify-center rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground sm:self-end"
-                        >
-                          Save
-                        </button>
+                            <Stack direction="row" spacing={1}>
+                              <Button type="submit" variant="contained" sx={{ flex: 1 }}>
+                                Save set
+                              </Button>
 
-                        {entry.sets.length > 1 ? (
-                          <button
-                            type="submit"
-                            formAction={removeSetAction}
-                            formNoValidate
-                            className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-border bg-background px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-foreground hover:text-background sm:self-end"
-                          >
-                            Delete
-                          </button>
-                        ) : (
-                          <div className="hidden sm:block" />
-                        )}
-                      </form>
+                              {entry.sets.length > 1 ? (
+                                <Button
+                                  type="submit"
+                                  formAction={removeSetAction}
+                                  formNoValidate
+                                  variant="outlined"
+                                  color="inherit"
+                                  sx={{ minWidth: 88 }}
+                                >
+                                  Delete
+                                </Button>
+                              ) : null}
+                            </Stack>
+                          </Stack>
+                        </form>
+                      </Paper>
                     ))}
-                  </div>
-                </section>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    </main>
+                  </Stack>
+
+                  <form action={addSetAction}>
+                    <input type="hidden" name="sessionId" value={session.id} />
+                    <input type="hidden" name="entryId" value={entry.id} />
+                    <Button
+                      type="submit"
+                      variant="outlined"
+                      startIcon={isCurrent ? <NorthEastRounded /> : <RepeatRounded />}
+                      fullWidth
+                    >
+                      {isCurrent ? "Log next set" : "Add set"}
+                    </Button>
+                  </form>
+                </Stack>
+              </Paper>
+              );
+            })}
+          </Stack>
+        )}
+      </Stack>
+    </Stack>
   );
 }

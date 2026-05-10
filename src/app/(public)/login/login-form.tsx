@@ -2,6 +2,12 @@
 
 import { useActionState } from "react";
 
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+
 import { loginAction } from "@/features/auth/actions";
 import { initialLoginActionState } from "@/features/auth/state";
 
@@ -14,55 +20,43 @@ export function LoginForm() {
   const passwordError = state.fieldErrors.password?.[0];
 
   return (
-    <form action={formAction} className="space-y-4">
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-foreground">Email</span>
-        <input
+    <Box component="form" action={formAction}>
+      <Stack spacing={2.5}>
+        <TextField
+          label="Email"
           type="email"
           name="email"
           autoComplete="email"
           placeholder="you@example.com"
           defaultValue={state.values.email}
-          aria-invalid={emailError ? "true" : "false"}
-          className={`w-full rounded-2xl bg-background px-4 py-3 text-sm outline-none placeholder:text-muted ${
-            emailError ? "border border-red-300" : "border border-border"
-          }`}
+          error={Boolean(emailError)}
+          helperText={emailError}
+          fullWidth
           required
         />
-        {emailError ? <p className="text-sm text-red-700">{emailError}</p> : null}
-      </label>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-foreground">Password</span>
-        <input
+        <TextField
+          label="Password"
           type="password"
           name="password"
           autoComplete="current-password"
           placeholder="••••••••"
-          aria-invalid={passwordError ? "true" : "false"}
-          className={`w-full rounded-2xl bg-background px-4 py-3 text-sm outline-none placeholder:text-muted ${
-            passwordError ? "border border-red-300" : "border border-border"
-          }`}
+          error={Boolean(passwordError)}
+          helperText={passwordError}
+          fullWidth
           required
         />
-        {passwordError ? (
-          <p className="text-sm text-red-700">{passwordError}</p>
-        ) : null}
-      </label>
 
-      {state.error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {state.error ? (
+          <Alert severity="error" variant="filled">
           {state.error}
-        </p>
-      ) : null}
+          </Alert>
+        ) : null}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="flex min-h-11 w-full items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground transition-opacity disabled:opacity-70"
-      >
-        {isPending ? "Signing in..." : "Sign in"}
-      </button>
-    </form>
+        <Button type="submit" variant="contained" disabled={isPending} fullWidth>
+          {isPending ? "Signing in..." : "Sign in"}
+        </Button>
+      </Stack>
+    </Box>
   );
 }
