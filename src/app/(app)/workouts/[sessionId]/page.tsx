@@ -13,9 +13,9 @@ import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import {
@@ -29,6 +29,7 @@ import {
 import { requireWorkoutSessionForLogging } from "@/features/workouts/queries";
 
 import { ExercisePickerForm } from "./exercise-picker-form";
+import { WorkoutSetEditorForm } from "./set-editor-form";
 
 type WorkoutSessionData = Awaited<
   ReturnType<typeof requireWorkoutSessionForLogging>
@@ -134,81 +135,18 @@ function SetEditor({
   emphasize?: boolean;
 }) {
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 1.5,
-        borderRadius: "8px",
-        bgcolor: emphasize
-          ? "rgba(139,194,172,0.05)"
-          : "rgba(255,255,255,0.03)",
-        borderColor: emphasize ? "rgba(139,194,172,0.16)" : undefined,
-      }}
-    >
-      <form action={updateSetAction}>
-        <input type="hidden" name="sessionId" value={sessionId} />
-        <input type="hidden" name="setId" value={set.id} />
-
-        <Stack spacing={1.5}>
-          <Stack
-            direction="row"
-            spacing={0}
-            alignItems="flex-start"
-            sx={{ columnGap: 1.75 }}
-          >
-            <Chip
-              label={`Set ${set.setNumber}`}
-              color={emphasize ? "primary" : "default"}
-              variant="outlined"
-              sx={{ mt: 1, flexShrink: 0 }}
-            />
-            <Grid container spacing={1.25} sx={{ flex: 1, minWidth: 0 }}>
-              <Grid size={6}>
-                <TextField
-                  fullWidth
-                  label="Reps"
-                  name="reps"
-                  type="number"
-                  inputProps={{ min: 1, step: 1, inputMode: "numeric" }}
-                  defaultValue={set.reps}
-                  required
-                />
-              </Grid>
-              <Grid size={6}>
-                <TextField
-                  fullWidth
-                  label={entry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"}
-                  name="weight"
-                  type="number"
-                  inputProps={{ min: 0, step: 0.5, inputMode: "decimal" }}
-                  defaultValue={set.weight}
-                  required
-                />
-              </Grid>
-            </Grid>
-          </Stack>
-
-          <Stack direction="row" spacing={1}>
-            <Button type="submit" variant="contained" sx={{ flex: 1 }}>
-              Save set
-            </Button>
-
-            {entry.sets.length > 1 ? (
-              <Button
-                type="submit"
-                formAction={removeSetAction}
-                formNoValidate
-                variant="outlined"
-                color="inherit"
-                sx={{ minWidth: 88 }}
-              >
-                Delete
-              </Button>
-            ) : null}
-          </Stack>
-        </Stack>
-      </form>
-    </Paper>
+    <WorkoutSetEditorForm
+      sessionId={sessionId}
+      setId={set.id}
+      setNumber={set.setNumber}
+      initialReps={set.reps}
+      initialWeight={set.weight}
+      weightLabel={entry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"}
+      canDelete={entry.sets.length > 1}
+      emphasize={emphasize}
+      updateSetAction={updateSetAction}
+      removeSetAction={removeSetAction}
+    />
   );
 }
 
@@ -341,15 +279,16 @@ export default async function WorkoutPage({
 
           <form action={completeWorkoutSessionAction}>
             <input type="hidden" name="sessionId" value={session.id} />
-            <Button
+            <FormStatusButton
               type="submit"
               variant="contained"
               color="primary"
               startIcon={<CheckCircleRounded />}
+              loadingLabel="Finishing workout..."
               fullWidth
             >
               Finish workout
-            </Button>
+            </FormStatusButton>
           </form>
         </Stack>
       </Paper>
@@ -378,15 +317,16 @@ export default async function WorkoutPage({
                 <form action={removeExerciseEntryAction}>
                   <input type="hidden" name="sessionId" value={session.id} />
                   <input type="hidden" name="entryId" value={currentEntry.id} />
-                  <Button
+                  <FormStatusButton
                     type="submit"
                     variant="text"
                     color="inherit"
                     startIcon={<DeleteOutlineRounded />}
+                    loadingLabel="Removing..."
                     sx={{ color: "text.secondary", minWidth: 0, px: 1 }}
                   >
                     Remove
-                  </Button>
+                  </FormStatusButton>
                 </form>
               </Stack>
 
@@ -425,14 +365,15 @@ export default async function WorkoutPage({
             <form action={addSetAction}>
               <input type="hidden" name="sessionId" value={session.id} />
               <input type="hidden" name="entryId" value={currentEntry.id} />
-              <Button
+              <FormStatusButton
                 type="submit"
                 variant="outlined"
                 startIcon={<AddBoxRounded />}
+                loadingLabel="Logging next set..."
                 fullWidth
               >
                 Log next set
-              </Button>
+              </FormStatusButton>
             </form>
           </Stack>
         </Paper>
@@ -540,15 +481,16 @@ export default async function WorkoutPage({
                   <form action={removeExerciseEntryAction}>
                     <input type="hidden" name="sessionId" value={session.id} />
                     <input type="hidden" name="entryId" value={entry.id} />
-                    <Button
+                    <FormStatusButton
                       type="submit"
                       variant="text"
                       color="inherit"
                       startIcon={<DeleteOutlineRounded />}
+                      loadingLabel="Removing exercise..."
                       sx={{ color: "text.secondary", minWidth: 0, px: 0 }}
                     >
                       Remove exercise
-                    </Button>
+                    </FormStatusButton>
                   </form>
 
                   <Paper
@@ -584,14 +526,15 @@ export default async function WorkoutPage({
                   <form action={addSetAction}>
                     <input type="hidden" name="sessionId" value={session.id} />
                     <input type="hidden" name="entryId" value={entry.id} />
-                    <Button
+                    <FormStatusButton
                       type="submit"
                       variant="outlined"
                       startIcon={<RepeatRounded />}
+                      loadingLabel="Adding set..."
                       fullWidth
                     >
                       Add set
-                    </Button>
+                    </FormStatusButton>
                   </form>
                 </Stack>
               </AccordionDetails>

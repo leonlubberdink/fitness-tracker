@@ -4,11 +4,11 @@ import { useActionState } from "react";
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
+import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import { createExerciseAction } from "@/features/exercises/actions";
 import {
   EXERCISE_UNITS,
@@ -16,7 +16,7 @@ import {
 } from "@/features/exercises/state";
 
 export function ExerciseCreateForm() {
-  const [state, formAction, isPending] = useActionState(
+  const [state, formAction] = useActionState(
     createExerciseAction,
     initialCreateExerciseActionState,
   );
@@ -79,9 +79,14 @@ export function ExerciseCreateForm() {
           </Alert>
         ) : null}
 
-        <Button type="submit" variant="contained" disabled={isPending} fullWidth>
-          {isPending ? "Creating exercise..." : "Create exercise"}
-        </Button>
+        <FormStatusButton
+          type="submit"
+          variant="contained"
+          loadingLabel="Creating exercise..."
+          fullWidth
+        >
+          Create exercise
+        </FormStatusButton>
       </Stack>
     </Box>
   );

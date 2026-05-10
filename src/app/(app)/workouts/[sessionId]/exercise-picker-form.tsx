@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import AddRounded from "@mui/icons-material/AddRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import List from "@mui/material/List";
@@ -14,6 +13,8 @@ import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+
+import { FormStatusButton } from "@/components/app/FormStatusButtons";
 
 type ExerciseOption = {
   id: string;
@@ -247,15 +248,16 @@ export function ExercisePickerForm({
           </Stack>
       )}
 
-        <Button
+        <FormStatusButton
           type="submit"
           variant="contained"
           disabled={!selectedExercise}
           startIcon={<AddRounded />}
+          loadingLabel="Adding to workout..."
           fullWidth
         >
           Add to workout
-        </Button>
+        </FormStatusButton>
       </Stack>
     </Box>
   );

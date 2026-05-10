@@ -3,7 +3,6 @@ import AppBar from "@mui/material/AppBar";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -13,6 +12,7 @@ import type { ReactNode } from "react";
 import { logoutAction } from "@/features/auth/actions";
 
 import { AppBottomNavigation } from "./AppBottomNavigation";
+import { FormStatusIconButton } from "./FormStatusButtons";
 
 type AppShellProps = {
   children: ReactNode;
@@ -61,7 +61,7 @@ export function AppShell({ children, email, workoutHref }: AppShellProps) {
             </Stack>
 
             <form action={logoutAction}>
-              <IconButton
+              <FormStatusIconButton
                 type="submit"
                 aria-label="Log out"
                 sx={{
@@ -71,7 +71,7 @@ export function AppShell({ children, email, workoutHref }: AppShellProps) {
                 }}
               >
                 <LogoutRounded />
-              </IconButton>
+              </FormStatusIconButton>
             </form>
           </Toolbar>
         </Container>

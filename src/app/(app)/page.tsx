@@ -16,6 +16,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import {
@@ -163,14 +164,15 @@ export default async function Home() {
             </Stack>
           ) : (
             <form action={startWorkoutSessionAction}>
-              <Button
+              <FormStatusButton
                 type="submit"
                 variant="contained"
                 endIcon={<FitnessCenterRounded />}
+                loadingLabel="Starting workout..."
                 fullWidth
               >
                 Start workout
-              </Button>
+              </FormStatusButton>
             </form>
           )}
         </Stack>
