@@ -4,18 +4,15 @@ import { useActionState } from "react";
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
+import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import { loginAction } from "@/features/auth/actions";
 import { initialLoginActionState } from "@/features/auth/state";
 
 export function LoginForm() {
-  const [state, formAction, isPending] = useActionState(
-    loginAction,
-    initialLoginActionState,
-  );
+  const [state, formAction] = useActionState(loginAction, initialLoginActionState);
   const emailError = state.fieldErrors.email?.[0];
   const passwordError = state.fieldErrors.password?.[0];
 
@@ -53,9 +50,14 @@ export function LoginForm() {
           </Alert>
         ) : null}
 
-        <Button type="submit" variant="contained" disabled={isPending} fullWidth>
-          {isPending ? "Signing in..." : "Sign in"}
-        </Button>
+        <FormStatusButton
+          type="submit"
+          variant="contained"
+          loadingLabel="Signing in..."
+          fullWidth
+        >
+          Sign in
+        </FormStatusButton>
       </Stack>
     </Box>
   );
