@@ -61,23 +61,13 @@ export default async function Home() {
         }}
       >
         <Stack spacing={2.5}>
-          <Chip
-            label={workoutSession ? "Workout in progress" : "Today"}
-            color="primary"
-            variant="outlined"
-            sx={{ alignSelf: "flex-start" }}
-          />
-
           <Stack spacing={1.25}>
             <Typography variant="h1">
-              {workoutSession
-                ? "Pick up the next set fast."
-                : "Start clean, stay in flow."}
+              {workoutSession ? "Continue workout." : "Start new workout."}
             </Typography>
             <Typography color="text.secondary">
-              {workoutSession
-                ? `Open session from ${formatPerformedOn(workoutSession.performedOn)}. Keep the logging surface close and avoid extra taps while you train.`
-                : "This app is tuned for quick workout logging in the gym: glance, compare, log, move on."}
+              {workoutSession &&
+                `Open session from ${formatPerformedOn(workoutSession.performedOn)}.`}
             </Typography>
           </Stack>
 
@@ -188,76 +178,54 @@ export default async function Home() {
 
       <Paper elevation={0} sx={{ borderRadius: "10px", px: 0.5, py: 0.5 }}>
         <Stack spacing={0.5}>
-          <Typography variant="overline" color="text.secondary" sx={{ px: 1.5, pt: 1 }}>
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            sx={{ px: 1.5, pt: 1 }}
+          >
             Quick routes
           </Typography>
           <List disablePadding>
-            <ListItemButton component={NextLink} href="/exercises" sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}>
+            <ListItemButton
+              component={NextLink}
+              href="/exercises"
+              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
+            >
               <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
                 <LibraryBooksRounded />
               </ListItemIcon>
               <ListItemText
                 primary="Exercises"
                 secondary="Build the reusable library that feeds the workout flow."
-                secondaryTypographyProps={{ variant: "caption", color: "text.secondary" }}
+                secondaryTypographyProps={{
+                  variant: "caption",
+                  color: "text.secondary",
+                }}
               />
               <ChevronRightRounded color="action" />
             </ListItemButton>
             <Divider sx={{ mx: 1.5 }} />
-            <ListItemButton component={NextLink} href="/history" sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}>
+            <ListItemButton
+              component={NextLink}
+              href="/history"
+              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
+            >
               <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
                 <HistoryRounded />
               </ListItemIcon>
               <ListItemText
                 primary="History"
                 secondary="Review completed sessions and compare what you logged."
-                secondaryTypographyProps={{ variant: "caption", color: "text.secondary" }}
+                secondaryTypographyProps={{
+                  variant: "caption",
+                  color: "text.secondary",
+                }}
               />
               <ChevronRightRounded color="action" />
             </ListItemButton>
           </List>
         </Stack>
       </Paper>
-
-      {workoutSession ? (
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: "10px",
-            px: 2,
-            py: 2,
-          }}
-        >
-          <Stack spacing={1.5}>
-            <Stack direction="row" spacing={1.25} alignItems="center">
-              <TimerRounded color="primary" />
-              <Typography variant="h3">Keep the session moving</Typography>
-            </Stack>
-            <Divider flexItem />
-            <Typography color="text.secondary">
-              Continue the workout to log the next set, or add the next exercise
-              if you are moving on to a new block.
-            </Typography>
-          </Stack>
-        </Paper>
-      ) : (
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: "10px",
-            px: 2,
-            py: 2,
-          }}
-        >
-          <Stack spacing={1.25}>
-            <Typography variant="h3">Ready for the next workout</Typography>
-            <Typography color="text.secondary">
-              Keep the exercise library tidy first, then start a session when
-              you are ready to log in the gym.
-            </Typography>
-          </Stack>
-        </Paper>
-      )}
     </Stack>
   );
 }

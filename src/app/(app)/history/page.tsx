@@ -48,24 +48,7 @@ export default async function HistoryPage() {
     <Stack spacing={2.5}>
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
         <Stack spacing={1.5}>
-          <Chip
-            label="Completed sessions"
-            color="primary"
-            variant="outlined"
-            sx={{ alignSelf: "flex-start" }}
-          />
           <Typography variant="h1">History</Typography>
-          <Typography color="text.secondary">
-            Review finished workouts by date, inspect each exercise, and keep
-            the detail dense without turning it into a dashboard.
-          </Typography>
-          {totalSessions > 0 ? (
-            <Chip
-              label={`${totalSessions} completed ${totalSessions === 1 ? "session" : "sessions"}`}
-              variant="outlined"
-              sx={{ alignSelf: "flex-start" }}
-            />
-          ) : null}
         </Stack>
       </Paper>
 
@@ -84,12 +67,13 @@ export default async function HistoryPage() {
         </Paper>
       ) : (
         <Stack spacing={2}>
-          <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>
-            Most recent dates first. Expand a session only when you need the set-level detail.
-          </Typography>
           {historyGroups.map((group) => (
             <Stack key={group.performedOn} spacing={1.25}>
-              <Typography variant="overline" color="text.secondary" sx={{ px: 0.5 }}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ px: 0.5 }}
+              >
                 {formatPerformedOn(group.performedOn)}
               </Typography>
 
@@ -108,11 +92,23 @@ export default async function HistoryPage() {
                     <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                       <Stack spacing={1} width="100%">
                         <Typography variant="body1" fontWeight={700}>
-                          {formatTime(session.startedAt)} to {formatTime(session.completedAt)}
+                          {formatTime(session.startedAt)} to{" "}
+                          {formatTime(session.completedAt)}
                         </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                          <Chip label={`${session.exerciseCount} exercises`} size="small" />
-                          <Chip label={`${session.totalSets} sets`} size="small" />
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          flexWrap="wrap"
+                          useFlexGap
+                        >
+                          <Chip
+                            label={`${session.exerciseCount} exercises`}
+                            size="small"
+                          />
+                          <Chip
+                            label={`${session.totalSets} sets`}
+                            size="small"
+                          />
                         </Stack>
                       </Stack>
                     </AccordionSummary>
@@ -135,7 +131,10 @@ export default async function HistoryPage() {
                                 <Typography variant="body1" fontWeight={700}>
                                   {entry.exerciseNameSnapshot}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
                                   {entry.exerciseCategorySnapshot} ·{" "}
                                   {entry.unitSnapshot === "kg" ? "kg" : "BW"}
                                 </Typography>
@@ -159,14 +158,26 @@ export default async function HistoryPage() {
                                       spacing={1}
                                       alignItems="center"
                                     >
-                                      <Typography variant="body2" fontWeight={700}>
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight={700}
+                                      >
                                         Set {set.setNumber}
                                       </Typography>
-                                      <Typography variant="body2" color="text.secondary">
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
                                         {set.reps} reps
                                       </Typography>
-                                      <Typography variant="body2" fontWeight={700}>
-                                        {formatSetWeight(entry.unitSnapshot, set.weight)}
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight={700}
+                                      >
+                                        {formatSetWeight(
+                                          entry.unitSnapshot,
+                                          set.weight,
+                                        )}
                                       </Typography>
                                     </Stack>
                                   </Paper>

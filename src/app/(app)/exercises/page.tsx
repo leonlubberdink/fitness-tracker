@@ -37,16 +37,9 @@ export default async function ExercisesPage({
     <Stack spacing={2.5}>
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
         <Stack spacing={1.5}>
-          <Chip
-            label="Reusable exercise library"
-            color="primary"
-            variant="outlined"
-            sx={{ alignSelf: "flex-start" }}
-          />
           <Typography variant="h1">Exercises</Typography>
           <Typography color="text.secondary">
-            Create exercises once, keep names consistent, and reuse them inside
-            the workout flow with minimal friction.
+            Create exercises once, and reuse them inside your workouts.
           </Typography>
         </Stack>
       </Paper>
@@ -59,8 +52,7 @@ export default async function ExercisesPage({
                 <Stack spacing={0.75}>
                   <Typography variant="h3">Exercise library</Typography>
                   <Typography color="text.secondary">
-                    Search by name, scan by category, and keep the list calm
-                    enough to use quickly mid-workout.
+                    Search by name or category.
                   </Typography>
                 </Stack>
 
@@ -80,12 +72,6 @@ export default async function ExercisesPage({
                     }}
                   />
                 </form>
-
-                <Chip
-                  label={`${exerciseList.length} ${exerciseList.length === 1 ? "exercise" : "exercises"}`}
-                  variant="outlined"
-                  sx={{ alignSelf: "flex-start" }}
-                />
               </Stack>
 
               {exerciseList.length === 0 ? (
@@ -100,12 +86,14 @@ export default async function ExercisesPage({
                 >
                   <Stack spacing={0.75}>
                     <Typography variant="h3" sx={{ fontSize: "1rem" }}>
-                      {query ? "No exercises match that search." : "No exercises yet."}
+                      {query
+                        ? "No exercises match that search."
+                        : "No exercises yet."}
                     </Typography>
                     <Typography color="text.secondary">
                       {query
                         ? "Try a different name or clear the search to see the full library."
-                        : "Use the create panel to add your first exercise and build the library before the next session."}
+                        : "Use the create panel to add your first exercise."}
                     </Typography>
                   </Stack>
                 </Paper>
@@ -125,7 +113,10 @@ export default async function ExercisesPage({
                             </Typography>
                           }
                           secondary={
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {exercise.category}
                             </Typography>
                           }
@@ -149,10 +140,6 @@ export default async function ExercisesPage({
             <Stack spacing={2.5}>
               <Stack spacing={0.75}>
                 <Typography variant="h3">Create exercise</Typography>
-                <Typography color="text.secondary">
-                  Keep the library tidy so picking the next exercise stays
-                  quick during training.
-                </Typography>
               </Stack>
               <ExerciseCreateForm />
             </Stack>

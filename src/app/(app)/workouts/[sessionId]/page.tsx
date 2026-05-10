@@ -62,15 +62,13 @@ function formatUnit(unit: "kg" | "bodyweight") {
 }
 
 function formatPreviousSet(
-  previousSet:
-    | {
-        performedOn: string;
-        reps: number;
-        setNumber: number;
-        weight: number;
-        unit: "kg" | "bodyweight";
-      }
-    | null,
+  previousSet: {
+    performedOn: string;
+    reps: number;
+    setNumber: number;
+    weight: number;
+    unit: "kg" | "bodyweight";
+  } | null,
 ) {
   if (!previousSet) {
     return "No completed history yet.";
@@ -109,7 +107,12 @@ function EntryHeader({
       >
         <Typography variant="h3">{entry.exerciseNameSnapshot}</Typography>
         {current ? (
-          <Chip label="Current" size="small" color="primary" variant="outlined" />
+          <Chip
+            label="Current"
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
         ) : null}
       </Stack>
       <Typography color="text.secondary">
@@ -136,7 +139,9 @@ function SetEditor({
       sx={{
         p: 1.5,
         borderRadius: "8px",
-        bgcolor: emphasize ? "rgba(139,194,172,0.05)" : "rgba(255,255,255,0.03)",
+        bgcolor: emphasize
+          ? "rgba(139,194,172,0.05)"
+          : "rgba(255,255,255,0.03)",
         borderColor: emphasize ? "rgba(139,194,172,0.16)" : undefined,
       }}
     >
@@ -235,13 +240,7 @@ export default async function WorkoutPage({
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
         <Stack spacing={2.5}>
           <Stack spacing={1.5}>
-            <Chip
-              label="Workout in progress"
-              color="primary"
-              variant="outlined"
-              sx={{ alignSelf: "flex-start" }}
-            />
-            <Typography variant="h1">Log the current block fast.</Typography>
+            <Typography variant="h1">Current workout.</Typography>
             <Typography color="text.secondary">
               {formatWorkoutDate(session.performedOn)} starting at{" "}
               {formatWorkoutTime(session.startedAt)}.
@@ -285,10 +284,6 @@ export default async function WorkoutPage({
                   {currentEntry.previousSet
                     ? `Last completed: ${formatPreviousSet(currentEntry.previousSet)}`
                     : "No completed history for this exercise yet."}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Next likely action: log the next set here, or add the next
-                  exercise when this block is done.
                 </Typography>
               </Stack>
             </Paper>
@@ -447,11 +442,9 @@ export default async function WorkoutPage({
         <Stack spacing={2.5}>
           <Stack spacing={0.75}>
             <Typography variant="h3">
-              {currentEntry ? "Add the next exercise" : "Add the first exercise"}
-            </Typography>
-            <Typography color="text.secondary">
-              Search your library, choose the next movement, and let the first
-              set appear automatically so you can keep the flow moving.
+              {currentEntry
+                ? "Add the next exercise"
+                : "Add the first exercise"}
             </Typography>
           </Stack>
 
@@ -470,10 +463,13 @@ export default async function WorkoutPage({
                   No exercises available yet.
                 </Typography>
                 <Typography color="text.secondary">
-                  Create exercises first, then come back here to keep logging in
-                  one flow.
+                  Create exercises first, then come back here.
                 </Typography>
-                <Button component={NextLink} href="/exercises" variant="contained">
+                <Button
+                  component={NextLink}
+                  href="/exercises"
+                  variant="contained"
+                >
                   Go to exercises
                 </Button>
               </Stack>
@@ -493,7 +489,7 @@ export default async function WorkoutPage({
           <Stack spacing={0.75}>
             <Typography variant="h3">Nothing logged yet.</Typography>
             <Typography color="text.secondary">
-              Add the first exercise above to start entering reps and weight.
+              Add the first exercise above to start entering reps.
             </Typography>
           </Stack>
         </Paper>
