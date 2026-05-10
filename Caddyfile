@@ -1,0 +1,14 @@
+{
+	servers {
+		trusted_proxies static private_ranges
+		client_ip_headers X-Forwarded-For X-Real-IP
+	}
+}
+
+https://{$APP_DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy app:3000 {
+		header_up X-Real-IP {remote_host}
+	}
+}
