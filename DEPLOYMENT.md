@@ -69,6 +69,21 @@ docker compose logs -f app
 docker compose logs -f db
 ```
 
+Useful operational checks:
+
+```bash
+curl https://fitness.example.com/api/health
+docker compose logs -f app
+```
+
+The app container emits structured JSON logs for:
+
+- login success
+- login failure
+- login rate-limit blocks
+- logout
+- workout completion
+
 Only Caddy is exposed publicly on ports `80` and `443`. The Next.js app stays on the internal Docker network.
 
 On the first startup, Caddy will request and store TLS certificates automatically. If certificate issuance fails, check:

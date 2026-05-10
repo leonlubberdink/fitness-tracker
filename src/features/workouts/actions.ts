@@ -14,6 +14,7 @@ import {
   workoutSets,
 } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
+import { logInfo } from "@/lib/logger";
 
 import { getOpenWorkoutSessionForUser } from "./queries";
 import {
@@ -348,6 +349,11 @@ export async function completeWorkoutSessionAction(formData: FormData) {
       updatedAt: new Date(),
     })
     .where(eq(workoutSessions.id, sessionId));
+
+  logInfo("workout.session.completed", {
+    userId: user.id,
+    sessionId,
+  });
 
   revalidatePath("/");
   revalidatePath("/history");

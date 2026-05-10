@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
+import { hashLogValue, logInfo, logWarn } from "@/lib/logger";
 
 import {
   clearSessionCookie,
@@ -67,6 +68,12 @@ export async function loginAction(
   const rateLimitStatus = await checkLoginRateLimit(ipAddress, email);
 
   if (rateLimitStatus.blocked) {
+    logWarn("auth.login.rate_limited", {
+      emailHash: hashLogValue(email),
+      ipHash: hashLogValue(ipAddress),
+      retryAfterMinutes: rateLimitStatus.retryAfterMinutes,
+    });
+
     return {
       error: `Too many login attempts. Try again in about ${rateLimitStatus.retryAfterMinutes} minute${rateLimitStatus.retryAfterMinutes === 1 ? "" : "s"}.`,
       fieldErrors: {},
@@ -89,6 +96,11 @@ export async function loginAction(
 
   if (!user || !user.isActive) {
     await recordFailedLoginAttempt(ipAddress, email);
+    logWarn("auth.login.failed", {
+      emailHash: hashLogValue(email),
+      ipHash: hashLogValue(ipAddress),
+      reason: "user_not_found_or_inactive",
+    });
 
     return {
       error: "Invalid email or password.",
@@ -103,6 +115,11 @@ export async function loginAction(
 
   if (!passwordMatches) {
     await recordFailedLoginAttempt(ipAddress, email);
+    logWarn("auth.login.failed", {
+      emailHash: hashLogValue(email),
+      ipHash: hashLogValue(ipAddress),
+      reason: "invalid_password",
+    });
 
     return {
       error: "Invalid email or password.",
@@ -123,6 +140,11 @@ export async function loginAction(
 
   await clearLoginRateLimit(ipAddress, email);
   await createUserSession(user.id);
+  logInfo("auth.login.succeeded", {
+    userId: user.id,
+    emailHash: hashLogValue(email),
+    ipHash: hashLogValue(ipAddress),
+  });
   revalidatePath("/", "layout");
   redirect("/");
 }
@@ -136,6 +158,11 @@ export async function logoutAction() {
     if (sessionToken) {
       await deleteSessionByToken(sessionToken);
     }
+
+    logInfo("auth.logout", {
+      userId: currentSession.user.id,
+      sessionId: currentSession.sessionId,
+    });
   }
 
   await clearSessionCookie();
