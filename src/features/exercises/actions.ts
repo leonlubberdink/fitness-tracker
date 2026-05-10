@@ -2,19 +2,47 @@
 
 import { randomUUID } from "node:crypto";
 
-import { sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { db } from "@/db/client";
-import { exercises } from "@/db/schema";
+import { exercises, workoutExerciseEntries, workoutSessions } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
 
 import type { CreateExerciseActionState } from "./state";
-import { createExerciseSchema } from "./validation";
+import { createExerciseSchema, deleteExerciseSchema } from "./validation";
 
 function getStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+function redirectToExercises({
+  error,
+  query,
+  success,
+}: {
+  error?: string;
+  query?: string;
+  success?: string;
+}): never {
+  const searchParams = new URLSearchParams();
+
+  if (query) {
+    searchParams.set("q", query);
+  }
+
+  if (error) {
+    searchParams.set("error", error);
+  }
+
+  if (success) {
+    searchParams.set("success", success);
+  }
+
+  const search = searchParams.toString();
+  redirect(search ? `/exercises?${search}` : "/exercises");
 }
 
 export async function createExerciseAction(
@@ -90,4 +118,73 @@ export async function createExerciseAction(
       defaultUnit: "kg",
     },
   };
+}
+
+export async function deleteExerciseAction(formData: FormData) {
+  const user = await requireUser();
+  const query = getStringValue(formData, "q").trim();
+  const parsedInput = deleteExerciseSchema.safeParse({
+    exerciseId: getStringValue(formData, "exerciseId"),
+  });
+
+  if (!parsedInput.success) {
+    redirectToExercises({
+      query,
+      error: "Choose a valid exercise to delete.",
+    });
+  }
+
+  const { exerciseId } = parsedInput.data;
+
+  const [exercise] = await db
+    .select({
+      id: exercises.id,
+      name: exercises.name,
+    })
+    .from(exercises)
+    .where(and(eq(exercises.id, exerciseId), eq(exercises.userId, user.id)))
+    .limit(1);
+
+  if (!exercise) {
+    redirectToExercises({
+      query,
+      error: "Exercise no longer exists in your library.",
+    });
+  }
+
+  const [openWorkoutReference] = await db
+    .select({
+      sessionId: workoutSessions.id,
+    })
+    .from(workoutExerciseEntries)
+    .innerJoin(
+      workoutSessions,
+      eq(workoutExerciseEntries.workoutSessionId, workoutSessions.id),
+    )
+    .where(
+      and(
+        eq(workoutExerciseEntries.exerciseId, exercise.id),
+        eq(workoutSessions.userId, user.id),
+        isNull(workoutSessions.completedAt),
+      ),
+    )
+    .limit(1);
+
+  if (openWorkoutReference) {
+    redirectToExercises({
+      query,
+      error: `Cannot remove ${exercise.name} while it is part of your current workout. Remove it from the workout first.`,
+    });
+  }
+
+  await db
+    .delete(exercises)
+    .where(and(eq(exercises.id, exercise.id), eq(exercises.userId, user.id)));
+
+  revalidatePath("/exercises");
+
+  redirectToExercises({
+    query,
+    success: `Removed ${exercise.name} from your exercise library.`,
+  });
 }

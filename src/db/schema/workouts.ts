@@ -65,9 +65,9 @@ export const workoutExerciseEntries = pgTable(
     workoutSessionId: uuid("workout_session_id")
       .notNull()
       .references(() => workoutSessions.id, { onDelete: "cascade" }),
-    exerciseId: uuid("exercise_id")
-      .notNull()
-      .references(() => exercises.id),
+    exerciseId: uuid("exercise_id").references(() => exercises.id, {
+      onDelete: "set null",
+    }),
     exerciseNameSnapshot: text("exercise_name_snapshot").notNull(),
     exerciseCategorySnapshot: text("exercise_category_snapshot").notNull(),
     unitSnapshot: exerciseUnitEnum("unit_snapshot").notNull(),

@@ -29,6 +29,13 @@
       "when": 1778375019155,
       "tag": "0003_soft_ares",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778429926337,
+      "tag": "0004_striped_namorita",
+      "breakpoints": true
     }
   ]
 }

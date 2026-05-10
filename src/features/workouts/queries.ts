@@ -12,7 +12,7 @@ import { searchExercisesForUser } from "@/features/exercises/queries";
 type WorkoutEntryRow = {
   id: string;
   workoutSessionId: string;
-  exerciseId: string;
+  exerciseId: string | null;
   exerciseNameSnapshot: string;
   exerciseCategorySnapshot: string;
   unitSnapshot: "kg" | "bodyweight";
@@ -44,7 +44,9 @@ function groupEntriesWithSets(
 ) {
   return entries.map((entry) => ({
     ...entry,
-    previousSet: previousSetsByExerciseId.get(entry.exerciseId) ?? null,
+    previousSet: entry.exerciseId
+      ? previousSetsByExerciseId.get(entry.exerciseId) ?? null
+      : null,
     sets: sets.filter((set) => set.workoutExerciseEntryId === entry.id),
   }));
 }
@@ -131,7 +133,13 @@ export async function getWorkoutSessionForLogging(
     getExerciseOptionsForUser(userId),
   ]);
 
-  const exerciseIds = [...new Set(entryRows.map((entry) => entry.exerciseId))];
+  const exerciseIds = [
+    ...new Set(
+      entryRows
+        .map((entry) => entry.exerciseId)
+        .filter((exerciseId): exerciseId is string => exerciseId !== null),
+    ),
+  ];
   const previousSetsByExerciseId = new Map<string, PreviousExerciseSet>();
 
   if (exerciseIds.length > 0) {
@@ -168,7 +176,10 @@ export async function getWorkoutSessionForLogging(
       );
 
     for (const previousSet of previousSetRows) {
-      if (previousSetsByExerciseId.has(previousSet.exerciseId)) {
+      if (
+        previousSet.exerciseId === null ||
+        previousSetsByExerciseId.has(previousSet.exerciseId)
+      ) {
         continue;
       }
 
