@@ -37,45 +37,22 @@ export default async function ExercisesPage({
     <Stack spacing={2.5}>
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
         <Stack spacing={1.5}>
-          <Chip
-            label="Reusable exercise library"
-            color="primary"
-            variant="outlined"
-            sx={{ alignSelf: "flex-start" }}
-          />
           <Typography variant="h1">Exercises</Typography>
           <Typography color="text.secondary">
-            Create exercises once, keep names consistent, and reuse them inside
-            the workout flow with minimal friction.
+            Create exercises once, and reuse them inside your workouts.
           </Typography>
         </Stack>
       </Paper>
 
       <Grid container spacing={1.5}>
-        <Grid size={{ xs: 12, md: 5 }}>
-          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
-            <Stack spacing={2.5}>
-              <Stack spacing={0.75}>
-                <Typography variant="h3">Create exercise</Typography>
-                <Typography color="text.secondary">
-                  Keep the library tidy so picking the next exercise stays
-                  quick during training.
-                </Typography>
-              </Stack>
-              <ExerciseCreateForm />
-            </Stack>
-          </Paper>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 7 }}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
             <Stack spacing={2.5}>
               <Stack spacing={1.5}>
                 <Stack spacing={0.75}>
                   <Typography variant="h3">Exercise library</Typography>
                   <Typography color="text.secondary">
-                    Search by name, scan by category, and keep the list calm
-                    enough to use quickly mid-workout.
+                    Search by name or category.
                   </Typography>
                 </Stack>
 
@@ -109,12 +86,14 @@ export default async function ExercisesPage({
                 >
                   <Stack spacing={0.75}>
                     <Typography variant="h3" sx={{ fontSize: "1rem" }}>
-                      {query ? "No exercises match that search." : "No exercises yet."}
+                      {query
+                        ? "No exercises match that search."
+                        : "No exercises yet."}
                     </Typography>
                     <Typography color="text.secondary">
                       {query
-                        ? "Try a different name or clear the search."
-                        : "Create your first exercise to start building the library."}
+                        ? "Try a different name or clear the search to see the full library."
+                        : "Use the create panel to add your first exercise."}
                     </Typography>
                   </Stack>
                 </Paper>
@@ -134,7 +113,10 @@ export default async function ExercisesPage({
                             </Typography>
                           }
                           secondary={
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {exercise.category}
                             </Typography>
                           }
@@ -149,6 +131,17 @@ export default async function ExercisesPage({
                   ))}
                 </List>
               )}
+            </Stack>
+          </Paper>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
+            <Stack spacing={2.5}>
+              <Stack spacing={0.75}>
+                <Typography variant="h3">Create exercise</Typography>
+              </Stack>
+              <ExerciseCreateForm />
             </Stack>
           </Paper>
         </Grid>

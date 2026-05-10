@@ -48,8 +48,8 @@ export function LoginForm() {
         />
 
         {state.error ? (
-          <Alert severity="error" variant="filled">
-          {state.error}
+          <Alert severity="error" variant="outlined">
+            {state.error}
           </Alert>
         ) : null}
 
