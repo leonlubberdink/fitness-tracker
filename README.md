@@ -50,6 +50,7 @@ docker compose -f docker-compose.dev.yml exec app sh
 Notes:
 
 - the dev container runs `pnpm install --frozen-lockfile` on startup so dependency changes are picked up automatically
+- the dev container forces `next dev --webpack` because Next.js 16 uses Turbopack by default, and the Docker polling fallback in this stack relies on webpack/watchpack behavior
 - `WATCHPACK_POLLING` and `CHOKIDAR_USEPOLLING` are enabled because file watching in Docker on Windows can otherwise miss changes
 - if you change `POSTGRES_PASSWORD`, recreate the dev database volume with `docker compose -f docker-compose.dev.yml down -v` because Postgres only applies that password when the data directory is first initialized
 - Next.js recommends local development over Docker on Windows or macOS because filesystem performance is slower there, so hot reload may still be less responsive than native development

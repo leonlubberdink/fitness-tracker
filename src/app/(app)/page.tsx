@@ -67,7 +67,7 @@ export default async function Home() {
           <Stack spacing={1.25}>
             <Typography variant="h1">
               {workoutSession
-                ? "Pick!!!!! up the next set fast."
+                ? "Pick up the next set fast."
                 : "Start clean, stay in flow."}
             </Typography>
             <Typography color="text.secondary">
