@@ -1,6 +1,15 @@
-import Link from "next/link";
+import SearchRounded from "@mui/icons-material/SearchRounded";
+import Chip from "@mui/material/Chip";
+import Grid from "@mui/material/Grid";
+import InputAdornment from "@mui/material/InputAdornment";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 
-import { logoutAction } from "@/features/auth/actions";
 import { requireUser } from "@/features/auth/session";
 import { getExercisesForUser } from "@/features/exercises/queries";
 
@@ -25,130 +34,125 @@ export default async function ExercisesPage({
   const exerciseList = await getExercisesForUser(user.id, query);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-6 py-8 sm:max-w-3xl sm:px-8">
-      <section className="rounded-4xl border border-border bg-surface/90 p-6 shadow-[0_18px_60px_rgba(23,18,15,0.08)] backdrop-blur sm:p-10">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-border bg-background px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted">
-              Reusable Exercises
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                Exercises
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted sm:text-base">
-                Create exercises once, search them quickly, and reuse them in
-                workout logging later. Signed in as{" "}
-                <span className="font-semibold text-foreground">{user.email}</span>
-                .
-              </p>
-            </div>
-          </div>
+    <Stack spacing={2.5}>
+      <Paper elevation={0} sx={{ borderRadius: 8, px: 3, py: 3.5 }}>
+        <Stack spacing={1.5}>
+          <Chip
+            label="Reusable exercise library"
+            color="primary"
+            variant="outlined"
+            sx={{ alignSelf: "flex-start" }}
+          />
+          <Typography variant="h1">Exercises</Typography>
+          <Typography color="text.secondary">
+            Create exercises once, keep names consistent, and reuse them inside
+            the workout flow with minimal friction.
+          </Typography>
+        </Stack>
+      </Paper>
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-            >
-              Home
-            </Link>
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-              >
-                Log out
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
+      <Grid container spacing={1.5}>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Paper elevation={0} sx={{ borderRadius: 7, px: 2.5, py: 2.5 }}>
+            <Stack spacing={2.5}>
+              <Stack spacing={0.75}>
+                <Typography variant="h3">Create exercise</Typography>
+                <Typography color="text.secondary">
+                  Keep the library tidy so picking the next exercise stays
+                  quick during training.
+                </Typography>
+              </Stack>
+              <ExerciseCreateForm />
+            </Stack>
+          </Paper>
+        </Grid>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        <div className="rounded-[2rem] border border-border bg-surface p-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)]">
-          <div className="mb-5 space-y-2">
-            <h2 className="text-xl font-semibold text-foreground">
-              Create exercise
-            </h2>
-            <p className="text-sm leading-6 text-muted">
-              Keep naming consistent so your workout history stays easy to scan.
-            </p>
-          </div>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Paper elevation={0} sx={{ borderRadius: 7, px: 2.5, py: 2.5 }}>
+            <Stack spacing={2.5}>
+              <Stack spacing={1.5}>
+                <Stack spacing={0.75}>
+                  <Typography variant="h3">Exercise library</Typography>
+                  <Typography color="text.secondary">
+                    Search by name, scan by category, and keep the list calm
+                    enough to use quickly mid-workout.
+                  </Typography>
+                </Stack>
 
-          <ExerciseCreateForm />
-        </div>
-
-        <div className="rounded-[2rem] border border-border bg-surface p-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)]">
-          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-foreground">
-                Exercise library
-              </h2>
-              <p className="text-sm leading-6 text-muted">
-                Search by exercise name and reuse the list as your foundation
-                for workout entry.
-              </p>
-            </div>
-
-            <form className="w-full sm:max-w-xs">
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-foreground">
-                  Search
-                </span>
-                <div className="flex gap-2">
-                  <input
+                <form>
+                  <TextField
+                    fullWidth
                     type="search"
                     name="q"
                     defaultValue={query}
                     placeholder="Search exercises"
-                    className="min-w-0 flex-1 rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none placeholder:text-muted"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchRounded />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
-                  <button
-                    type="submit"
-                    className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-                  >
-                    Search
-                  </button>
-                </div>
-              </label>
-            </form>
-          </div>
+                </form>
+              </Stack>
 
-          {exerciseList.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-border bg-background/70 px-5 py-8 text-center">
-              <p className="text-base font-medium text-foreground">
-                {query ? "No exercises match that search." : "No exercises yet."}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                {query
-                  ? "Try a different name or clear the search."
-                  : "Create your first exercise to start building the reusable library."}
-              </p>
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {exerciseList.map((exercise) => (
-                <li
-                  key={exercise.id}
-                  className="rounded-[1.5rem] border border-border bg-background/75 px-4 py-4"
+              {exerciseList.length === 0 ? (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    borderRadius: 5,
+                    px: 2,
+                    py: 3,
+                    bgcolor: "rgba(255,255,255,0.02)",
+                  }}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 space-y-1">
-                      <p className="truncate text-base font-semibold text-foreground">
-                        {exercise.name}
-                      </p>
-                      <p className="text-sm text-muted">{exercise.category}</p>
-                    </div>
-                    <span className="shrink-0 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-muted">
-                      {formatDefaultUnit(exercise.defaultUnit)}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-    </main>
+                  <Stack spacing={0.75}>
+                    <Typography variant="h3" sx={{ fontSize: "1rem" }}>
+                      {query ? "No exercises match that search." : "No exercises yet."}
+                    </Typography>
+                    <Typography color="text.secondary">
+                      {query
+                        ? "Try a different name or clear the search."
+                        : "Create your first exercise to start building the library."}
+                    </Typography>
+                  </Stack>
+                </Paper>
+              ) : (
+                <List disablePadding sx={{ display: "grid", gap: 1.25 }}>
+                  {exerciseList.map((exercise) => (
+                    <Paper
+                      key={exercise.id}
+                      elevation={0}
+                      sx={{ borderRadius: 5, px: 2, py: 1.75 }}
+                    >
+                      <ListItem disablePadding>
+                        <ListItemText
+                          primary={
+                            <Typography variant="body1" fontWeight={700}>
+                              {exercise.name}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography variant="body2" color="text.secondary">
+                              {exercise.category}
+                            </Typography>
+                          }
+                        />
+                        <Chip
+                          label={formatDefaultUnit(exercise.defaultUnit)}
+                          variant="outlined"
+                          color="primary"
+                        />
+                      </ListItem>
+                    </Paper>
+                  ))}
+                </List>
+              )}
+            </Stack>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Stack>
   );
 }

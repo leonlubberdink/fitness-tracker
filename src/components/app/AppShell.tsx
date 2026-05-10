@@ -1,0 +1,94 @@
+import LogoutRounded from "@mui/icons-material/LogoutRounded";
+import AppBar from "@mui/material/AppBar";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import { alpha } from "@mui/material/styles";
+import type { ReactNode } from "react";
+
+import { logoutAction } from "@/features/auth/actions";
+
+import { AppBottomNavigation } from "./AppBottomNavigation";
+
+type AppShellProps = {
+  children: ReactNode;
+  email: string;
+  workoutHref: string;
+};
+
+function getInitials(email: string) {
+  const [localPart] = email.split("@");
+  return localPart.slice(0, 2).toUpperCase();
+}
+
+export function AppShell({ children, email, workoutHref }: AppShellProps) {
+  return (
+    <Box sx={{ minHeight: "100dvh", color: "text.primary" }}>
+      <AppBar position="sticky" elevation={0}>
+        <Container maxWidth="sm" sx={{ px: 2 }}>
+          <Toolbar
+            disableGutters
+            sx={{
+              minHeight: 76,
+              gap: 2,
+              pt: "max(4px, env(safe-area-inset-top))",
+            }}
+          >
+            <Stack direction="row" spacing={1.5} alignItems="center" flexGrow={1}>
+              <Avatar
+                sx={{
+                  width: 42,
+                  height: 42,
+                  bgcolor: alpha("#8bc2ac", 0.16),
+                  color: "primary.light",
+                  fontWeight: 700,
+                }}
+              >
+                {getInitials(email)}
+              </Avatar>
+              <Stack spacing={0.25} minWidth={0}>
+                <Typography variant="h3" sx={{ fontSize: "1.1rem" }}>
+                  Lift Log
+                </Typography>
+                <Typography variant="caption" color="text.secondary" noWrap>
+                  {email}
+                </Typography>
+              </Stack>
+            </Stack>
+
+            <form action={logoutAction}>
+              <IconButton
+                type="submit"
+                aria-label="Log out"
+                sx={{
+                  border: `1px solid ${alpha("#d7e1e7", 0.08)}`,
+                  bgcolor: alpha("#ffffff", 0.02),
+                }}
+              >
+                <LogoutRounded />
+              </IconButton>
+            </form>
+          </Toolbar>
+        </Container>
+      </AppBar>
+
+      <Container
+        maxWidth="sm"
+        component="main"
+        sx={{
+          px: 2,
+          pt: 3,
+          pb: "calc(104px + env(safe-area-inset-bottom))",
+        }}
+      >
+        {children}
+      </Container>
+
+      <AppBottomNavigation workoutHref={workoutHref} />
+    </Box>
+  );
+}

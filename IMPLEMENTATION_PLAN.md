@@ -3,13 +3,13 @@
 ## Executive Summary
 
 - Repo state: `d:\Projects\Coding\fitness-app` is empty and not a Git repo, so this is a true greenfield build.
-- Recommended v1 stack: `Next.js` App Router, `TypeScript`, `Tailwind CSS`, `Drizzle ORM` + `drizzle-kit`, `PostgreSQL`, `Zod`, `pg`, and a small custom credentials auth layer using `Argon2id` password hashes plus database-backed opaque sessions.
+- Recommended v1 stack: `Next.js` App Router, `TypeScript`, `Material UI`, `Drizzle ORM` + `drizzle-kit`, `PostgreSQL`, `Zod`, `pg`, and a small custom credentials auth layer using `Argon2id` password hashes plus database-backed opaque sessions.
 - Main architectural choice: use Server Components for reads, Server Actions for writes, and keep Route Handlers minimal. This matches current Next.js patterns and keeps the codebase clean and low-ops.
 - General auth frameworks are intentionally deferred for v1 because seeded-user-only email/password auth is narrower than Better Auth/Auth.js are built for; a small custom auth layer is simpler to host, easier to reason about, and avoids unnecessary tables and flows.
 
 ## Full Implementation Plan
 
-- Stack choices: `pnpm`, `Next.js` App Router, strict `TypeScript`, `Tailwind CSS`, `Drizzle ORM`, `drizzle-kit`, `pg`, `Zod`, `@node-rs/argon2`, and a small internal UI layer instead of a full component library.
+- Stack choices: `pnpm`, `Next.js` App Router, strict `TypeScript`, `Material UI`, `Drizzle ORM`, `drizzle-kit`, `pg`, `Zod`, `@node-rs/argon2`, and a small app-specific component layer on top of the Material UI system.
 - Rendering model: protected app pages are Server Components; forms and interactive logging widgets use Client Components only where needed; writes happen through Server Actions with `revalidatePath`.
 - Folder structure: `src/app` for routes/layouts, `src/features/auth|exercises|workouts|history` for domain logic, `src/components/ui` for shared primitives, `src/db/schema` for table definitions, `src/db/client.ts` for the DB client, `scripts` for seed/ops scripts, `drizzle/` for generated SQL migrations.
 - Route groups: `(public)` for `/login`, `(app)` for authenticated pages and shared mobile navigation.
@@ -45,7 +45,7 @@
 
 ## Milestones With Validation
 
-- Milestone 1: scaffold the app, set up `pnpm`, Next.js, Tailwind, TypeScript, base layouts, env handling, and Docker skeleton. Validate with `pnpm lint`, `pnpm typecheck`, and a running `/login` page.
+- Milestone 1: scaffold the app, set up `pnpm`, Next.js, Material UI, TypeScript, base layouts, env handling, and Docker skeleton. Validate with `pnpm lint`, `pnpm typecheck`, and a running `/login` page.
 - Milestone 2: implement Postgres + Drizzle, migrations, `users` and `sessions`, seed script, login/logout, and protected layout flow. Validate by migrating a fresh DB, seeding a user, successful login/logout, and redirecting unauthenticated access.
 - Milestone 3: implement exercise management and search. Validate by creating exercises, blocking duplicate names for the same user, and confirming partial-name search returns expected results.
 - Milestone 4: implement workout session creation and the in-progress logging page. Validate by starting a session, adding exercises, adding/updating/removing sets, and enforcing only one open session at a time.

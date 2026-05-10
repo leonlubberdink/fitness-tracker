@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from "react";
 
+import AddRounded from "@mui/icons-material/AddRounded";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+
 type ExerciseOption = {
   id: string;
   name: string;
@@ -111,7 +124,8 @@ export function ExercisePickerForm({
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <Box component="form" action={formAction}>
+      <Stack spacing={2.5}>
       <input type="hidden" name="sessionId" value={sessionId} />
       <input
         type="hidden"
@@ -120,76 +134,129 @@ export function ExercisePickerForm({
         required
       />
 
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-foreground">Exercise</span>
-        <input
+        <TextField
+          label="Exercise"
           type="search"
           value={searchQuery}
           onChange={(event) => handleSearchChange(event.target.value)}
           placeholder="Search exercises by name"
-          className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none"
+          fullWidth
         />
-      </label>
 
       {selectedExercise ? (
-        <div className="rounded-[1.25rem] border border-border bg-background px-4 py-3">
-          <div className="text-sm font-semibold text-foreground">
+          <Stack
+            spacing={1}
+            sx={{
+              p: 2,
+              borderRadius: 5,
+              border: "1px solid",
+              borderColor: "divider",
+              bgcolor: "rgba(255,255,255,0.02)",
+            }}
+          >
+            <Typography variant="body1" fontWeight={700}>
             {selectedExercise.name}
-          </div>
-          <div className="mt-1 text-sm text-muted">
-            {selectedExercise.category} ·{" "}
-            {formatUnit(selectedExercise.defaultUnit)}
-          </div>
-        </div>
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Chip label={selectedExercise.category} variant="outlined" />
+              <Chip
+                label={formatUnit(selectedExercise.defaultUnit)}
+                color="primary"
+                variant="outlined"
+              />
+            </Stack>
+          </Stack>
       ) : (
-        <div className="rounded-[1.25rem] border border-border bg-background/70 p-2">
-          <div className="mb-2 flex items-center justify-between px-2">
-            <span className="text-xs font-medium uppercase tracking-[0.16em] text-muted">
-              Matches
-            </span>
+          <Stack
+            spacing={1.5}
+            sx={{
+              p: 1.5,
+              borderRadius: 5,
+              border: "1px solid",
+              borderColor: "divider",
+              bgcolor: "rgba(255,255,255,0.02)",
+            }}
+          >
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              px={1}
+            >
+              <Typography variant="overline" color="text.secondary">
+                Matches
+              </Typography>
             {isLoading ? (
-              <span className="text-xs text-muted">Searching…</span>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <CircularProgress size={14} />
+                  <Typography variant="caption" color="text.secondary">
+                    Searching
+                  </Typography>
+                </Stack>
             ) : null}
-          </div>
+            </Stack>
 
           {visibleResults.length === 0 ? (
-            <div className="px-2 py-3 text-sm text-muted">
-              {errorMessage || "No exercises match that search."}
-            </div>
+              errorMessage ? (
+                <Alert severity="error" variant="outlined">
+                  {errorMessage}
+                </Alert>
+              ) : (
+                <Typography px={1} py={2} color="text.secondary">
+                  No exercises match that search.
+                </Typography>
+              )
           ) : (
-            <div className="space-y-2">
+              <List disablePadding sx={{ display: "grid", gap: 1 }}>
               {visibleResults.map((exercise) => (
-                <button
+                  <ListItemButton
                   key={exercise.id}
-                  type="button"
                   onClick={() => handleExerciseSelect(exercise)}
-                  className="flex w-full items-center justify-between rounded-[1rem] border border-border bg-surface px-3 py-3 text-left transition-colors hover:bg-background"
+                    sx={{
+                      borderRadius: 4,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      bgcolor: "background.paper",
+                      alignItems: "flex-start",
+                      px: 2,
+                      py: 1.5,
+                    }}
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-foreground">
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" fontWeight={700} noWrap>
                       {exercise.name}
-                    </span>
-                    <span className="block truncate text-sm text-muted">
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography variant="caption" color="text.secondary" noWrap>
                       {exercise.category}
-                    </span>
-                  </span>
-                  <span className="ml-3 shrink-0 text-xs font-medium uppercase tracking-[0.16em] text-muted">
-                    {formatUnit(exercise.defaultUnit)}
-                  </span>
-                </button>
+                        </Typography>
+                      }
+                    />
+                    <Chip
+                      label={formatUnit(exercise.defaultUnit)}
+                      size="small"
+                      variant="outlined"
+                      sx={{ ml: 2 }}
+                    />
+                  </ListItemButton>
               ))}
-            </div>
+              </List>
           )}
-        </div>
+          </Stack>
       )}
 
-      <button
-        type="submit"
-        disabled={!selectedExercise}
-        className="flex min-h-11 w-full items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Add to workout
-      </button>
-    </form>
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={!selectedExercise}
+          startIcon={<AddRounded />}
+          fullWidth
+        >
+          Add to workout
+        </Button>
+      </Stack>
+    </Box>
   );
 }

@@ -1,8 +1,24 @@
-import Link from "next/link";
+import EastRounded from "@mui/icons-material/EastRounded";
+import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
+import HistoryRounded from "@mui/icons-material/HistoryRounded";
+import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
+import TimerRounded from "@mui/icons-material/TimerRounded";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardActionArea from "@mui/material/CardActionArea";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
-import { logoutAction } from "@/features/auth/actions";
+import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
-import { getOpenWorkoutSessionForUser } from "@/features/workouts/queries";
+import {
+  getOpenWorkoutSessionForUser,
+  getWorkoutSessionForLogging,
+} from "@/features/workouts/queries";
 import { startWorkoutSessionAction } from "@/features/workouts/actions";
 
 function formatPerformedOn(performedOn: string) {
@@ -11,121 +27,169 @@ function formatPerformedOn(performedOn: string) {
   }).format(new Date(`${performedOn}T00:00:00`));
 }
 
+function formatTime(value: Date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeStyle: "short",
+  }).format(value);
+}
+
 export default async function Home() {
   const user = await requireUser();
   const openSession = await getOpenWorkoutSessionForUser(user.id);
+  const workoutSession = openSession
+    ? await getWorkoutSessionForLogging(user.id, openSession.id)
+    : null;
+
+  const totalSets =
+    workoutSession?.entries.reduce((count, entry) => count + entry.sets.length, 0) ??
+    0;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-8 sm:max-w-3xl sm:px-8">
-      <div className="flex flex-1 flex-col justify-between gap-10">
-        <section className="rounded-4xl border border-border bg-surface/90 p-6 shadow-[0_18px_60px_rgba(23,18,15,0.08)] backdrop-blur sm:p-10">
-          <div className="mb-6 inline-flex rounded-full border border-border bg-background px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted">
-            Auth Enabled
-          </div>
-          <div className="space-y-4">
-            <h1 className="max-w-sm text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              Lift Log
-            </h1>
-            <p className="max-w-xl text-sm leading-6 text-muted sm:text-base">
-              You are signed in as{" "}
-              <span className="font-semibold text-foreground">{user.email}</span>
-              . The authenticated app shell is now active and ready for the
-              workout features that follow.
-            </p>
-          </div>
-        </section>
+    <Stack spacing={2.5}>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 8,
+          px: 3,
+          py: 3.5,
+        }}
+      >
+        <Stack spacing={2.5}>
+          <Chip
+            label={workoutSession ? "Workout in progress" : "Today"}
+            color="primary"
+            variant="outlined"
+            sx={{ alignSelf: "flex-start" }}
+          />
 
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-          {openSession ? (
-            <Link
-              href={`/workouts/${openSession.id}`}
-              className="rounded-[1.75rem] border border-border bg-accent px-5 py-5 text-accent-foreground shadow-[0_14px_40px_rgba(24,96,69,0.18)] transition-transform hover:-translate-y-0.5"
-            >
-              <div className="text-sm font-medium uppercase tracking-[0.16em] opacity-80">
-                In Progress
-              </div>
-              <div className="mt-2 text-xl font-semibold">Continue workout</div>
-              <p className="mt-2 text-sm leading-6 opacity-90">
-                Open session from {formatPerformedOn(openSession.performedOn)}.
-                Jump back into logging exercises and sets.
-              </p>
-            </Link>
-          ) : (
-            <form
-              action={startWorkoutSessionAction}
-              className="rounded-[1.75rem] border border-border bg-accent px-5 py-5 text-accent-foreground shadow-[0_14px_40px_rgba(24,96,69,0.18)]"
-            >
-              <div className="text-sm font-medium uppercase tracking-[0.16em] opacity-80">
-                Today
-              </div>
-              <div className="mt-2 text-xl font-semibold">Start workout</div>
-              <p className="mt-2 text-sm leading-6 opacity-90">
-                Begin a new session for today and go straight into the logging
-                screen.
-              </p>
-              <button
-                type="submit"
-                className="mt-5 inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/20 bg-white/14 px-4 py-3 text-sm font-semibold text-accent-foreground transition-colors hover:bg-white/24"
+          <Stack spacing={1.25}>
+            <Typography variant="h1">
+              {workoutSession ? "Pick up the next set fast." : "Start clean, stay in flow."}
+            </Typography>
+            <Typography color="text.secondary">
+              {workoutSession
+                ? `Open session from ${formatPerformedOn(workoutSession.performedOn)}. Keep the logging surface close and avoid extra taps while you train.`
+                : "This app is tuned for quick workout logging in the gym: glance, compare, log, move on."}
+            </Typography>
+          </Stack>
+
+          {workoutSession ? (
+            <Stack spacing={2.5}>
+              <Grid container spacing={1.5}>
+                <Grid size={4}>
+                  <Paper
+                    elevation={0}
+                    sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                  >
+                    <Typography variant="overline" color="text.secondary">
+                      Started
+                    </Typography>
+                    <Typography variant="h3">{formatTime(workoutSession.startedAt)}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid size={4}>
+                  <Paper
+                    elevation={0}
+                    sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                  >
+                    <Typography variant="overline" color="text.secondary">
+                      Exercises
+                    </Typography>
+                    <Typography variant="h3">{workoutSession.entries.length}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid size={4}>
+                  <Paper
+                    elevation={0}
+                    sx={{ p: 1.75, borderRadius: 5, bgcolor: "rgba(255,255,255,0.02)" }}
+                  >
+                    <Typography variant="overline" color="text.secondary">
+                      Sets
+                    </Typography>
+                    <Typography variant="h3">{totalSets}</Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Button
+                component={NextLink}
+                href={`/workouts/${workoutSession.id}`}
+                variant="contained"
+                endIcon={<EastRounded />}
+                fullWidth
               >
-                Start session
-              </button>
+                Continue workout
+              </Button>
+            </Stack>
+          ) : (
+            <form action={startWorkoutSessionAction}>
+              <Button
+                type="submit"
+                variant="contained"
+                endIcon={<FitnessCenterRounded />}
+                fullWidth
+              >
+                Start workout
+              </Button>
             </form>
           )}
+        </Stack>
+      </Paper>
 
-          <Link
-            href="/exercises"
-            className="rounded-[1.75rem] border border-border bg-surface px-5 py-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)] transition-transform hover:-translate-y-0.5"
-          >
-            <div className="text-sm font-medium uppercase tracking-[0.16em] text-muted">
-              Foundation
-            </div>
-            <div className="mt-2 text-xl font-semibold text-foreground">
-              Exercise Library
-            </div>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Manage reusable exercises before adding them into an active
-              workout.
-            </p>
-          </Link>
+      <Grid container spacing={1.5}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Card elevation={0}>
+            <CardActionArea component={NextLink} href="/exercises" sx={{ p: 2.5 }}>
+              <Stack spacing={1.5}>
+                <LibraryBooksRounded color="primary" />
+                <Stack spacing={0.75}>
+                  <Typography variant="h3">Exercises</Typography>
+                  <Typography color="text.secondary">
+                    Build the reusable library that feeds the workout flow.
+                  </Typography>
+                </Stack>
+              </Stack>
+            </CardActionArea>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Card elevation={0}>
+            <CardActionArea component={NextLink} href="/history" sx={{ p: 2.5 }}>
+              <Stack spacing={1.5}>
+                <HistoryRounded color="primary" />
+                <Stack spacing={0.75}>
+                  <Typography variant="h3">History</Typography>
+                  <Typography color="text.secondary">
+                    Review completed sessions and compare what you logged.
+                  </Typography>
+                </Stack>
+              </Stack>
+            </CardActionArea>
+          </Card>
+        </Grid>
+      </Grid>
 
-          <Link
-            href="/history"
-            className="rounded-[1.75rem] border border-border bg-surface px-5 py-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)] transition-transform hover:-translate-y-0.5"
-          >
-            <div className="text-sm font-medium uppercase tracking-[0.16em] text-muted">
-              Review
-            </div>
-            <div className="mt-2 text-xl font-semibold text-foreground">
-              Workout History
-            </div>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Open completed sessions by date and inspect the exercises and
-              sets you logged.
-            </p>
-          </Link>
-
-          <form
-            action={logoutAction}
-            className="rounded-[1.75rem] border border-border bg-surface px-5 py-5 shadow-[0_14px_40px_rgba(23,18,15,0.06)] lg:col-span-2"
-          >
-            <div className="text-sm font-medium uppercase tracking-[0.16em] text-muted">
-              Account
-            </div>
-            <div className="mt-2 text-xl font-semibold text-foreground">
-              End Session
-            </div>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Clear the current session cookie and return to the login page.
-            </p>
-            <button
-              type="submit"
-              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-            >
-              Log out
-            </button>
-          </form>
-        </section>
-      </div>
-    </main>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 7,
+          px: 2.5,
+          py: 2.25,
+        }}
+      >
+        <Stack spacing={1.5}>
+          <Stack direction="row" spacing={1.25} alignItems="center">
+            <TimerRounded color="primary" />
+            <Typography variant="h3">How this session stays fast</Typography>
+          </Stack>
+          <Divider flexItem />
+          <Typography color="text.secondary">
+            Keep the workout screen focused on the current set, use the library
+            to add the next exercise inline, and let history stay out of the
+            way until the session is done.
+          </Typography>
+        </Stack>
+      </Paper>
+    </Stack>
   );
 }
