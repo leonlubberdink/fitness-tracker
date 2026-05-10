@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-
-import { FormStatusButton } from "@/components/app/FormStatusButtons";
 
 type WorkoutSetEditorFormProps = {
   sessionId: string;
@@ -48,12 +47,27 @@ export function WorkoutSetEditorForm({
   const initialWeightValue = String(initialWeight);
   const [reps, setReps] = useState(initialRepsValue);
   const [weight, setWeight] = useState(initialWeightValue);
+  const [isSaving, startSavingTransition] = useTransition();
+  const [isDeleting, startDeletingTransition] = useTransition();
   const isDirty = areValuesChanged(
     initialRepsValue,
     initialWeightValue,
     reps,
     weight,
   );
+  const updateFormId = `update-set-${setId}`;
+
+  async function handleUpdateAction(formData: FormData) {
+    startSavingTransition(async () => {
+      await updateSetAction(formData);
+    });
+  }
+
+  async function handleDeleteAction(formData: FormData) {
+    startDeletingTransition(async () => {
+      await removeSetAction(formData);
+    });
+  }
 
   return (
     <Paper
@@ -67,11 +81,11 @@ export function WorkoutSetEditorForm({
         borderColor: emphasize ? "rgba(139,194,172,0.16)" : undefined,
       }}
     >
-      <form action={updateSetAction}>
-        <input type="hidden" name="sessionId" value={sessionId} />
-        <input type="hidden" name="setId" value={setId} />
+      <Stack spacing={1.5}>
+        <form id={updateFormId} action={handleUpdateAction}>
+          <input type="hidden" name="sessionId" value={sessionId} />
+          <input type="hidden" name="setId" value={setId} />
 
-        <Stack spacing={1.5}>
           <Stack
             direction="row"
             spacing={0}
@@ -111,40 +125,38 @@ export function WorkoutSetEditorForm({
               </Grid>
             </Grid>
           </Stack>
+        </form>
 
-          <Stack direction="row" spacing={1}>
-            <FormStatusButton
-              type="submit"
-              name="intent"
-              value="save-set"
-              pendingMatch={{ name: "intent", value: "save-set" }}
-              variant="contained"
-              loadingLabel="Saving..."
-              disabled={!isDirty}
-              sx={{ flex: 1 }}
-            >
-              Save set
-            </FormStatusButton>
+        <Stack direction="row" spacing={1}>
+          <Button
+            type="submit"
+            form={updateFormId}
+            variant="contained"
+            disabled={!isDirty || isSaving}
+            loading={isSaving}
+            sx={{ flex: 1 }}
+          >
+            Save set
+          </Button>
 
-            {canDelete ? (
-              <FormStatusButton
+          {canDelete ? (
+            <form action={handleDeleteAction}>
+              <input type="hidden" name="sessionId" value={sessionId} />
+              <input type="hidden" name="setId" value={setId} />
+              <Button
                 type="submit"
-                formAction={removeSetAction}
-                formNoValidate
-                name="intent"
-                value="delete-set"
-                pendingMatch={{ name: "intent", value: "delete-set" }}
                 variant="outlined"
                 color="inherit"
-                loadingLabel="Deleting..."
+                disabled={isDeleting}
+                loading={isDeleting}
                 sx={{ minWidth: 88 }}
               >
                 Delete
-              </FormStatusButton>
-            ) : null}
-          </Stack>
+              </Button>
+            </form>
+          ) : null}
         </Stack>
-      </form>
+      </Stack>
     </Paper>
   );
 }
