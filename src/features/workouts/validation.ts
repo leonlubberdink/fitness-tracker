@@ -32,6 +32,11 @@ export const workoutEntrySchema = workoutSessionIdSchema.extend({
   entryId: uuidField("Invalid workout exercise entry."),
 });
 
+export const createWorkoutSetSchema = workoutEntrySchema.extend({
+  reps: positiveIntegerString,
+  weight: nonNegativeNumberString,
+});
+
 export const workoutSetMutationSchema = workoutSessionIdSchema.extend({
   setId: uuidField("Invalid workout set."),
 });

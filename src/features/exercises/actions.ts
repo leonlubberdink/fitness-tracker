@@ -7,7 +7,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db/client";
-import { exercises, workoutExerciseEntries, workoutSessions } from "@/db/schema";
+import {
+  exercises,
+  workoutExerciseEntries,
+  workoutSessions,
+  workoutTemplateExercises,
+  workoutTemplates,
+} from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
 
 import type { CreateExerciseActionState } from "./state";
@@ -174,6 +180,30 @@ export async function deleteExerciseAction(formData: FormData) {
     redirectToExercises({
       query,
       error: `Cannot remove ${exercise.name} while it is part of your current workout. Remove it from the workout first.`,
+    });
+  }
+
+  const [templateReference] = await db
+    .select({
+      templateId: workoutTemplates.id,
+    })
+    .from(workoutTemplateExercises)
+    .innerJoin(
+      workoutTemplates,
+      eq(workoutTemplateExercises.workoutTemplateId, workoutTemplates.id),
+    )
+    .where(
+      and(
+        eq(workoutTemplateExercises.exerciseId, exercise.id),
+        eq(workoutTemplates.userId, user.id),
+      ),
+    )
+    .limit(1);
+
+  if (templateReference) {
+    redirectToExercises({
+      query,
+      error: `Cannot remove ${exercise.name} while it is used in a workout template. Remove it from templates first.`,
     });
   }
 

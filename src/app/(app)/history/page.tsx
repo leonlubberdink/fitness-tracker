@@ -1,4 +1,6 @@
 import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
+import PlaylistAddRounded from "@mui/icons-material/PlaylistAddRounded";
+import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Accordion from "@mui/material/Accordion";
@@ -6,10 +8,13 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
+import { saveCompletedWorkoutAsTemplateAction } from "@/features/workout-templates/actions";
 import { getCompletedWorkoutHistoryForUser } from "@/features/workouts/queries";
 
 import { HistorySessionDeleteButton } from "./history-session-delete-button";
@@ -38,11 +43,42 @@ function formatSetWeight(unit: "kg" | "bodyweight", weight: number) {
   return `${weight} kg`;
 }
 
-export default async function HistoryPage() {
+type HistoryPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    success?: string;
+  }>;
+};
+
+function formatTemplateName(performedOn: string) {
+  const date = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${performedOn}T00:00:00`));
+
+  return `Workout ${date}`;
+}
+
+export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   const user = await requireUser();
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const errorMessage = resolvedSearchParams?.error?.trim() ?? "";
+  const successMessage = resolvedSearchParams?.success?.trim() ?? "";
   const historyGroups = await getCompletedWorkoutHistoryForUser(user.id);
   return (
     <Stack spacing={2.5}>
+      {errorMessage ? (
+        <Alert severity="error" variant="filled">
+          {errorMessage}
+        </Alert>
+      ) : null}
+
+      {successMessage ? (
+        <Alert severity="success" variant="filled">
+          {successMessage}
+        </Alert>
+      ) : null}
+
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
         <Stack spacing={1.5}>
           <Typography variant="h1">History</Typography>
@@ -57,7 +93,7 @@ export default async function HistoryPage() {
               Finish a session and it will appear here with the exercises and
               sets you logged.
             </Typography>
-            <Button component={NextLink} href="/" variant="contained">
+            <Button component={NextLink} href="/workouts" variant="contained">
               Start a workout
             </Button>
           </Stack>
@@ -134,6 +170,49 @@ export default async function HistoryPage() {
                     </AccordionSummary>
                     <AccordionDetails>
                       <Stack spacing={1.25}>
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            borderRadius: "8px",
+                            px: 2,
+                            py: 1.75,
+                            bgcolor: "rgba(139,194,172,0.04)",
+                            borderColor: "rgba(139,194,172,0.14)",
+                          }}
+                        >
+                          <form action={saveCompletedWorkoutAsTemplateAction}>
+                            <Stack spacing={1.5}>
+                              <Typography variant="body1" fontWeight={700}>
+                                Save as template
+                              </Typography>
+                              <input
+                                type="hidden"
+                                name="sessionId"
+                                value={session.id}
+                              />
+                              <TextField
+                                label="Template name"
+                                name="name"
+                                defaultValue={formatTemplateName(
+                                  session.performedOn,
+                                )}
+                                inputProps={{ maxLength: 80 }}
+                                required
+                                fullWidth
+                              />
+                              <FormStatusButton
+                                type="submit"
+                                variant="outlined"
+                                startIcon={<PlaylistAddRounded />}
+                                loadingLabel="Saving..."
+                                fullWidth
+                              >
+                                Save template
+                              </FormStatusButton>
+                            </Stack>
+                          </form>
+                        </Paper>
+
                         {session.entries.map((entry) => (
                           <Paper
                             key={entry.id}
