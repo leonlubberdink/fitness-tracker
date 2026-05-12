@@ -58,6 +58,7 @@ export async function getOpenWorkoutSessionForUser(userId: string) {
       performedOn: workoutSessions.performedOn,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
     })
     .from(workoutSessions)
     .where(
@@ -83,6 +84,7 @@ export async function getWorkoutSessionForLogging(
       performedOn: workoutSessions.performedOn,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
     })
     .from(workoutSessions)
     .where(

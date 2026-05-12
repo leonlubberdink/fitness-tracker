@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -19,20 +19,13 @@ import { logInfo } from "@/lib/logger";
 import { getOpenWorkoutSessionForUser } from "./queries";
 import {
   addExerciseEntrySchema,
+  createWorkoutSetSchema,
   startWorkoutSessionSchema,
   updateWorkoutSetSchema,
   workoutEntrySchema,
   workoutSessionIdSchema,
   workoutSetMutationSchema,
 } from "./validation";
-
-function getTodayDateString() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function getStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -43,11 +36,24 @@ function getValidationMessage(error: { issues?: Array<{ message: string }> }) {
   return error.issues?.[0]?.message ?? "Invalid input.";
 }
 
-function redirectToWorkoutSession(sessionId: string, error?: string) {
+function redirectToWorkoutSession(
+  sessionId: string,
+  {
+    error,
+    success,
+  }: {
+    error?: string;
+    success?: string;
+  } = {},
+): never {
   const searchParams = new URLSearchParams();
 
   if (error) {
     searchParams.set("error", error);
+  }
+
+  if (success) {
+    searchParams.set("success", success);
   }
 
   const queryString = searchParams.toString();
@@ -63,6 +69,7 @@ async function requireOpenSession(userId: string, sessionId: string) {
     .select({
       id: workoutSessions.id,
       userId: workoutSessions.userId,
+      activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
     })
     .from(workoutSessions)
     .where(
@@ -102,6 +109,7 @@ async function requireEntryForOpenSession(userId: string, entryId: string) {
       entryId: workoutExerciseEntries.id,
       sessionId: workoutSessions.id,
       sortOrder: workoutExerciseEntries.sortOrder,
+      activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
     })
     .from(workoutExerciseEntries)
     .innerJoin(
@@ -158,19 +166,7 @@ export async function startWorkoutSessionAction() {
     redirect(`/workouts/${existingSession.id}`);
   }
 
-  const [session] = await db
-    .insert(workoutSessions)
-    .values({
-      id: randomUUID(),
-      userId: user.id,
-      performedOn: getTodayDateString(),
-    })
-    .returning({
-      id: workoutSessions.id,
-    });
-
-  revalidatePath("/");
-  redirect(`/workouts/${session.id}`);
+  redirect("/workouts");
 }
 
 export async function addExerciseEntryAction(formData: FormData) {
@@ -184,7 +180,9 @@ export async function addExerciseEntryAction(formData: FormData) {
     const sessionId = getStringValue(formData, "sessionId");
 
     if (sessionId) {
-      redirectToWorkoutSession(sessionId, getValidationMessage(parsedInput.error));
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(parsedInput.error),
+      });
     }
 
     redirect("/");
@@ -195,10 +193,9 @@ export async function addExerciseEntryAction(formData: FormData) {
   const session = await requireOpenSession(user.id, sessionId);
 
   if (!session) {
-    redirectToWorkoutSession(
-      sessionId,
-      "Workout session no longer exists or is already completed.",
-    );
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout session no longer exists or is already completed.",
+    });
   }
 
   const [exercise] = await db
@@ -213,7 +210,9 @@ export async function addExerciseEntryAction(formData: FormData) {
     .limit(1);
 
   if (!exercise) {
-    redirectToWorkoutSession(sessionId, "Choose an exercise from your library.");
+    redirectToWorkoutSession(sessionId, {
+      error: "Choose an exercise from your library.",
+    });
   }
 
   const [lastEntry] = await db
@@ -228,26 +227,89 @@ export async function addExerciseEntryAction(formData: FormData) {
   const nextSortOrder = (lastEntry?.sortOrder ?? 0) + 1;
   const entryId = randomUUID();
 
-  await db.insert(workoutExerciseEntries).values({
-    id: entryId,
-    workoutSessionId: sessionId,
-    exerciseId: exercise.id,
-    exerciseNameSnapshot: exercise.name,
-    exerciseCategorySnapshot: exercise.category,
-    unitSnapshot: exercise.defaultUnit,
-    sortOrder: nextSortOrder,
-  });
+  await db.transaction(async (tx) => {
+    await tx.insert(workoutExerciseEntries).values({
+      id: entryId,
+      workoutSessionId: sessionId,
+      exerciseId: exercise.id,
+      exerciseNameSnapshot: exercise.name,
+      exerciseCategorySnapshot: exercise.category,
+      unitSnapshot: exercise.defaultUnit,
+      sortOrder: nextSortOrder,
+    });
 
-  await db.insert(workoutSets).values({
-    id: randomUUID(),
-    workoutExerciseEntryId: entryId,
-    setNumber: 1,
-    reps: 8,
-    weight: 0,
+    await tx
+      .update(workoutSessions)
+      .set({
+        activeEntrySortOrder: nextSortOrder,
+        updatedAt: new Date(),
+      })
+      .where(eq(workoutSessions.id, sessionId));
   });
 
   revalidatePath(`/workouts/${sessionId}`);
   redirectToWorkoutSession(sessionId);
+}
+
+export async function createSetAction(formData: FormData) {
+  const user = await requireUser();
+  const parsedInput = createWorkoutSetSchema.safeParse({
+    sessionId: getStringValue(formData, "sessionId"),
+    entryId: getStringValue(formData, "entryId"),
+    reps: getStringValue(formData, "reps"),
+    weight: getStringValue(formData, "weight"),
+  });
+
+  if (!parsedInput.success) {
+    const sessionId = getStringValue(formData, "sessionId");
+
+    if (sessionId) {
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(parsedInput.error),
+      });
+    }
+
+    redirect("/");
+  }
+
+  const { sessionId, entryId, reps, weight } = parsedInput.data;
+  const entry = await requireEntryForOpenSession(user.id, entryId);
+
+  if (!entry) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout exercise entry no longer exists or the session is closed.",
+    });
+  }
+
+  const [lastSet] = await db
+    .select({
+      setNumber: workoutSets.setNumber,
+    })
+    .from(workoutSets)
+    .where(eq(workoutSets.workoutExerciseEntryId, entryId))
+    .orderBy(desc(workoutSets.setNumber))
+    .limit(1);
+
+  await db.transaction(async (tx) => {
+    await tx.insert(workoutSets).values({
+      id: randomUUID(),
+      workoutExerciseEntryId: entryId,
+      setNumber: (lastSet?.setNumber ?? 0) + 1,
+      reps,
+      weight,
+    });
+
+    await tx
+      .update(workoutSessions)
+      .set({
+        activeEntrySortOrder: entry.sortOrder,
+        updatedAt: new Date(),
+      })
+      .where(eq(workoutSessions.id, entry.sessionId));
+  });
+
+  revalidatePath(`/workouts/${entry.sessionId}`);
+  redirectToWorkoutSession(entry.sessionId);
 }
 
 export async function addSetAction(formData: FormData) {
@@ -261,7 +323,9 @@ export async function addSetAction(formData: FormData) {
     const sessionId = getStringValue(formData, "sessionId");
 
     if (sessionId) {
-      redirectToWorkoutSession(sessionId, getValidationMessage(parsedInput.error));
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(parsedInput.error),
+      });
     }
 
     redirect("/");
@@ -271,10 +335,9 @@ export async function addSetAction(formData: FormData) {
   const entry = await requireEntryForOpenSession(user.id, entryId);
 
   if (!entry) {
-    redirectToWorkoutSession(
-      sessionId,
-      "Workout exercise entry no longer exists or the session is closed.",
-    );
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout exercise entry no longer exists or the session is closed.",
+    });
   }
 
   const [lastSet] = await db
@@ -288,16 +351,89 @@ export async function addSetAction(formData: FormData) {
     .orderBy(desc(workoutSets.setNumber))
     .limit(1);
 
+  if (!lastSet) {
+    redirectToWorkoutSession(entry.sessionId, {
+      error: "Log the first set before adding another one.",
+    });
+  }
+
   await db.insert(workoutSets).values({
     id: randomUUID(),
     workoutExerciseEntryId: entryId,
-    setNumber: (lastSet?.setNumber ?? 0) + 1,
-    reps: lastSet?.reps ?? 8,
-    weight: lastSet?.weight ?? 0,
+    setNumber: lastSet.setNumber + 1,
+    reps: lastSet.reps,
+    weight: lastSet.weight,
   });
 
   revalidatePath(`/workouts/${entry.sessionId}`);
   redirectToWorkoutSession(entry.sessionId);
+}
+
+export async function advanceWorkoutExerciseAction(formData: FormData) {
+  const user = await requireUser();
+  const parsedInput = workoutSessionIdSchema.safeParse({
+    sessionId: getStringValue(formData, "sessionId"),
+  });
+
+  if (!parsedInput.success) {
+    redirect("/");
+  }
+
+  const { sessionId } = parsedInput.data;
+  const session = await requireOpenSession(user.id, sessionId);
+
+  if (!session) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout session no longer exists or is already completed.",
+    });
+  }
+
+  const entries = await db
+    .select({
+      sortOrder: workoutExerciseEntries.sortOrder,
+    })
+    .from(workoutExerciseEntries)
+    .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
+    .orderBy(asc(workoutExerciseEntries.sortOrder));
+
+  if (entries.length === 0) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Add an exercise before moving through this workout.",
+    });
+  }
+
+  const fallbackSortOrder = entries.at(-1)?.sortOrder ?? entries[0].sortOrder;
+  const activeSortOrder =
+    entries.find((entry) => entry.sortOrder === session.activeEntrySortOrder)
+      ?.sortOrder ?? fallbackSortOrder;
+  const [nextEntry] = await db
+    .select({
+      sortOrder: workoutExerciseEntries.sortOrder,
+    })
+    .from(workoutExerciseEntries)
+    .where(
+      and(
+        eq(workoutExerciseEntries.workoutSessionId, sessionId),
+        gt(workoutExerciseEntries.sortOrder, activeSortOrder),
+      ),
+    )
+    .orderBy(asc(workoutExerciseEntries.sortOrder))
+    .limit(1);
+
+  if (!nextEntry) {
+    redirectToWorkoutSession(sessionId);
+  }
+
+  await db
+    .update(workoutSessions)
+    .set({
+      activeEntrySortOrder: nextEntry.sortOrder,
+      updatedAt: new Date(),
+    })
+    .where(eq(workoutSessions.id, sessionId));
+
+  revalidatePath(`/workouts/${sessionId}`);
+  redirectToWorkoutSession(sessionId);
 }
 
 export async function updateSetAction(formData: FormData) {
@@ -313,7 +449,9 @@ export async function updateSetAction(formData: FormData) {
     const sessionId = getStringValue(formData, "sessionId");
 
     if (sessionId) {
-      redirectToWorkoutSession(sessionId, getValidationMessage(parsedInput.error));
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(parsedInput.error),
+      });
     }
 
     redirect("/");
@@ -323,10 +461,9 @@ export async function updateSetAction(formData: FormData) {
   const setRecord = await requireSetForOpenSession(user.id, setId);
 
   if (!setRecord) {
-    redirectToWorkoutSession(
-      sessionId,
-      "Workout set no longer exists or the session is closed.",
-    );
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout set no longer exists or the session is closed.",
+    });
   }
 
   await db
@@ -355,19 +492,75 @@ export async function completeWorkoutSessionAction(formData: FormData) {
   const session = await requireOpenSession(user.id, sessionId);
 
   if (!session) {
-    redirectToWorkoutSession(
-      sessionId,
-      "Workout session no longer exists or is already completed.",
-    );
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout session no longer exists or is already completed.",
+    });
   }
 
-  await db
-    .update(workoutSessions)
-    .set({
-      completedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(workoutSessions.id, sessionId));
+  const [entryRows, setRows] = await Promise.all([
+    db
+      .select({
+        id: workoutExerciseEntries.id,
+        sortOrder: workoutExerciseEntries.sortOrder,
+      })
+      .from(workoutExerciseEntries)
+      .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
+      .orderBy(asc(workoutExerciseEntries.sortOrder)),
+    db
+      .select({
+        entryId: workoutExerciseEntries.id,
+      })
+      .from(workoutSets)
+      .innerJoin(
+        workoutExerciseEntries,
+        eq(workoutSets.workoutExerciseEntryId, workoutExerciseEntries.id),
+      )
+      .where(eq(workoutExerciseEntries.workoutSessionId, sessionId)),
+  ]);
+
+  if (setRows.length === 0) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Log at least one set before finishing this workout.",
+    });
+  }
+
+  const entryIdsWithSets = new Set(setRows.map((set) => set.entryId));
+  const untouchedEntries = entryRows.filter(
+    (entry) => !entryIdsWithSets.has(entry.id),
+  );
+  const remainingEntries = entryRows.filter((entry) =>
+    entryIdsWithSets.has(entry.id),
+  );
+
+  await db.transaction(async (tx) => {
+    for (const entry of untouchedEntries) {
+      await tx
+        .delete(workoutExerciseEntries)
+        .where(eq(workoutExerciseEntries.id, entry.id));
+    }
+
+    for (const [index, entry] of remainingEntries.entries()) {
+      const nextSortOrder = index + 1;
+
+      if (entry.sortOrder === nextSortOrder) {
+        continue;
+      }
+
+      await tx
+        .update(workoutExerciseEntries)
+        .set({ sortOrder: nextSortOrder })
+        .where(eq(workoutExerciseEntries.id, entry.id));
+    }
+
+    await tx
+      .update(workoutSessions)
+      .set({
+        activeEntrySortOrder: null,
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(workoutSessions.id, sessionId));
+  });
 
   logInfo("workout.session.completed", {
     userId: user.id,
@@ -420,7 +613,9 @@ export async function removeSetAction(formData: FormData) {
     const sessionId = getStringValue(formData, "sessionId");
 
     if (sessionId) {
-      redirectToWorkoutSession(sessionId, getValidationMessage(parsedInput.error));
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(parsedInput.error),
+      });
     }
 
     redirect("/");
@@ -430,10 +625,9 @@ export async function removeSetAction(formData: FormData) {
   const setRecord = await requireSetForOpenSession(user.id, setId);
 
   if (!setRecord) {
-    redirectToWorkoutSession(
-      sessionId,
-      "Workout set no longer exists or the session is closed.",
-    );
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout set no longer exists or the session is closed.",
+    });
   }
 
   await db.transaction(async (tx) => {
@@ -447,10 +641,9 @@ export async function removeSetAction(formData: FormData) {
       .orderBy(workoutSets.setNumber);
 
     if (entrySets.length <= 1) {
-      redirectToWorkoutSession(
-        setRecord.sessionId,
-        "An exercise entry must keep at least one set.",
-      );
+      redirectToWorkoutSession(setRecord.sessionId, {
+        error: "An exercise entry must keep at least one set.",
+      });
     }
 
     await tx.delete(workoutSets).where(eq(workoutSets.id, setId));
@@ -488,7 +681,9 @@ export async function removeExerciseEntryAction(formData: FormData) {
     const sessionId = getStringValue(formData, "sessionId");
 
     if (sessionId) {
-      redirectToWorkoutSession(sessionId, getValidationMessage(parsedInput.error));
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(parsedInput.error),
+      });
     }
 
     redirect("/");
@@ -498,10 +693,9 @@ export async function removeExerciseEntryAction(formData: FormData) {
   const entry = await requireEntryForOpenSession(user.id, entryId);
 
   if (!entry) {
-    redirectToWorkoutSession(
-      sessionId,
-      "Workout exercise entry no longer exists or the session is closed.",
-    );
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout exercise entry no longer exists or the session is closed.",
+    });
   }
 
   await db.transaction(async (tx) => {
@@ -521,6 +715,16 @@ export async function removeExerciseEntryAction(formData: FormData) {
     const remainingEntries = sessionEntries.filter(
       (sessionEntry) => sessionEntry.id !== entryId,
     );
+    const currentActiveSortOrder =
+      entry.activeEntrySortOrder ?? sessionEntries.at(-1)?.sortOrder ?? null;
+    const nextActiveSortOrder =
+      remainingEntries.length === 0 || currentActiveSortOrder === null
+        ? null
+        : currentActiveSortOrder === entry.sortOrder
+          ? Math.min(entry.sortOrder, remainingEntries.length)
+          : currentActiveSortOrder > entry.sortOrder
+            ? Math.max(1, currentActiveSortOrder - 1)
+            : currentActiveSortOrder;
 
     for (const [index, sessionEntry] of remainingEntries.entries()) {
       const nextSortOrder = index + 1;
@@ -536,6 +740,14 @@ export async function removeExerciseEntryAction(formData: FormData) {
         })
         .where(eq(workoutExerciseEntries.id, sessionEntry.id));
     }
+
+    await tx
+      .update(workoutSessions)
+      .set({
+        activeEntrySortOrder: nextActiveSortOrder,
+        updatedAt: new Date(),
+      })
+      .where(eq(workoutSessions.id, entry.sessionId));
   });
 
   revalidatePath(`/workouts/${entry.sessionId}`);

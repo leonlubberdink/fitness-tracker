@@ -13,10 +13,6 @@ import { usePathname } from "next/navigation";
 
 import NextLink from "./NextLink";
 
-type AppBottomNavigationProps = {
-  workoutHref: string;
-};
-
 function getNavValue(pathname: string) {
   if (pathname.startsWith("/workouts/")) {
     return "workout";
@@ -33,9 +29,7 @@ function getNavValue(pathname: string) {
   return "home";
 }
 
-export function AppBottomNavigation({
-  workoutHref,
-}: AppBottomNavigationProps) {
+export function AppBottomNavigation() {
   const pathname = usePathname();
 
   return (
@@ -71,9 +65,9 @@ export function AppBottomNavigation({
             icon={<HomeRounded />}
           />
           <BottomNavigationAction
-            value="workout"
-            label="Workout"
-            href={workoutHref}
+            value="workouts"
+            label="Workouts"
+            href="/workouts"
             component={NextLink}
             icon={<FitnessCenterRounded />}
           />

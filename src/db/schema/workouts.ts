@@ -33,6 +33,7 @@ export const workoutSessions = pgTable(
       withTimezone: true,
       mode: "date",
     }),
+    activeEntrySortOrder: integer("active_entry_sort_order"),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",

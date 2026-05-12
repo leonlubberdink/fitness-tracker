@@ -11,13 +11,14 @@ import type { ReactNode } from "react";
 
 import { logoutAction } from "@/features/auth/actions";
 
+import { ActiveWorkoutBanner } from "./ActiveWorkoutBanner";
 import { AppBottomNavigation } from "./AppBottomNavigation";
 import { FormStatusIconButton } from "./FormStatusButtons";
 
 type AppShellProps = {
   children: ReactNode;
   email: string;
-  workoutHref: string;
+  activeWorkoutHref: string | null;
 };
 
 function getInitials(email: string) {
@@ -25,7 +26,11 @@ function getInitials(email: string) {
   return localPart.slice(0, 2).toUpperCase();
 }
 
-export function AppShell({ children, email, workoutHref }: AppShellProps) {
+export function AppShell({
+  children,
+  email,
+  activeWorkoutHref,
+}: AppShellProps) {
   return (
     <Box sx={{ minHeight: "100dvh", color: "text.primary" }}>
       <AppBar position="sticky" elevation={0}>
@@ -77,6 +82,10 @@ export function AppShell({ children, email, workoutHref }: AppShellProps) {
         </Container>
       </AppBar>
 
+      <Container maxWidth="sm" sx={{ px: 2 }}>
+        <ActiveWorkoutBanner activeWorkoutHref={activeWorkoutHref} />
+      </Container>
+
       <Container
         maxWidth="sm"
         component="main"
@@ -85,11 +94,11 @@ export function AppShell({ children, email, workoutHref }: AppShellProps) {
           pt: 2.5,
           pb: "calc(104px + env(safe-area-inset-bottom))",
         }}
-      >
+        >
         {children}
       </Container>
 
-      <AppBottomNavigation workoutHref={workoutHref} />
+      <AppBottomNavigation />
     </Box>
   );
 }

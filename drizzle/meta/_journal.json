@@ -36,6 +36,13 @@
       "when": 1778429926337,
       "tag": "0004_striped_namorita",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778617174664,
+      "tag": "0005_misty_romulus",
+      "breakpoints": true
     }
   ]
 }

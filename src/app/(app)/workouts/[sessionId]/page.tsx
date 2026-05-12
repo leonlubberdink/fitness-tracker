@@ -3,7 +3,9 @@ import AddBoxRounded from "@mui/icons-material/AddBoxRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
+import PlaylistAddRounded from "@mui/icons-material/PlaylistAddRounded";
 import RepeatRounded from "@mui/icons-material/RepeatRounded";
+import SkipNextRounded from "@mui/icons-material/SkipNextRounded";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -13,15 +15,19 @@ import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
+import { saveActiveWorkoutAsTemplateAction } from "@/features/workout-templates/actions";
 import {
   addExerciseEntryAction,
   addSetAction,
+  advanceWorkoutExerciseAction,
   completeWorkoutSessionAction,
+  createSetAction,
   removeExerciseEntryAction,
   removeSetAction,
   updateSetAction,
@@ -29,6 +35,7 @@ import {
 import { requireWorkoutSessionForLogging } from "@/features/workouts/queries";
 
 import { ExercisePickerForm } from "./exercise-picker-form";
+import { WorkoutFirstSetForm } from "./first-set-form";
 import { WorkoutSetEditorForm } from "./set-editor-form";
 
 type WorkoutSessionData = Awaited<
@@ -43,6 +50,7 @@ type WorkoutPageProps = {
   }>;
   searchParams?: Promise<{
     error?: string;
+    success?: string;
   }>;
 };
 
@@ -50,6 +58,15 @@ function formatWorkoutDate(performedOn: string) {
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "full",
   }).format(new Date(`${performedOn}T00:00:00`));
+}
+
+function formatWorkoutTemplateName(performedOn: string) {
+  const date = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${performedOn}T00:00:00`));
+
+  return `Workout ${date}`;
 }
 
 function formatWorkoutTime(startedAt: Date) {
@@ -88,6 +105,13 @@ function formatPreviousSet(
       : `${previousSet.weight} kg`;
 
   return `${date} · set ${previousSet.setNumber} · ${previousSet.reps} reps · ${weightLabel}`;
+}
+
+function getFirstSetDefaults(entry: WorkoutEntry) {
+  return {
+    reps: entry.previousSet?.reps ?? 8,
+    weight: entry.previousSet?.weight ?? 0,
+  };
 }
 
 function EntryHeader({
@@ -150,6 +174,46 @@ function SetEditor({
   );
 }
 
+function LoggedSets({
+  sessionId,
+  entry,
+  currentSetId,
+}: {
+  sessionId: string;
+  entry: WorkoutEntry;
+  currentSetId?: string;
+}) {
+  if (entry.sets.length === 0) {
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: "8px",
+          px: 1.75,
+          py: 1.5,
+          bgcolor: "rgba(255,255,255,0.02)",
+        }}
+      >
+        <Typography color="text.secondary">No sets logged.</Typography>
+      </Paper>
+    );
+  }
+
+  return (
+    <Stack spacing={1.25}>
+      {entry.sets.map((set) => (
+        <SetEditor
+          key={set.id}
+          sessionId={sessionId}
+          entry={entry}
+          set={set}
+          emphasize={set.id === currentSetId}
+        />
+      ))}
+    </Stack>
+  );
+}
+
 export default async function WorkoutPage({
   params,
   searchParams,
@@ -159,19 +223,44 @@ export default async function WorkoutPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const session = await requireWorkoutSessionForLogging(user.id, sessionId);
   const errorMessage = resolvedSearchParams?.error?.trim();
+  const successMessage = resolvedSearchParams?.success?.trim();
   const totalSets = session.entries.reduce(
     (count, entry) => count + entry.sets.length,
     0,
   );
-  const currentEntry = session.entries.at(-1) ?? null;
-  const previousEntries = [...session.entries].slice(0, -1).reverse();
+  const fallbackActiveSortOrder =
+    session.activeEntrySortOrder ?? session.entries.at(-1)?.sortOrder ?? null;
+  const currentEntry =
+    session.entries.find(
+      (entry) => entry.sortOrder === fallbackActiveSortOrder,
+    ) ??
+    session.entries.at(-1) ??
+    null;
+  const upcomingEntries = currentEntry
+    ? session.entries.filter((entry) => entry.sortOrder > currentEntry.sortOrder)
+    : [];
+  const previousEntries = currentEntry
+    ? session.entries
+        .filter((entry) => entry.sortOrder < currentEntry.sortOrder)
+        .reverse()
+    : [...session.entries].reverse();
+  const nextEntry = upcomingEntries.at(0) ?? null;
   const currentSetId = currentEntry?.sets.at(-1)?.id;
+  const currentFirstSetDefaults = currentEntry
+    ? getFirstSetDefaults(currentEntry)
+    : null;
 
   return (
     <Stack spacing={2.5}>
       {errorMessage ? (
         <Alert severity="error" variant="filled">
           {errorMessage}
+        </Alert>
+      ) : null}
+
+      {successMessage ? (
+        <Alert severity="success" variant="filled">
+          {successMessage}
         </Alert>
       ) : null}
 
@@ -350,31 +439,94 @@ export default async function WorkoutPage({
               </Paper>
             </Stack>
 
-            <Stack spacing={1.25}>
-              {currentEntry.sets.map((set) => (
-                <SetEditor
-                  key={set.id}
+            {currentEntry.sets.length === 0 && currentFirstSetDefaults ? (
+              <WorkoutFirstSetForm
+                sessionId={session.id}
+                entryId={currentEntry.id}
+                initialReps={currentFirstSetDefaults.reps}
+                initialWeight={currentFirstSetDefaults.weight}
+                weightLabel={
+                  currentEntry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"
+                }
+                createSetAction={createSetAction}
+              />
+            ) : (
+              <>
+                <LoggedSets
                   sessionId={session.id}
                   entry={currentEntry}
-                  set={set}
-                  emphasize={set.id === currentSetId}
+                  currentSetId={currentSetId}
                 />
-              ))}
+
+                <form action={addSetAction}>
+                  <input type="hidden" name="sessionId" value={session.id} />
+                  <input type="hidden" name="entryId" value={currentEntry.id} />
+                  <FormStatusButton
+                    type="submit"
+                    variant="outlined"
+                    startIcon={<AddBoxRounded />}
+                    loadingLabel="Logging next set..."
+                    fullWidth
+                  >
+                    Log next set
+                  </FormStatusButton>
+                </form>
+              </>
+            )}
+
+            {nextEntry ? (
+              <form action={advanceWorkoutExerciseAction}>
+                <input type="hidden" name="sessionId" value={session.id} />
+                <FormStatusButton
+                  type="submit"
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<SkipNextRounded />}
+                  loadingLabel="Moving..."
+                  fullWidth
+                >
+                  Next exercise
+                </FormStatusButton>
+              </form>
+            ) : null}
+          </Stack>
+        </Paper>
+      ) : null}
+
+      {upcomingEntries.length > 0 ? (
+        <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
+          <Stack spacing={1.5}>
+            <Stack spacing={0.5}>
+              <Typography variant="h3">Upcoming</Typography>
+              <Typography color="text.secondary">
+                Planned exercises stay ready without logging sets early.
+              </Typography>
             </Stack>
 
-            <form action={addSetAction}>
-              <input type="hidden" name="sessionId" value={session.id} />
-              <input type="hidden" name="entryId" value={currentEntry.id} />
-              <FormStatusButton
-                type="submit"
-                variant="outlined"
-                startIcon={<AddBoxRounded />}
-                loadingLabel="Logging next set..."
-                fullWidth
-              >
-                Log next set
-              </FormStatusButton>
-            </form>
+            <Stack spacing={1}>
+              {upcomingEntries.map((entry) => (
+                <Paper
+                  key={entry.id}
+                  elevation={0}
+                  sx={{
+                    borderRadius: "8px",
+                    px: 2,
+                    py: 1.5,
+                    bgcolor: "rgba(255,255,255,0.02)",
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    spacing={1}
+                  >
+                    <EntryHeader entry={entry} />
+                    <Chip label="Planned" size="small" variant="outlined" />
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
           </Stack>
         </Paper>
       ) : null}
@@ -382,11 +534,7 @@ export default async function WorkoutPage({
       <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
         <Stack spacing={2.5}>
           <Stack spacing={0.75}>
-            <Typography variant="h3">
-              {currentEntry
-                ? "Add the next exercise"
-                : "Add the first exercise"}
-            </Typography>
+            <Typography variant="h3">Add an extra exercise</Typography>
           </Stack>
 
           {session.exerciseOptions.length === 0 ? (
@@ -425,12 +573,43 @@ export default async function WorkoutPage({
         </Stack>
       </Paper>
 
+      <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
+        <form action={saveActiveWorkoutAsTemplateAction}>
+          <Stack spacing={1.5}>
+            <Stack spacing={0.75}>
+              <Typography variant="h3">Save as template</Typography>
+              <Typography color="text.secondary">
+                Reuse this exercise order for future workouts.
+              </Typography>
+            </Stack>
+            <input type="hidden" name="sessionId" value={session.id} />
+            <TextField
+              label="Template name"
+              name="name"
+              defaultValue={formatWorkoutTemplateName(session.performedOn)}
+              inputProps={{ maxLength: 80 }}
+              required
+              fullWidth
+            />
+            <FormStatusButton
+              type="submit"
+              variant="outlined"
+              startIcon={<PlaylistAddRounded />}
+              loadingLabel="Saving..."
+              fullWidth
+            >
+              Save template
+            </FormStatusButton>
+          </Stack>
+        </form>
+      </Paper>
+
       {currentEntry === null ? (
         <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.5 }}>
           <Stack spacing={0.75}>
-            <Typography variant="h3">Nothing logged yet.</Typography>
+            <Typography variant="h3">Nothing planned yet.</Typography>
             <Typography color="text.secondary">
-              Add the first exercise above to start entering reps.
+              Add an exercise above to start entering reps.
             </Typography>
           </Stack>
         </Paper>
@@ -512,30 +691,23 @@ export default async function WorkoutPage({
                     </Stack>
                   </Paper>
 
-                  <Stack spacing={1.25}>
-                    {entry.sets.map((set) => (
-                      <SetEditor
-                        key={set.id}
-                        sessionId={session.id}
-                        entry={entry}
-                        set={set}
-                      />
-                    ))}
-                  </Stack>
+                  <LoggedSets sessionId={session.id} entry={entry} />
 
-                  <form action={addSetAction}>
-                    <input type="hidden" name="sessionId" value={session.id} />
-                    <input type="hidden" name="entryId" value={entry.id} />
-                    <FormStatusButton
-                      type="submit"
-                      variant="outlined"
-                      startIcon={<RepeatRounded />}
-                      loadingLabel="Adding set..."
-                      fullWidth
-                    >
-                      Add set
-                    </FormStatusButton>
-                  </form>
+                  {entry.sets.length > 0 ? (
+                    <form action={addSetAction}>
+                      <input type="hidden" name="sessionId" value={session.id} />
+                      <input type="hidden" name="entryId" value={entry.id} />
+                      <FormStatusButton
+                        type="submit"
+                        variant="outlined"
+                        startIcon={<RepeatRounded />}
+                        loadingLabel="Adding set..."
+                        fullWidth
+                      >
+                        Add set
+                      </FormStatusButton>
+                    </form>
+                  ) : null}
                 </Stack>
               </AccordionDetails>
             </Accordion>

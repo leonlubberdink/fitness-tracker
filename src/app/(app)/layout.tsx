@@ -11,11 +11,10 @@ export default async function AppLayout({
 }>) {
   const user = await requireUser();
   const openSession = await getOpenWorkoutSessionForUser(user.id);
-
-  const workoutHref = openSession ? `/workouts/${openSession.id}` : "/";
+  const activeWorkoutHref = openSession ? `/workouts/${openSession.id}` : null;
 
   return (
-    <AppShell email={user.email} workoutHref={workoutHref}>
+    <AppShell email={user.email} activeWorkoutHref={activeWorkoutHref}>
       {children}
     </AppShell>
   );

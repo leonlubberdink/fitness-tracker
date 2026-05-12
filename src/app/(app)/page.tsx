@@ -3,27 +3,23 @@ import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
 import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
-import TimerRounded from "@mui/icons-material/TimerRounded";
 import Button from "@mui/material/Button";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import {
   getOpenWorkoutSessionForUser,
   getWorkoutSessionForLogging,
 } from "@/features/workouts/queries";
-import { startWorkoutSessionAction } from "@/features/workouts/actions";
 
 function formatPerformedOn(performedOn: string) {
   return new Intl.DateTimeFormat("en-GB", {
@@ -43,7 +39,13 @@ export default async function Home() {
   const workoutSession = openSession
     ? await getWorkoutSessionForLogging(user.id, openSession.id)
     : null;
-  const currentEntry = workoutSession?.entries.at(-1) ?? null;
+  const fallbackEntry = workoutSession?.entries.at(-1) ?? null;
+  const currentEntry =
+    workoutSession?.entries.find(
+      (entry) => entry.sortOrder === workoutSession.activeEntrySortOrder,
+    ) ??
+    fallbackEntry ??
+    null;
 
   const totalSets =
     workoutSession?.entries.reduce(
@@ -64,11 +66,12 @@ export default async function Home() {
         <Stack spacing={2.5}>
           <Stack spacing={1.25}>
             <Typography variant="h1">
-              {workoutSession ? "Continue workout." : "Start new workout."}
+              {workoutSession ? "Continue workout." : "Choose a workout."}
             </Typography>
             <Typography color="text.secondary">
-              {workoutSession &&
-                `Open session from ${formatPerformedOn(workoutSession.performedOn)}.`}
+              {workoutSession
+                ? `Open session from ${formatPerformedOn(workoutSession.performedOn)}.`
+                : "Create or select a template before logging begins."}
             </Typography>
           </Stack>
 
@@ -163,17 +166,15 @@ export default async function Home() {
               </Button>
             </Stack>
           ) : (
-            <form action={startWorkoutSessionAction}>
-              <FormStatusButton
-                type="submit"
-                variant="contained"
-                endIcon={<FitnessCenterRounded />}
-                loadingLabel="Starting workout..."
-                fullWidth
-              >
-                Start workout
-              </FormStatusButton>
-            </form>
+            <Button
+              component={NextLink}
+              href="/workouts"
+              variant="contained"
+              endIcon={<FitnessCenterRounded />}
+              fullWidth
+            >
+              Open workout hub
+            </Button>
           )}
         </Stack>
       </Paper>
