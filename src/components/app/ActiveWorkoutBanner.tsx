@@ -27,21 +27,21 @@ export function ActiveWorkoutBanner({
     <Paper
       elevation={0}
       sx={{
-        mt: 1.5,
+        mt: 2,
         borderRadius: "10px",
-        px: 1.75,
-        py: 1.5,
+        px: 2,
+        py: 1.75,
         bgcolor: alpha("#8bc2ac", 0.08),
         borderColor: alpha("#8bc2ac", 0.18),
       }}
     >
       <Stack
-        direction="row"
+        direction={{ xs: "column", sm: "row" }}
         spacing={1.5}
-        alignItems="center"
+        alignItems={{ xs: "stretch", sm: "center" }}
         justifyContent="space-between"
       >
-        <Stack spacing={0.25} minWidth={0}>
+        <Stack spacing={0.5} minWidth={0}>
           <Typography variant="overline" color="primary.light">
             Workout in progress
           </Typography>
@@ -55,7 +55,7 @@ export function ActiveWorkoutBanner({
           href={activeWorkoutHref}
           variant="contained"
           startIcon={<FitnessCenterRounded />}
-          sx={{ flexShrink: 0 }}
+          sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "auto" } }}
         >
           Resume
         </Button>

@@ -40,7 +40,7 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
   const templates = await getWorkoutTemplatesForUser(user.id);
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3}>
       {errorMessage ? (
         <Alert severity="error" variant="filled">
           {errorMessage}
@@ -53,8 +53,8 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
         </Alert>
       ) : null}
 
-      <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
-        <Stack spacing={2}>
+      <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.75, py: 3.25 }}>
+        <Stack spacing={1.75}>
           <Stack spacing={1}>
             <Typography variant="h1">Workouts</Typography>
             <Typography color="text.secondary">
@@ -64,10 +64,10 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
         </Stack>
       </Paper>
 
-      <Grid container spacing={1.5}>
+      <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 7 }}>
-          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
-            <Stack spacing={2.25}>
+          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
+            <Stack spacing={2.5}>
               <Stack spacing={0.75}>
                 <Typography variant="h3">Workout templates</Typography>
                 <Typography color="text.secondary">
@@ -96,7 +96,7 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
                   </Stack>
                 </Paper>
               ) : (
-                <Stack spacing={1.25}>
+                <Stack spacing={1.5}>
                   {templates.map((template) => (
                     <Paper
                       key={template.id}
@@ -200,8 +200,8 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
         </Grid>
 
         <Grid size={{ xs: 12, md: 5 }}>
-          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.25 }}>
-            <Stack spacing={2}>
+          <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
+            <Stack spacing={2.25}>
               <Stack spacing={0.75}>
                 <Typography variant="h3">Create workout</Typography>
                 <Typography color="text.secondary">

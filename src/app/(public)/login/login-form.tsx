@@ -18,7 +18,7 @@ export function LoginForm() {
 
   return (
     <Box component="form" action={formAction}>
-      <Stack spacing={2.5}>
+      <Stack spacing={2.25}>
         <TextField
           label="Email"
           type="email"

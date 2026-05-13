@@ -66,7 +66,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   const successMessage = resolvedSearchParams?.success?.trim() ?? "";
   const historyGroups = await getCompletedWorkoutHistoryForUser(user.id);
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3}>
       {errorMessage ? (
         <Alert severity="error" variant="filled">
           {errorMessage}
@@ -79,8 +79,8 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
         </Alert>
       ) : null}
 
-      <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.5, py: 3 }}>
-        <Stack spacing={1.5}>
+      <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.75, py: 3.25 }}>
+        <Stack spacing={1}>
           <Typography variant="h1">History</Typography>
         </Stack>
       </Paper>
@@ -99,9 +99,9 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
           </Stack>
         </Paper>
       ) : (
-        <Stack spacing={2}>
+        <Stack spacing={2.25}>
           {historyGroups.map((group) => (
-            <Stack key={group.performedOn} spacing={1.25}>
+            <Stack key={group.performedOn} spacing={1}>
               <Typography
                 variant="overline"
                 color="text.secondary"
@@ -110,7 +110,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                 {formatPerformedOn(group.performedOn)}
               </Typography>
 
-              <Stack spacing={1}>
+              <Stack spacing={1.25}>
                 {group.sessions.map((session) => (
                   <Accordion
                     key={session.id}
@@ -168,8 +168,8 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                         </Stack>
                       </Stack>
                     </AccordionSummary>
-                    <AccordionDetails>
-                      <Stack spacing={1.25}>
+                    <AccordionDetails sx={{ pt: 0.5 }}>
+                      <Stack spacing={1.5}>
                         <Paper
                           elevation={0}
                           sx={{

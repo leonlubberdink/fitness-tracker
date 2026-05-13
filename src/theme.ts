@@ -55,9 +55,9 @@ const theme = createTheme({
       lineHeight: 1.1,
     },
     h3: {
-      fontSize: "1.2rem",
+      fontSize: "1.16rem",
       fontWeight: 600,
-      lineHeight: 1.2,
+      lineHeight: 1.25,
     },
     body1: {
       fontSize: "1rem",
@@ -121,8 +121,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 10,
-          minHeight: 46,
-          paddingInline: 16,
+          minHeight: 48,
+          paddingInline: 18,
         },
         containedPrimary: {
           boxShadow: `0 10px 24px ${alpha("#8bc2ac", 0.14)}`,
@@ -138,7 +138,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 6,
-          height: 28,
+          height: 30,
         },
       },
     },
@@ -155,6 +155,7 @@ const theme = createTheme({
         root: {
           borderRadius: 10,
           backgroundColor: alpha("#ffffff", 0.015),
+          minHeight: 48,
         },
         notchedOutline: {
           borderColor: alpha("#d7e1e7", 0.1),

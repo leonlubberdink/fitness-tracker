@@ -54,17 +54,17 @@ export default async function Home() {
     ) ?? 0;
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3}>
       <Paper
         elevation={0}
         sx={{
           borderRadius: "12px",
-          px: 2.5,
-          py: 3,
+          px: 2.75,
+          py: 3.25,
         }}
       >
-        <Stack spacing={2.5}>
-          <Stack spacing={1.25}>
+        <Stack spacing={2.75}>
+          <Stack spacing={1}>
             <Typography variant="h1">
               {workoutSession ? "Continue workout." : "Choose a workout."}
             </Typography>
@@ -76,19 +76,19 @@ export default async function Home() {
           </Stack>
 
           {workoutSession ? (
-            <Stack spacing={2.5}>
+            <Stack spacing={2.25}>
               {currentEntry ? (
                 <Paper
                   elevation={0}
                   sx={{
                     px: 2,
-                    py: 1.75,
+                    py: 2,
                     borderRadius: "8px",
                     bgcolor: "rgba(139,194,172,0.06)",
                     borderColor: "rgba(139,194,172,0.14)",
                   }}
                 >
-                  <Stack spacing={0.75}>
+                  <Stack spacing={0.5}>
                     <Typography variant="overline" color="primary.light">
                       Current exercise
                     </Typography>
@@ -103,54 +103,60 @@ export default async function Home() {
                 </Paper>
               ) : null}
 
-              <Grid container spacing={1.5}>
+              <Grid container spacing={1.25}>
                 <Grid size={4}>
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 1.75,
+                      p: 1.5,
                       borderRadius: "8px",
                       bgcolor: "rgba(255,255,255,0.02)",
                     }}
                   >
-                    <Typography variant="overline" color="text.secondary">
-                      Started
-                    </Typography>
-                    <Typography variant="h3">
-                      {formatTime(workoutSession.startedAt)}
-                    </Typography>
+                    <Stack spacing={0.35}>
+                      <Typography variant="overline" color="text.secondary">
+                        Started
+                      </Typography>
+                      <Typography variant="h3">
+                        {formatTime(workoutSession.startedAt)}
+                      </Typography>
+                    </Stack>
                   </Paper>
                 </Grid>
                 <Grid size={4}>
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 1.75,
+                      p: 1.5,
                       borderRadius: "8px",
                       bgcolor: "rgba(255,255,255,0.02)",
                     }}
                   >
-                    <Typography variant="overline" color="text.secondary">
-                      Exercises
-                    </Typography>
-                    <Typography variant="h3">
-                      {workoutSession.entries.length}
-                    </Typography>
+                    <Stack spacing={0.35}>
+                      <Typography variant="overline" color="text.secondary">
+                        Exercises
+                      </Typography>
+                      <Typography variant="h3">
+                        {workoutSession.entries.length}
+                      </Typography>
+                    </Stack>
                   </Paper>
                 </Grid>
                 <Grid size={4}>
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 1.75,
+                      p: 1.5,
                       borderRadius: "8px",
                       bgcolor: "rgba(255,255,255,0.02)",
                     }}
                   >
-                    <Typography variant="overline" color="text.secondary">
-                      Sets
-                    </Typography>
-                    <Typography variant="h3">{totalSets}</Typography>
+                    <Stack spacing={0.35}>
+                      <Typography variant="overline" color="text.secondary">
+                        Sets
+                      </Typography>
+                      <Typography variant="h3">{totalSets}</Typography>
+                    </Stack>
                   </Paper>
                 </Grid>
               </Grid>
@@ -179,12 +185,12 @@ export default async function Home() {
         </Stack>
       </Paper>
 
-      <Paper elevation={0} sx={{ borderRadius: "10px", px: 0.5, py: 0.5 }}>
-        <Stack spacing={0.5}>
+      <Paper elevation={0} sx={{ borderRadius: "10px", px: 1, py: 1 }}>
+        <Stack spacing={0.75}>
           <Typography
             variant="overline"
             color="text.secondary"
-            sx={{ px: 1.5, pt: 1 }}
+            sx={{ px: 1.25, pt: 0.75 }}
           >
             Quick routes
           </Typography>
