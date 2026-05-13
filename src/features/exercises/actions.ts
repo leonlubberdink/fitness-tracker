@@ -212,6 +212,7 @@ export async function deleteExerciseAction(formData: FormData) {
     .where(and(eq(exercises.id, exercise.id), eq(exercises.userId, user.id)));
 
   revalidatePath("/exercises");
+  revalidatePath("/statistics");
 
   redirectToExercises({
     query,

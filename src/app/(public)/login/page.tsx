@@ -24,12 +24,12 @@ export default async function LoginPage() {
         minHeight: "100dvh",
         display: "flex",
         alignItems: "center",
-        py: 4,
+        py: 5,
       }}
     >
       <Container maxWidth="sm" sx={{ px: 2 }}>
-        <Stack spacing={3}>
-          <Stack spacing={1.5}>
+        <Stack spacing={3.5}>
+          <Stack spacing={1.25}>
             <Chip
               icon={<BoltRounded />}
               label="Seeded account access"
@@ -51,11 +51,11 @@ export default async function LoginPage() {
             elevation={0}
             sx={{
               borderRadius: "10px",
-              px: 2.5,
-              py: 3,
+              px: 2.75,
+              py: 3.25,
             }}
           >
-            <Stack spacing={3}>
+            <Stack spacing={2.5}>
               <Stack spacing={1}>
                 <Typography variant="h2">Sign in</Typography>
                 <Typography color="text.secondary">

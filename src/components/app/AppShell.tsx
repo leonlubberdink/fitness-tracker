@@ -38,9 +38,9 @@ export function AppShell({
           <Toolbar
             disableGutters
             sx={{
-              minHeight: 72,
+              minHeight: 76,
               gap: 1.5,
-              pt: "max(4px, env(safe-area-inset-top))",
+              pt: "max(6px, env(safe-area-inset-top))",
             }}
           >
             <Stack direction="row" spacing={1.5} alignItems="center" flexGrow={1}>
@@ -91,8 +91,8 @@ export function AppShell({
         component="main"
         sx={{
           px: 2,
-          pt: 2.5,
-          pb: "calc(104px + env(safe-area-inset-bottom))",
+          pt: 3,
+          pb: "calc(112px + env(safe-area-inset-bottom))",
         }}
         >
         {children}

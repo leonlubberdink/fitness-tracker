@@ -2,6 +2,7 @@
 
 import HomeRounded from "@mui/icons-material/HomeRounded";
 import HistoryRounded from "@mui/icons-material/HistoryRounded";
+import InsightsRounded from "@mui/icons-material/InsightsRounded";
 import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
 import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
 import BottomNavigation from "@mui/material/BottomNavigation";
@@ -14,12 +15,16 @@ import { usePathname } from "next/navigation";
 import NextLink from "./NextLink";
 
 function getNavValue(pathname: string) {
-  if (pathname.startsWith("/workouts/")) {
-    return "workout";
+  if (pathname.startsWith("/workouts")) {
+    return "workouts";
   }
 
   if (pathname.startsWith("/exercises")) {
     return "exercises";
+  }
+
+  if (pathname.startsWith("/statistics")) {
+    return "statistics";
   }
 
   if (pathname.startsWith("/history")) {
@@ -77,6 +82,13 @@ export function AppBottomNavigation() {
             href="/exercises"
             component={NextLink}
             icon={<LibraryBooksRounded />}
+          />
+          <BottomNavigationAction
+            value="statistics"
+            label="Stats"
+            href="/statistics"
+            component={NextLink}
+            icon={<InsightsRounded />}
           />
           <BottomNavigationAction
             value="history"

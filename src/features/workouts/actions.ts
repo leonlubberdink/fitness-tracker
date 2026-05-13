@@ -569,6 +569,7 @@ export async function completeWorkoutSessionAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/history");
+  revalidatePath("/statistics");
   revalidatePath(`/workouts/${sessionId}`);
   redirect("/history");
 }
@@ -600,6 +601,7 @@ export async function deleteCompletedWorkoutSessionAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/history");
+  revalidatePath("/statistics");
 }
 
 export async function removeSetAction(formData: FormData) {

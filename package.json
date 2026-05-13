@@ -14,7 +14,8 @@
     "db:migrate:runtime": "node scripts/run-migrations.mjs",
     "db:backup": "node scripts/backup-db.mjs",
     "db:restore": "node scripts/restore-db.mjs",
-    "users:seed": "node --env-file-if-exists=.env --import tsx scripts/seed-user.ts"
+    "users:seed": "node --env-file-if-exists=.env --import tsx scripts/seed-user.ts",
+    "statistics:seed:demo": "node --env-file-if-exists=.env --import tsx scripts/seed-statistics-demo.ts"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -23,6 +24,7 @@
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
     "@mui/material-nextjs": "^7.3.2",
+    "@mui/x-charts": "^9.1.0",
     "@node-rs/argon2": "^2.0.2",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
