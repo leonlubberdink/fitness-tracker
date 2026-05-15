@@ -8,10 +8,12 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { EXERCISE_UNITS } from "@/lib/exercise-units";
+
 import { lower } from "./helpers";
 import { users } from "./users";
 
-export const exerciseUnitEnum = pgEnum("exercise_unit", ["kg", "bodyweight"]);
+export const exerciseUnitEnum = pgEnum("exercise_unit", EXERCISE_UNITS);
 
 export const exercises = pgTable(
   "exercises",

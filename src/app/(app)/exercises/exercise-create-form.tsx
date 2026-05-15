@@ -14,6 +14,7 @@ import {
   EXERCISE_UNITS,
   initialCreateExerciseActionState,
 } from "@/features/exercises/state";
+import { formatExerciseUnitLong } from "@/lib/exercise-units";
 
 export function ExerciseCreateForm() {
   const [state, formAction] = useActionState(
@@ -62,7 +63,7 @@ export function ExerciseCreateForm() {
         >
           {EXERCISE_UNITS.map((unit) => (
             <MenuItem key={unit} value={unit}>
-              {unit === "kg" ? "kg" : "bodyweight"}
+              {formatExerciseUnitLong(unit)}
             </MenuItem>
           ))}
         </TextField>

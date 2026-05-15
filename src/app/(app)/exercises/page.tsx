@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 
 import { requireUser } from "@/features/auth/session";
 import { getExercisesForUser } from "@/features/exercises/queries";
+import { formatExerciseUnitLong } from "@/lib/exercise-units";
 
 import { ExerciseCreateForm } from "./exercise-create-form";
 import { ExerciseDeleteButton } from "./exercise-delete-button";
@@ -24,10 +25,6 @@ type ExercisesPageProps = {
     success?: string;
   }>;
 };
-
-function formatDefaultUnit(unit: "kg" | "bodyweight") {
-  return unit === "kg" ? "kg" : "bodyweight";
-}
 
 export default async function ExercisesPage({
   searchParams,
@@ -81,12 +78,14 @@ export default async function ExercisesPage({
                     name="q"
                     defaultValue={query}
                     placeholder="Search exercises"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchRounded />
-                        </InputAdornment>
-                      ),
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchRounded />
+                          </InputAdornment>
+                        ),
+                      },
                     }}
                   />
                 </form>
@@ -145,7 +144,7 @@ export default async function ExercisesPage({
                           }
                         />
                         <Chip
-                          label={formatDefaultUnit(exercise.defaultUnit)}
+                          label={formatExerciseUnitLong(exercise.defaultUnit)}
                           variant="outlined"
                           color="primary"
                         />

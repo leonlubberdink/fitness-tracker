@@ -8,6 +8,7 @@ import {
   workoutSets,
 } from "@/db/schema";
 import { searchExercisesForUser } from "@/features/exercises/queries";
+import type { ExerciseUnit } from "@/lib/exercise-units";
 
 type WorkoutEntryRow = {
   id: string;
@@ -15,7 +16,7 @@ type WorkoutEntryRow = {
   exerciseId: string | null;
   exerciseNameSnapshot: string;
   exerciseCategorySnapshot: string;
-  unitSnapshot: "kg" | "bodyweight";
+  unitSnapshot: ExerciseUnit;
   sortOrder: number;
   createdAt: Date;
 };
@@ -34,7 +35,7 @@ type PreviousExerciseSet = {
   reps: number;
   setNumber: number;
   weight: number;
-  unit: "kg" | "bodyweight";
+  unit: ExerciseUnit;
 };
 
 function groupEntriesWithSets(

@@ -1,4 +1,5 @@
 import AddRounded from "@mui/icons-material/AddRounded";
+import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -7,13 +8,18 @@ import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
-import { FormStatusButton } from "@/components/app/FormStatusButtons";
+import {
+  FormStatusButton,
+  FormStatusIconButton,
+} from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import {
   createWorkoutTemplateAction,
+  deleteWorkoutTemplateAction,
   startWorkoutFromTemplateAction,
 } from "@/features/workout-templates/actions";
 import { getWorkoutTemplatesForUser } from "@/features/workout-templates/queries";
@@ -187,27 +193,53 @@ export default async function WorkoutsPage({
                           </Typography>
                         )}
 
-                        <Box
-                          component="form"
-                          action={startWorkoutFromTemplateAction}
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
                           sx={{ position: "relative", zIndex: 2 }}
                         >
-                          <input
-                            type="hidden"
-                            name="templateId"
-                            value={template.id}
-                          />
-                          <FormStatusButton
-                            type="submit"
-                            variant="contained"
-                            startIcon={<PlayArrowRounded />}
-                            loadingLabel="Starting..."
-                            disabled={template.exerciseCount === 0}
-                            fullWidth
+                          <Box
+                            component="form"
+                            action={startWorkoutFromTemplateAction}
+                            sx={{ flex: 1 }}
                           >
-                            Start
-                          </FormStatusButton>
-                        </Box>
+                            <input
+                              type="hidden"
+                              name="templateId"
+                              value={template.id}
+                            />
+                            <FormStatusButton
+                              type="submit"
+                              variant="contained"
+                              startIcon={<PlayArrowRounded />}
+                              loadingLabel="Starting..."
+                              disabled={template.exerciseCount === 0}
+                              fullWidth
+                            >
+                              Start
+                            </FormStatusButton>
+                          </Box>
+
+                          <Box component="form" action={deleteWorkoutTemplateAction}>
+                            <input
+                              type="hidden"
+                              name="templateId"
+                              value={template.id}
+                            />
+                            <Tooltip title="Delete template">
+                              <FormStatusIconButton
+                                type="submit"
+                                aria-label={`Delete ${template.name}`}
+                                color="inherit"
+                                size="small"
+                                sx={{ color: "text.secondary" }}
+                              >
+                                <DeleteOutlineRounded fontSize="small" />
+                              </FormStatusIconButton>
+                            </Tooltip>
+                          </Box>
+                        </Stack>
                       </Stack>
                     </Paper>
                   ))}
@@ -233,7 +265,7 @@ export default async function WorkoutsPage({
                     label="Template name"
                     name="name"
                     placeholder="Upper body"
-                    inputProps={{ maxLength: 80 }}
+                    slotProps={{ htmlInput: { maxLength: 80 } }}
                     required
                     fullWidth
                   />

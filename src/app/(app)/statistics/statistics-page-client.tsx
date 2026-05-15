@@ -18,6 +18,7 @@ import type {
   StatisticsRangeKey,
   StatisticsWeeklyTrendPoint,
 } from "@/features/statistics/queries";
+import { formatExerciseUnitShort } from "@/lib/exercise-units";
 
 const RANGE_OPTIONS: Array<{
   key: StatisticsRangeKey;
@@ -47,10 +48,19 @@ function formatFullDate(value: string) {
   }).format(new Date(`${value}T12:00:00Z`));
 }
 
-function formatChartMetricValue(metric: "load" | "reps", value: number) {
-  return metric === "load"
-    ? `${formatDecimalValue(value)} kg`
-    : `${formatDecimalValue(value)} reps`;
+function formatChartMetricValue(
+  metric: "duration" | "load" | "reps",
+  value: number,
+) {
+  if (metric === "load") {
+    return `${formatDecimalValue(value)} kg`;
+  }
+
+  if (metric === "duration") {
+    return `${formatDecimalValue(value)} sec`;
+  }
+
+  return `${formatDecimalValue(value)} reps`;
 }
 
 function ChartCard({
@@ -230,7 +240,7 @@ export function StatisticsPageClient({
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {option.category} · {option.sessionCount} sessions ·{" "}
-                    {option.unit === "kg" ? "kg" : "BW"}
+                    {formatExerciseUnitShort(option.unit)}
                   </Typography>
                 </Stack>
               </li>
@@ -258,7 +268,7 @@ export function StatisticsPageClient({
                   </Typography>
                   <Typography color="text.secondary">
                     {selectedExercise.category} ·{" "}
-                    {selectedExercise.unit === "kg" ? "kg" : "BW"}
+                    {formatExerciseUnitShort(selectedExercise.unit)}
                   </Typography>
                 </Stack>
               </Paper>
@@ -281,9 +291,10 @@ export function StatisticsPageClient({
                       label: selectedExercise.chartMetricLabel,
                       showMark: true,
                       valueFormatter: (value: number | null) =>
-                        selectedExercise.chartMetric === "load"
-                          ? `${formatDecimalValue(value ?? 0)} kg`
-                          : `${value ?? 0} reps`,
+                        formatChartMetricValue(
+                          selectedExercise.chartMetric,
+                          value ?? 0,
+                        ),
                     },
                   ]}
                   sx={{ width: "100%" }}
@@ -301,7 +312,9 @@ export function StatisticsPageClient({
                       valueFormatter: (value: number) =>
                         selectedExercise.chartMetric === "load"
                           ? `${formatDecimalValue(value)} kg`
-                          : `${value}`,
+                          : selectedExercise.chartMetric === "duration"
+                            ? `${formatDecimalValue(value)} sec`
+                            : `${value}`,
                     },
                   ]}
                 />

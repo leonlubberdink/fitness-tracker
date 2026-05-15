@@ -19,7 +19,11 @@ export function ActiveWorkoutBanner({
 }: ActiveWorkoutBannerProps) {
   const pathname = usePathname();
 
-  if (!activeWorkoutHref || pathname === activeWorkoutHref) {
+  if (
+    !activeWorkoutHref ||
+    pathname === "/" ||
+    pathname === activeWorkoutHref
+  ) {
     return null;
   }
 

@@ -16,6 +16,11 @@ import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import { saveCompletedWorkoutAsTemplateAction } from "@/features/workout-templates/actions";
 import { getCompletedWorkoutHistoryForUser } from "@/features/workouts/queries";
+import {
+  formatExerciseMetricValue,
+  formatExerciseUnitShort,
+  type ExerciseUnit,
+} from "@/lib/exercise-units";
 
 import { HistorySessionDeleteButton } from "./history-session-delete-button";
 
@@ -35,12 +40,8 @@ function formatTime(value: Date | null) {
   }).format(value);
 }
 
-function formatSetWeight(unit: "kg" | "bodyweight", weight: number) {
-  if (unit === "bodyweight") {
-    return weight === 0 ? "BW" : `${weight} BW`;
-  }
-
-  return `${weight} kg`;
+function formatSetWeight(unit: ExerciseUnit, weight: number) {
+  return formatExerciseMetricValue(unit, weight);
 }
 
 type HistoryPageProps = {
@@ -196,7 +197,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                                 defaultValue={formatTemplateName(
                                   session.performedOn,
                                 )}
-                                inputProps={{ maxLength: 80 }}
+                                slotProps={{ htmlInput: { maxLength: 80 } }}
                                 required
                                 fullWidth
                               />
@@ -234,7 +235,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                                   color="text.secondary"
                                 >
                                   {entry.exerciseCategorySnapshot} ·{" "}
-                                  {entry.unitSnapshot === "kg" ? "kg" : "BW"}
+                                  {formatExerciseUnitShort(entry.unitSnapshot)}
                                 </Typography>
                               </Stack>
 

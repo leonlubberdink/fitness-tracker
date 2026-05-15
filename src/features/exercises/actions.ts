@@ -15,6 +15,7 @@ import {
   workoutTemplates,
 } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
+import { coerceExerciseUnit } from "@/lib/exercise-units";
 
 import type { CreateExerciseActionState } from "./state";
 import { createExerciseSchema, deleteExerciseSchema } from "./validation";
@@ -73,8 +74,7 @@ export async function createExerciseAction(
       values: {
         name: rawValues.name.trim(),
         category: rawValues.category.trim(),
-        defaultUnit:
-          rawValues.defaultUnit === "bodyweight" ? "bodyweight" : "kg",
+        defaultUnit: coerceExerciseUnit(rawValues.defaultUnit),
       },
     };
   }

@@ -206,9 +206,11 @@ export default async function Home() {
               <ListItemText
                 primary="Exercises"
                 secondary="Build the reusable library that feeds the workout flow."
-                secondaryTypographyProps={{
-                  variant: "caption",
-                  color: "text.secondary",
+                slotProps={{
+                  secondary: {
+                    variant: "caption",
+                    color: "text.secondary",
+                  },
                 }}
               />
               <ChevronRightRounded color="action" />
@@ -225,9 +227,11 @@ export default async function Home() {
               <ListItemText
                 primary="History"
                 secondary="Review completed sessions and compare what you logged."
-                secondaryTypographyProps={{
-                  variant: "caption",
-                  color: "text.secondary",
+                slotProps={{
+                  secondary: {
+                    variant: "caption",
+                    color: "text.secondary",
+                  },
                 }}
               />
               <ChevronRightRounded color="action" />
