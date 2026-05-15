@@ -13,7 +13,6 @@ import Typography from "@mui/material/Typography";
 
 import {
   FormStatusButton,
-  FormStatusIconButton,
 } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
@@ -228,15 +227,22 @@ export default async function WorkoutsPage({
                               value={template.id}
                             />
                             <Tooltip title="Delete template">
-                              <FormStatusIconButton
+                              <FormStatusButton
                                 type="submit"
                                 aria-label={`Delete ${template.name}`}
+                                variant="outlined"
                                 color="inherit"
-                                size="small"
-                                sx={{ color: "text.secondary" }}
+                                sx={{
+                                  minWidth: 48,
+                                  width: 48,
+                                  px: 0,
+                                  color: "text.secondary",
+                                  borderColor: "divider",
+                                  flexShrink: 0,
+                                }}
                               >
                                 <DeleteOutlineRounded fontSize="small" />
-                              </FormStatusIconButton>
+                              </FormStatusButton>
                             </Tooltip>
                           </Box>
                         </Stack>
