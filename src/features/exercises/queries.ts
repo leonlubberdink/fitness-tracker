@@ -1,12 +1,32 @@
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { exercises } from "@/db/schema";
+import {
+  formatStoredExerciseCategories,
+  parseStoredExerciseCategories,
+} from "./categories";
 
-export async function getExercisesForUser(userId: string, searchQuery?: string) {
+function getExerciseSearchWhereClause(userId: string, searchQuery?: string) {
   const normalizedQuery = searchQuery?.trim();
 
-  return db
+  if (!normalizedQuery) {
+    return eq(exercises.userId, userId);
+  }
+
+  const searchPattern = `%${normalizedQuery}%`;
+
+  return and(
+    eq(exercises.userId, userId),
+    sql`(
+      ${exercises.name} ilike ${searchPattern}
+      or array_to_string(${exercises.category}, ', ') ilike ${searchPattern}
+    )`,
+  );
+}
+
+export async function getExercisesForUser(userId: string, searchQuery?: string) {
+  const rows = await db
     .select({
       id: exercises.id,
       name: exercises.name,
@@ -15,18 +35,14 @@ export async function getExercisesForUser(userId: string, searchQuery?: string) 
       createdAt: exercises.createdAt,
     })
     .from(exercises)
-    .where(
-      normalizedQuery
-        ? and(
-            eq(exercises.userId, userId),
-            or(
-              ilike(exercises.name, `%${normalizedQuery}%`),
-              ilike(exercises.category, `%${normalizedQuery}%`),
-            ),
-          )
-        : eq(exercises.userId, userId),
-    )
+    .where(getExerciseSearchWhereClause(userId, searchQuery))
     .orderBy(asc(exercises.name), asc(exercises.createdAt));
+
+  return rows.map((row) => ({
+    ...row,
+    categories: parseStoredExerciseCategories(row.category),
+    category: formatStoredExerciseCategories(row.category),
+  }));
 }
 
 export async function searchExercisesForUser(
@@ -34,9 +50,7 @@ export async function searchExercisesForUser(
   searchQuery?: string,
   limit = 12,
 ) {
-  const normalizedQuery = searchQuery?.trim();
-
-  return db
+  const rows = await db
     .select({
       id: exercises.id,
       name: exercises.name,
@@ -44,17 +58,35 @@ export async function searchExercisesForUser(
       defaultUnit: exercises.defaultUnit,
     })
     .from(exercises)
-    .where(
-      normalizedQuery
-        ? and(
-            eq(exercises.userId, userId),
-            or(
-              ilike(exercises.name, `%${normalizedQuery}%`),
-              ilike(exercises.category, `%${normalizedQuery}%`),
-            ),
-          )
-        : eq(exercises.userId, userId),
-    )
+    .where(getExerciseSearchWhereClause(userId, searchQuery))
     .orderBy(asc(exercises.name), asc(exercises.createdAt))
     .limit(limit);
+
+  return rows.map((row) => ({
+    ...row,
+    categories: parseStoredExerciseCategories(row.category),
+    category: formatStoredExerciseCategories(row.category),
+  }));
+}
+
+export async function getExerciseCategoriesForUser(userId: string) {
+  const rows = await db
+    .select({
+      category: exercises.category,
+    })
+    .from(exercises)
+    .where(eq(exercises.userId, userId))
+    .orderBy(asc(exercises.name), asc(exercises.createdAt));
+
+  const uniqueCategories = new Set<string>();
+
+  for (const row of rows) {
+    for (const category of parseStoredExerciseCategories(row.category)) {
+      uniqueCategories.add(category);
+    }
+  }
+
+  return Array.from(uniqueCategories).sort((left, right) =>
+    left.localeCompare(right, "en"),
+  );
 }

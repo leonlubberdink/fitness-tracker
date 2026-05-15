@@ -6,6 +6,7 @@ import {
   workoutSessions,
   workoutSets,
 } from "@/db/schema";
+import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import {
   formatExerciseMetricValue,
   type ExerciseUnit,
@@ -568,6 +569,9 @@ async function getCompletedStatisticsSessionsForUser(userId: string) {
     const statisticsRow: StatisticsRow = {
       ...row,
       completedAt: row.completedAt,
+      exerciseCategorySnapshot: formatStoredExerciseCategories(
+        row.exerciseCategorySnapshot,
+      ),
     };
 
     const session =

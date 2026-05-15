@@ -18,6 +18,7 @@ import {
   workoutTemplates,
 } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
+import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import { coerceTimeZone, getTodayDateKey } from "@/lib/date";
 
 import { syncPlanCompletionState } from "./core";
@@ -1092,7 +1093,9 @@ export async function startPlannedWorkoutAction(formData: FormData) {
 
     await tx.insert(workoutExerciseEntries).values(
       templateExercises.map((exercise) => ({
-        exerciseCategorySnapshot: exercise.exerciseCategory,
+        exerciseCategorySnapshot: formatStoredExerciseCategories(
+          exercise.exerciseCategory,
+        ),
         exerciseId: exercise.exerciseId,
         exerciseNameSnapshot: exercise.exerciseName,
         id: randomUUID(),

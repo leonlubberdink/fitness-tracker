@@ -189,6 +189,7 @@ export default async function WorkoutTemplatePage({
           ) : (
             <TemplateExercisePickerForm
               templateId={template.id}
+              availableCategories={template.availableCategories}
               initialExercises={template.exerciseOptions}
               excludedExerciseIds={excludedExerciseIds}
               addTemplateExerciseAction={addTemplateExerciseAction}

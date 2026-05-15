@@ -57,6 +57,20 @@
       "when": 1778845973195,
       "tag": "0007_old_sersi",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778869786274,
+      "tag": "0008_rapid_hammerhead",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778870385435,
+      "tag": "0009_bitter_tinkerer",
+      "breakpoints": true
     }
   ]
 }

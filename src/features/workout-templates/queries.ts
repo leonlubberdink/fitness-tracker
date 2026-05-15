@@ -7,7 +7,13 @@ import {
   workoutTemplateExercises,
   workoutTemplates,
 } from "@/db/schema";
-import { searchExercisesForUser } from "@/features/exercises/queries";
+import {
+  formatStoredExerciseCategories,
+} from "@/features/exercises/categories";
+import {
+  getExerciseCategoriesForUser,
+  getExercisesForUser,
+} from "@/features/exercises/queries";
 import type { ExerciseUnit } from "@/lib/exercise-units";
 
 type TemplateExerciseRow = {
@@ -77,7 +83,10 @@ export async function getWorkoutTemplatesForUser(userId: string) {
 
   const exerciseRowsByTemplateId = groupTemplateExercises(
     templateIds,
-    exerciseRows,
+    exerciseRows.map((row) => ({
+      ...row,
+      exerciseCategory: formatStoredExerciseCategories(row.exerciseCategory),
+    })),
   );
 
   return templateRows.map((template) => {
@@ -115,7 +124,7 @@ export async function getWorkoutTemplateForEditing(
     return null;
   }
 
-  const [templateExercises, exerciseOptions] = await Promise.all([
+  const [templateExercises, exerciseOptions, availableCategories] = await Promise.all([
     db
       .select({
         id: workoutTemplateExercises.id,
@@ -133,13 +142,18 @@ export async function getWorkoutTemplateForEditing(
       )
       .where(eq(workoutTemplateExercises.workoutTemplateId, template.id))
       .orderBy(asc(workoutTemplateExercises.sortOrder)),
-    searchExercisesForUser(userId),
+    getExercisesForUser(userId),
+    getExerciseCategoriesForUser(userId),
   ]);
 
   return {
     ...template,
+    availableCategories,
     exerciseOptions,
-    exercises: templateExercises,
+    exercises: templateExercises.map((exercise) => ({
+      ...exercise,
+      exerciseCategory: formatStoredExerciseCategories(exercise.exerciseCategory),
+    })),
   };
 }
 

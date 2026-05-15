@@ -27,6 +27,7 @@ import {
 type ExerciseOption = {
   id: string;
   name: string;
+  categories: string[];
   category: string;
   defaultUnit: ExerciseUnit;
 };
@@ -37,6 +38,7 @@ type ExerciseSearchResponse = {
 
 type TemplateExercisePickerFormProps = {
   templateId: string;
+  availableCategories: string[];
   initialExercises: ExerciseOption[];
   excludedExerciseIds: string[];
   addTemplateExerciseAction: (formData: FormData) => Promise<void>;
@@ -44,11 +46,13 @@ type TemplateExercisePickerFormProps = {
 
 export function TemplateExercisePickerForm({
   templateId,
+  availableCategories,
   initialExercises,
   excludedExerciseIds,
   addTemplateExerciseAction,
 }: TemplateExercisePickerFormProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedExercise, setSelectedExercise] =
     useState<ExerciseOption | null>(null);
   const [results, setResults] = useState<ExerciseOption[]>([]);
@@ -59,9 +63,20 @@ export function TemplateExercisePickerForm({
     [excludedExerciseIds],
   );
   const normalizedQuery = searchQuery.trim();
-  const visibleResults = (
-    normalizedQuery.length === 0 ? initialExercises : results
-  ).filter((exercise) => !excludedExerciseIdSet.has(exercise.id));
+  const searchResults = normalizedQuery.length === 0 ? initialExercises : results;
+  const visibleResults = searchResults.filter((exercise) => {
+    if (excludedExerciseIdSet.has(exercise.id)) {
+      return false;
+    }
+
+    if (selectedCategories.length === 0) {
+      return true;
+    }
+
+    return exercise.categories.some((category) =>
+      selectedCategories.includes(category),
+    );
+  });
 
   useEffect(() => {
     if (normalizedQuery.length === 0) {
@@ -135,6 +150,15 @@ export function TemplateExercisePickerForm({
     setErrorMessage("");
   }
 
+  function handleCategoryToggle(category: string) {
+    setSelectedExercise(null);
+    setSelectedCategories((currentCategories) =>
+      currentCategories.includes(category)
+        ? currentCategories.filter((currentCategory) => currentCategory !== category)
+        : [...currentCategories, category],
+    );
+  }
+
   return (
     <Box>
       <Stack spacing={2}>
@@ -146,6 +170,24 @@ export function TemplateExercisePickerForm({
           placeholder="Search exercises"
           fullWidth
         />
+
+        {availableCategories.length > 0 ? (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {availableCategories.map((category) => {
+              const isSelected = selectedCategories.includes(category);
+
+              return (
+                <Chip
+                  key={category}
+                  label={category}
+                  onClick={() => handleCategoryToggle(category)}
+                  color={isSelected ? "primary" : "default"}
+                  variant={isSelected ? "filled" : "outlined"}
+                />
+              );
+            })}
+          </Stack>
+        ) : null}
 
         {selectedExercise ? (
           <Stack
@@ -207,7 +249,7 @@ export function TemplateExercisePickerForm({
                 </Alert>
               ) : (
                 <Typography px={1} py={2} color="text.secondary">
-                  No available exercises match that search.
+                  No available exercises match that search or filter.
                 </Typography>
               )
             ) : (

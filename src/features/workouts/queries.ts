@@ -7,6 +7,7 @@ import {
   workoutSessions,
   workoutSets,
 } from "@/db/schema";
+import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import { searchExercisesForUser } from "@/features/exercises/queries";
 import type { ExerciseUnit } from "@/lib/exercise-units";
 
@@ -45,6 +46,9 @@ function groupEntriesWithSets(
 ) {
   return entries.map((entry) => ({
     ...entry,
+    exerciseCategorySnapshot: formatStoredExerciseCategories(
+      entry.exerciseCategorySnapshot,
+    ),
     previousSet: entry.exerciseId
       ? previousSetsByExerciseId.get(entry.exerciseId) ?? null
       : null,

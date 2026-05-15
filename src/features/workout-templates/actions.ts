@@ -29,6 +29,7 @@ import {
   workoutTemplates,
 } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
+import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import { logInfo } from "@/lib/logger";
 
 import {
@@ -795,7 +796,9 @@ export async function startWorkoutFromTemplateAction(formData: FormData) {
         workoutSessionId: sessionId,
         exerciseId: templateExercise.exerciseId,
         exerciseNameSnapshot: templateExercise.exerciseName,
-        exerciseCategorySnapshot: templateExercise.exerciseCategory,
+        exerciseCategorySnapshot: formatStoredExerciseCategories(
+          templateExercise.exerciseCategory,
+        ),
         unitSnapshot: templateExercise.defaultUnit,
         sortOrder: templateExercise.sortOrder,
       })),

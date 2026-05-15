@@ -41,13 +41,13 @@ export function ExerciseCreateForm() {
         />
 
         <TextField
-          label="Category"
+          label="Categories"
           type="text"
           name="category"
           defaultValue={state.values.category}
-          placeholder="Chest"
+          placeholder="Chest, Triceps"
           error={Boolean(categoryError)}
-          helperText={categoryError}
+          helperText={categoryError ?? "Separate multiple categories with commas."}
           fullWidth
           required
         />

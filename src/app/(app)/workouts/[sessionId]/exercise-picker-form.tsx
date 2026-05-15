@@ -23,6 +23,7 @@ import {
 type ExerciseOption = {
   id: string;
   name: string;
+  categories: string[];
   category: string;
   defaultUnit: ExerciseUnit;
 };

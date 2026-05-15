@@ -22,6 +22,10 @@ import type {
   UpdateExerciseActionState,
 } from "./state";
 import {
+  formatExerciseCategories,
+  normalizeExerciseCategories,
+} from "./categories";
+import {
   createExerciseSchema,
   deleteExerciseSchema,
   updateExerciseSchema,
@@ -72,9 +76,14 @@ function getNormalizedExerciseFormValues(rawValues: {
   category: string;
   defaultUnit: string;
 }) {
+  const normalizedCategories = normalizeExerciseCategories(rawValues.category);
+
   return {
     name: rawValues.name.trim(),
-    category: rawValues.category.trim(),
+    category:
+      normalizedCategories.length > 0
+        ? formatExerciseCategories(normalizedCategories)
+        : rawValues.category.trim(),
     defaultUnit: coerceExerciseUnit(rawValues.defaultUnit),
   };
 }
@@ -98,6 +107,8 @@ export async function createExerciseAction(
   }
 
   const { name, category, defaultUnit } = parsedInput.data;
+  const categories = normalizeExerciseCategories(category);
+  const formattedCategory = formatExerciseCategories(categories);
 
   const [existingExercise] = await db
     .select({
@@ -116,7 +127,7 @@ export async function createExerciseAction(
       fieldErrors: {},
       values: {
         name,
-        category,
+        category: formattedCategory,
         defaultUnit,
       },
     };
@@ -126,7 +137,7 @@ export async function createExerciseAction(
     id: randomUUID(),
     userId: user.id,
     name,
-    category,
+    category: formattedCategory,
     defaultUnit,
   });
 
@@ -166,6 +177,8 @@ export async function updateExerciseAction(
   }
 
   const { exerciseId, name, category, defaultUnit } = parsedInput.data;
+  const categories = normalizeExerciseCategories(category);
+  const formattedCategory = formatExerciseCategories(categories);
 
   const [exercise] = await db
     .select({
@@ -182,7 +195,7 @@ export async function updateExerciseAction(
       fieldErrors: {},
       values: {
         name,
-        category,
+        category: formattedCategory,
         defaultUnit,
       },
     };
@@ -209,7 +222,7 @@ export async function updateExerciseAction(
       fieldErrors: {},
       values: {
         name,
-        category,
+        category: formattedCategory,
         defaultUnit,
       },
     };
@@ -219,7 +232,7 @@ export async function updateExerciseAction(
     .update(exercises)
     .set({
       name,
-      category,
+      category: formattedCategory,
       defaultUnit,
     })
     .where(and(eq(exercises.id, exerciseId), eq(exercises.userId, user.id)));
@@ -233,7 +246,7 @@ export async function updateExerciseAction(
     fieldErrors: {},
     values: {
       name,
-      category,
+      category: formattedCategory,
       defaultUnit,
     },
   };

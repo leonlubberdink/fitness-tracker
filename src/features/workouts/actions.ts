@@ -16,6 +16,7 @@ import {
   workoutSets,
 } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
+import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import { syncPlanCompletionState } from "@/features/plans/core";
 import { logInfo } from "@/lib/logger";
 
@@ -250,7 +251,7 @@ export async function addExerciseEntryAction(formData: FormData) {
       workoutSessionId: sessionId,
       exerciseId: exercise.id,
       exerciseNameSnapshot: exercise.name,
-      exerciseCategorySnapshot: exercise.category,
+      exerciseCategorySnapshot: formatStoredExerciseCategories(exercise.category),
       unitSnapshot: exercise.defaultUnit,
       sortOrder: nextSortOrder,
     });
