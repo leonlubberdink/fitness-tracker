@@ -57,7 +57,12 @@ export function AppShell({
               pt: "max(6px, env(safe-area-inset-top))",
             }}
           >
-            <Stack direction="row" spacing={1.5} alignItems="center" flexGrow={1}>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              flexGrow={1}
+            >
               <Avatar
                 sx={{
                   width: 42,
@@ -71,7 +76,7 @@ export function AppShell({
               </Avatar>
               <Stack spacing={0.25} minWidth={0}>
                 <Typography variant="h3" sx={{ fontSize: "1.1rem" }}>
-                  Lift Log
+                  Personal Training App
                 </Typography>
                 <Typography variant="caption" color="text.secondary" noWrap>
                   {email}

@@ -17,8 +17,8 @@ const robotoFlex = Roboto_Flex({
 
 export const metadata: Metadata = {
   title: {
-    default: "Lift Log",
-    template: "%s | Lift Log",
+    default: "Personal Training App",
+    template: "%s | Personal Training App",
   },
   description: "Personal workout tracking web app.",
 };
