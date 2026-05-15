@@ -1,4 +1,5 @@
 import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
+import EventNoteRounded from "@mui/icons-material/EventNoteRounded";
 import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import HomeRounded from "@mui/icons-material/HomeRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
@@ -20,6 +21,13 @@ export const primaryAppNavItems: AppNavItem[] = [
     href: "/",
     icon: HomeRounded,
     matches: (pathname) => pathname === "/",
+  },
+  {
+    value: "plans",
+    label: "Plans",
+    href: "/plans",
+    icon: EventNoteRounded,
+    matches: (pathname) => pathname.startsWith("/plans"),
   },
   {
     value: "workouts",

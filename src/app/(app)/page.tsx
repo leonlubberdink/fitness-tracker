@@ -1,3 +1,4 @@
+import EventNoteRounded from "@mui/icons-material/EventNoteRounded";
 import EastRounded from "@mui/icons-material/EastRounded";
 import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
 import HistoryRounded from "@mui/icons-material/HistoryRounded";
@@ -16,6 +17,7 @@ import Typography from "@mui/material/Typography";
 
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
+import { getPlansPageData } from "@/features/plans/queries";
 import {
   getOpenWorkoutSessionForUser,
   getWorkoutSessionForLogging,
@@ -35,6 +37,7 @@ function formatTime(value: Date) {
 
 export default async function Home() {
   const user = await requireUser();
+  const { activePlan } = await getPlansPageData(user.id, user.timeZone);
   const openSession = await getOpenWorkoutSessionForUser(user.id);
   const workoutSession = openSession
     ? await getWorkoutSessionForLogging(user.id, openSession.id)
@@ -185,6 +188,125 @@ export default async function Home() {
         </Stack>
       </Paper>
 
+      {activePlan ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "12px",
+            px: 2.75,
+            py: 2.75,
+            bgcolor: "rgba(152, 168, 216, 0.06)",
+            borderColor: "rgba(152, 168, 216, 0.16)",
+          }}
+        >
+          <Stack spacing={2.25}>
+            <Stack spacing={0.75}>
+              <Typography variant="overline" color="secondary.light">
+                Active plan
+              </Typography>
+              <Typography variant="h2">{activePlan.name}</Typography>
+              <Typography color="text.secondary">{activePlan.goal}</Typography>
+            </Stack>
+
+            <Grid container spacing={1.25}>
+              <Grid size={4}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: "8px",
+                    bgcolor: "rgba(255,255,255,0.03)",
+                  }}
+                >
+                  <Stack spacing={0.35}>
+                    <Typography variant="overline" color="text.secondary">
+                      Week
+                    </Typography>
+                    <Typography variant="h3">{activePlan.currentWeekNumber}</Typography>
+                  </Stack>
+                </Paper>
+              </Grid>
+              <Grid size={4}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: "8px",
+                    bgcolor: "rgba(255,255,255,0.03)",
+                  }}
+                >
+                  <Stack spacing={0.35}>
+                    <Typography variant="overline" color="text.secondary">
+                      Done
+                    </Typography>
+                    <Typography variant="h3">
+                      {activePlan.progress.resolved}/{activePlan.progress.total}
+                    </Typography>
+                  </Stack>
+                </Paper>
+              </Grid>
+              <Grid size={4}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: "8px",
+                    bgcolor: "rgba(255,255,255,0.03)",
+                  }}
+                >
+                  <Stack spacing={0.35}>
+                    <Typography variant="overline" color="text.secondary">
+                      Next
+                    </Typography>
+                    <Typography variant="h3">
+                      {activePlan.nextWorkout?.weekdayLabel ?? "Rest"}
+                    </Typography>
+                  </Stack>
+                </Paper>
+              </Grid>
+            </Grid>
+
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: "8px",
+                px: 2,
+                py: 1.75,
+                bgcolor: "rgba(255,255,255,0.03)",
+              }}
+            >
+              <Stack spacing={0.5}>
+                <Typography variant="body1" fontWeight={700}>
+                  {activePlan.todayWorkout
+                    ? `${activePlan.todayWorkout.weekdayLabel} · ${activePlan.todayWorkout.templateName}`
+                    : activePlan.nextWorkout
+                      ? `${activePlan.nextWorkout.weekdayLabel} · ${activePlan.nextWorkout.templateName}`
+                      : "No upcoming workout in this plan."}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {activePlan.todayWorkout
+                    ? "Today is scheduled. Open the plan to start or manage it."
+                    : activePlan.nextWorkout?.displayDateLabel
+                      ? `Next scheduled day: ${activePlan.nextWorkout.displayDateLabel}.`
+                      : "This plan has no remaining scheduled workouts."}
+                </Typography>
+              </Stack>
+            </Paper>
+
+            <Button
+              component={NextLink}
+              href="/plans"
+              variant="contained"
+              color="secondary"
+              startIcon={<EventNoteRounded />}
+              fullWidth
+            >
+              Open active plan
+            </Button>
+          </Stack>
+        </Paper>
+      ) : null}
+
       <Paper elevation={0} sx={{ borderRadius: "10px", px: 1, py: 1 }}>
         <Stack spacing={0.75}>
           <Typography
@@ -206,6 +328,27 @@ export default async function Home() {
               <ListItemText
                 primary="Exercises"
                 secondary="Build the reusable library that feeds the workout flow."
+                slotProps={{
+                  secondary: {
+                    variant: "caption",
+                    color: "text.secondary",
+                  },
+                }}
+              />
+              <ChevronRightRounded color="action" />
+            </ListItemButton>
+            <Divider sx={{ mx: 1.5 }} />
+            <ListItemButton
+              component={NextLink}
+              href="/plans"
+              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
+            >
+              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
+                <EventNoteRounded />
+              </ListItemIcon>
+              <ListItemText
+                primary="Plans"
+                secondary="Shape a multi-week block and keep the next workout in view."
                 slotProps={{
                   secondary: {
                     variant: "caption",

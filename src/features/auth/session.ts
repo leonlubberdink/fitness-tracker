@@ -15,6 +15,7 @@ type SessionUser = {
   id: string;
   email: string;
   isActive: boolean;
+  timeZone: string;
 };
 
 type CurrentSession = {
@@ -87,6 +88,7 @@ export const getCurrentSession = cache(async (): Promise<CurrentSession> => {
       userId: users.id,
       email: users.email,
       isActive: users.isActive,
+      timeZone: users.timeZone,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
@@ -109,6 +111,7 @@ export const getCurrentSession = cache(async (): Promise<CurrentSession> => {
       id: result.userId,
       email: result.email,
       isActive: result.isActive,
+      timeZone: result.timeZone,
     },
   };
 });

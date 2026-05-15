@@ -15,11 +15,13 @@ import { ActiveWorkoutBanner } from "./ActiveWorkoutBanner";
 import { AppBottomNavigation } from "./AppBottomNavigation";
 import { AppDesktopNavigation } from "./AppDesktopNavigation";
 import { FormStatusIconButton } from "./FormStatusButtons";
+import { UserTimeZoneSync } from "./UserTimeZoneSync";
 
 type AppShellProps = {
   children: ReactNode;
   email: string;
   activeWorkoutHref: string | null;
+  userTimeZone: string;
 };
 
 function getInitials(email: string) {
@@ -31,9 +33,12 @@ export function AppShell({
   children,
   email,
   activeWorkoutHref,
+  userTimeZone,
 }: AppShellProps) {
   return (
     <Box sx={{ minHeight: "100dvh", color: "text.primary" }}>
+      <UserTimeZoneSync initialTimeZone={userTimeZone} />
+
       <AppBar position="sticky" elevation={0}>
         <Container
           maxWidth={false}

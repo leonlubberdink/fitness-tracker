@@ -21,6 +21,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/db/client";
 import {
   exercises,
+  plans,
+  planWorkouts,
   workoutExerciseEntries,
   workoutSessions,
   workoutTemplateExercises,
@@ -379,6 +381,28 @@ export async function deleteWorkoutTemplateAction(formData: FormData) {
 
   if (!template) {
     redirectToWorkoutHub({ error: "Workout template no longer exists." });
+  }
+
+  const [planReference] = await db
+    .select({
+      planId: plans.id,
+      planStatus: plans.status,
+      planName: plans.name,
+    })
+    .from(planWorkouts)
+    .innerJoin(plans, eq(planWorkouts.planId, plans.id))
+    .where(
+      and(
+        eq(planWorkouts.workoutTemplateId, templateId),
+        eq(plans.userId, user.id),
+      ),
+    )
+    .limit(1);
+
+  if (planReference) {
+    redirectToWorkoutHub({
+      error: `Remove ${template.name} from ${planReference.planName} before deleting the template.`,
+    });
   }
 
   await db.delete(workoutTemplates).where(eq(workoutTemplates.id, templateId));
