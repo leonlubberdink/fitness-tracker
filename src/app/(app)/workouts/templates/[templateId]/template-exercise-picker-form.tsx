@@ -8,13 +8,17 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { FormStatusButton } from "@/components/app/FormStatusButtons";
+import {
+  FormStatusButton,
+  FormStatusIconButton,
+} from "@/components/app/FormStatusButtons";
 import {
   formatExerciseUnitShort,
   type ExerciseUnit,
@@ -132,16 +136,8 @@ export function TemplateExercisePickerForm({
   }
 
   return (
-    <Box component="form" action={formAction}>
+    <Box>
       <Stack spacing={2}>
-        <input type="hidden" name="templateId" value={templateId} />
-        <input
-          type="hidden"
-          name="exerciseId"
-          value={selectedExercise?.id ?? ""}
-          required
-        />
-
         <TextField
           label="Exercise"
           type="search"
@@ -217,58 +213,94 @@ export function TemplateExercisePickerForm({
             ) : (
               <List disablePadding sx={{ display: "grid", gap: 1 }}>
                 {visibleResults.map((exercise) => (
-                  <ListItemButton
+                  <ListItem
                     key={exercise.id}
-                    onClick={() => handleExerciseSelect(exercise)}
+                    disablePadding
                     sx={{
                       borderRadius: "6px",
                       border: "1px solid",
                       borderColor: "divider",
                       bgcolor: "background.paper",
-                      alignItems: "flex-start",
-                      px: 2,
-                      py: 1.5,
+                      overflow: "hidden",
                     }}
                   >
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2" fontWeight={700} noWrap>
-                          {exercise.name}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          noWrap
-                        >
-                          {exercise.category}
-                        </Typography>
-                      }
-                    />
-                    <Chip
-                      label={formatExerciseUnitShort(exercise.defaultUnit)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ ml: 2 }}
-                    />
-                  </ListItemButton>
+                    <ListItemButton
+                      onClick={() => handleExerciseSelect(exercise)}
+                      sx={{
+                        alignItems: "flex-start",
+                        px: 2,
+                        py: 1.5,
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                            sx={{ minWidth: 0 }}
+                          >
+                            <Typography variant="body2" fontWeight={700} noWrap>
+                              {exercise.name}
+                            </Typography>
+                            <Chip
+                              label={formatExerciseUnitShort(exercise.defaultUnit)}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Stack>
+                        }
+                        secondary={
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            noWrap
+                          >
+                            {exercise.category}
+                          </Typography>
+                        }
+                      />
+                    </ListItemButton>
+
+                    <Box component="form" action={formAction} sx={{ pr: 1.25 }}>
+                      <input type="hidden" name="templateId" value={templateId} />
+                      <input type="hidden" name="exerciseId" value={exercise.id} />
+                      <FormStatusIconButton
+                        type="submit"
+                        color="primary"
+                        aria-label={`Add ${exercise.name} to template`}
+                        pendingMatch={{ name: "exerciseId", value: exercise.id }}
+                        sx={{ alignSelf: "center" }}
+                      >
+                        <AddRounded />
+                      </FormStatusIconButton>
+                    </Box>
+                  </ListItem>
                 ))}
               </List>
             )}
           </Stack>
         )}
 
-        <FormStatusButton
-          type="submit"
-          variant="contained"
-          disabled={!selectedExercise}
-          startIcon={<AddRounded />}
-          loadingLabel="Adding exercise..."
-          fullWidth
-        >
-          Add to template
-        </FormStatusButton>
+        <Box component="form" action={formAction}>
+          <input type="hidden" name="templateId" value={templateId} />
+          <input
+            type="hidden"
+            name="exerciseId"
+            value={selectedExercise?.id ?? ""}
+            required
+          />
+          <FormStatusButton
+            type="submit"
+            variant="contained"
+            disabled={!selectedExercise}
+            startIcon={<AddRounded />}
+            loadingLabel="Adding exercise..."
+            fullWidth
+          >
+            Add to template
+          </FormStatusButton>
+        </Box>
       </Stack>
     </Box>
   );
