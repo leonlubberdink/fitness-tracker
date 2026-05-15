@@ -15,12 +15,16 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { FormStatusButton } from "@/components/app/FormStatusButtons";
+import {
+  formatExerciseUnitShort,
+  type ExerciseUnit,
+} from "@/lib/exercise-units";
 
 type ExerciseOption = {
   id: string;
   name: string;
   category: string;
-  defaultUnit: "kg" | "bodyweight";
+  defaultUnit: ExerciseUnit;
 };
 
 type ExerciseSearchResponse = {
@@ -33,10 +37,6 @@ type TemplateExercisePickerFormProps = {
   excludedExerciseIds: string[];
   addTemplateExerciseAction: (formData: FormData) => Promise<void>;
 };
-
-function formatUnit(unit: "kg" | "bodyweight") {
-  return unit === "kg" ? "kg" : "BW";
-}
 
 export function TemplateExercisePickerForm({
   templateId,
@@ -168,7 +168,7 @@ export function TemplateExercisePickerForm({
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Chip label={selectedExercise.category} variant="outlined" />
               <Chip
-                label={formatUnit(selectedExercise.defaultUnit)}
+                label={formatExerciseUnitShort(selectedExercise.defaultUnit)}
                 color="primary"
                 variant="outlined"
               />
@@ -247,7 +247,7 @@ export function TemplateExercisePickerForm({
                       }
                     />
                     <Chip
-                      label={formatUnit(exercise.defaultUnit)}
+                      label={formatExerciseUnitShort(exercise.defaultUnit)}
                       size="small"
                       variant="outlined"
                       sx={{ ml: 2 }}

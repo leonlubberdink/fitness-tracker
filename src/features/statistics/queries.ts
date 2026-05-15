@@ -6,12 +6,14 @@ import {
   workoutSessions,
   workoutSets,
 } from "@/db/schema";
+import {
+  formatExerciseMetricValue,
+  type ExerciseUnit,
+} from "@/lib/exercise-units";
 
 export const STATISTICS_RANGE_KEYS = ["30d", "12w", "all"] as const;
 
 export type StatisticsRangeKey = (typeof STATISTICS_RANGE_KEYS)[number];
-
-type ExerciseUnit = "kg" | "bodyweight";
 
 type StatisticsRow = {
   sessionId: string;
@@ -91,7 +93,7 @@ export type StatisticsExerciseSessionDetail = {
 export type StatisticsExerciseProgression = {
   category: string;
   chartHelpText: string;
-  chartMetric: "load" | "reps";
+  chartMetric: "duration" | "load" | "reps";
   chartMetricLabel: string;
   details: StatisticsExerciseSessionDetail[];
   exerciseKey: string;
@@ -208,16 +210,16 @@ function getExerciseSelectionKey(record: Pick<StatisticsRow, "exerciseId" | "exe
   return record.exerciseId ?? `snapshot:${record.exerciseNameSnapshot.trim().toLowerCase()}`;
 }
 
-function formatBodyweightLoad(weight: number) {
-  return weight === 0 ? "BW" : `${weight} BW`;
-}
-
 function formatBestSetLabel(unit: ExerciseUnit, weight: number, reps: number) {
-  if (unit === "bodyweight") {
-    return `${reps} reps · ${formatBodyweightLoad(weight)}`;
+  if (unit === "time") {
+    return `${reps} reps · ${formatExerciseMetricValue(unit, weight)}`;
   }
 
-  return `${weight} kg · ${reps} reps`;
+  if (unit === "bodyweight") {
+    return `${reps} reps · ${formatExerciseMetricValue(unit, weight)}`;
+  }
+
+  return `${formatExerciseMetricValue(unit, weight)} · ${reps} reps`;
 }
 
 function getSessionVolumeKg(session: StatisticsSession) {
@@ -426,7 +428,8 @@ function buildExerciseProgression(
         return currentBest;
       }, matchingRecords[0]);
       const unit = latestRecord.unitSnapshot;
-      const chartValue = unit === "kg" ? bestSet.weight : bestSet.reps;
+      const chartValue =
+        unit === "kg" ? bestSet.weight : unit === "time" ? bestSet.weight : bestSet.reps;
 
       return {
         bestSetLabel: formatBestSetLabel(unit, bestSet.weight, bestSet.reps),
@@ -467,16 +470,28 @@ function buildExerciseProgression(
   }
 
   const latestSession = matchingSessions[matchingSessions.length - 1];
-  const chartMetric = latestSession.unit === "kg" ? "load" : "reps";
+  const chartMetric =
+    latestSession.unit === "kg"
+      ? "load"
+      : latestSession.unit === "time"
+        ? "duration"
+        : "reps";
 
   return {
     category: latestSession.category,
     chartHelpText:
       latestSession.unit === "kg"
         ? "Line shows the heaviest logged set in each completed workout. Use the list below to review reps and total work."
-        : "Line shows reps from the best logged set in each completed workout. Use the list below to review BW or added load.",
+        : latestSession.unit === "time"
+          ? "Line shows the longest logged set in each completed workout. Use the list below to review reps and time."
+          : "Line shows reps from the best logged set in each completed workout. Use the list below to review bodyweight load.",
     chartMetric,
-    chartMetricLabel: latestSession.unit === "kg" ? "Best load" : "Best reps",
+    chartMetricLabel:
+      latestSession.unit === "kg"
+        ? "Best load"
+        : latestSession.unit === "time"
+          ? "Longest duration"
+          : "Best reps",
     details: [...matchingSessions]
       .reverse()
       .map(({ bestSetLabel, chartValue, performedOn, sessionId, totalSets, volumeKg }) => ({

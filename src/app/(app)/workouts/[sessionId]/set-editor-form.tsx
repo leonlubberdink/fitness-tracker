@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { InputHTMLAttributes } from "react";
 
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -14,8 +15,12 @@ type WorkoutSetEditorFormProps = {
   setId: string;
   setNumber: number;
   initialReps: number;
-  initialWeight: number;
-  weightLabel: string;
+  initialMetricValue: number;
+  metricLabel: string;
+  metricInputProps: Pick<
+    InputHTMLAttributes<HTMLInputElement>,
+    "inputMode" | "min" | "step"
+  >;
   canDelete: boolean;
   emphasize?: boolean;
   updateSetAction: (formData: FormData) => Promise<void>;
@@ -36,15 +41,16 @@ export function WorkoutSetEditorForm({
   setId,
   setNumber,
   initialReps,
-  initialWeight,
-  weightLabel,
+  initialMetricValue,
+  metricLabel,
+  metricInputProps,
   canDelete,
   emphasize = false,
   updateSetAction,
   removeSetAction,
 }: WorkoutSetEditorFormProps) {
   const initialRepsValue = String(initialReps);
-  const initialWeightValue = String(initialWeight);
+  const initialWeightValue = String(initialMetricValue);
   const [reps, setReps] = useState(initialRepsValue);
   const [weight, setWeight] = useState(initialWeightValue);
   const [isSaving, startSavingTransition] = useTransition();
@@ -105,7 +111,9 @@ export function WorkoutSetEditorForm({
                   label="Reps"
                   name="reps"
                   type="number"
-                  inputProps={{ min: 1, step: 1, inputMode: "numeric" }}
+                  slotProps={{
+                    htmlInput: { min: 1, step: 1, inputMode: "numeric" },
+                  }}
                   value={reps}
                   onChange={(event) => setReps(event.target.value)}
                   required
@@ -114,10 +122,10 @@ export function WorkoutSetEditorForm({
               <Grid size={6}>
                 <TextField
                   fullWidth
-                  label={weightLabel}
+                  label={metricLabel}
                   name="weight"
                   type="number"
-                  inputProps={{ min: 0, step: 0.5, inputMode: "decimal" }}
+                  slotProps={{ htmlInput: metricInputProps }}
                   value={weight}
                   onChange={(event) => setWeight(event.target.value)}
                   required

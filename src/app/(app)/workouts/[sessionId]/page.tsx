@@ -28,14 +28,22 @@ import {
   advanceWorkoutExerciseAction,
   completeWorkoutSessionAction,
   createSetAction,
+  reorderWorkoutEntriesAction,
   removeExerciseEntryAction,
   removeSetAction,
   updateSetAction,
 } from "@/features/workouts/actions";
 import { requireWorkoutSessionForLogging } from "@/features/workouts/queries";
+import {
+  formatExerciseMetricValue,
+  formatExerciseUnitShort,
+  getExerciseMetricLabel,
+  type ExerciseUnit,
+} from "@/lib/exercise-units";
 
 import { ExercisePickerForm } from "./exercise-picker-form";
 import { WorkoutFirstSetForm } from "./first-set-form";
+import { PlannedExerciseOrderList } from "./planned-exercise-order-list";
 import { WorkoutSetEditorForm } from "./set-editor-form";
 
 type WorkoutSessionData = Awaited<
@@ -75,17 +83,13 @@ function formatWorkoutTime(startedAt: Date) {
   }).format(startedAt);
 }
 
-function formatUnit(unit: "kg" | "bodyweight") {
-  return unit === "kg" ? "kg" : "BW";
-}
-
 function formatPreviousSet(
   previousSet: {
     performedOn: string;
     reps: number;
     setNumber: number;
     weight: number;
-    unit: "kg" | "bodyweight";
+    unit: ExerciseUnit;
   } | null,
 ) {
   if (!previousSet) {
@@ -97,20 +101,28 @@ function formatPreviousSet(
     month: "short",
   }).format(new Date(`${previousSet.performedOn}T00:00:00`));
 
-  const weightLabel =
-    previousSet.unit === "bodyweight"
-      ? previousSet.weight === 0
-        ? "BW"
-        : `${previousSet.weight} BW`
-      : `${previousSet.weight} kg`;
-
-  return `${date} · set ${previousSet.setNumber} · ${previousSet.reps} reps · ${weightLabel}`;
+  return `${date} · set ${previousSet.setNumber} · ${previousSet.reps} reps · ${formatExerciseMetricValue(previousSet.unit, previousSet.weight)}`;
 }
 
 function getFirstSetDefaults(entry: WorkoutEntry) {
   return {
-    reps: entry.previousSet?.reps ?? 8,
-    weight: entry.previousSet?.weight ?? 0,
+    reps: entry.previousSet?.reps ?? (entry.unitSnapshot === "time" ? 1 : 8),
+    weight: entry.previousSet?.weight ?? (entry.unitSnapshot === "time" ? 30 : 0),
+  };
+}
+
+function getMetricInputProps(unit: ExerciseUnit) {
+  if (unit === "time") {
+    return {
+      inputMode: "numeric" as const,
+      min: 1,
+      step: 1,
+    };
+  }
+
+  return {
+    inputMode: "decimal" as const,
+    step: 0.5,
   };
 }
 
@@ -141,7 +153,8 @@ function EntryHeader({
         ) : null}
       </Stack>
       <Typography color="text.secondary">
-        {entry.exerciseCategorySnapshot} · {formatUnit(entry.unitSnapshot)}
+        {entry.exerciseCategorySnapshot} ·{" "}
+        {formatExerciseUnitShort(entry.unitSnapshot)}
       </Typography>
     </Stack>
   );
@@ -164,8 +177,9 @@ function SetEditor({
       setId={set.id}
       setNumber={set.setNumber}
       initialReps={set.reps}
-      initialWeight={set.weight}
-      weightLabel={entry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"}
+      initialMetricValue={set.weight}
+      metricLabel={getExerciseMetricLabel(entry.unitSnapshot)}
+      metricInputProps={getMetricInputProps(entry.unitSnapshot)}
       canDelete={entry.sets.length > 1}
       emphasize={emphasize}
       updateSetAction={updateSetAction}
@@ -450,10 +464,9 @@ export default async function WorkoutPage({
                 sessionId={session.id}
                 entryId={currentEntry.id}
                 initialReps={currentFirstSetDefaults.reps}
-                initialWeight={currentFirstSetDefaults.weight}
-                weightLabel={
-                  currentEntry.unitSnapshot === "kg" ? "Weight (kg)" : "Weight"
-                }
+                initialMetricValue={currentFirstSetDefaults.weight}
+                metricLabel={getExerciseMetricLabel(currentEntry.unitSnapshot)}
+                metricInputProps={getMetricInputProps(currentEntry.unitSnapshot)}
                 createSetAction={createSetAction}
               />
             ) : (
@@ -502,37 +515,19 @@ export default async function WorkoutPage({
       {upcomingEntries.length > 0 ? (
         <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
           <Stack spacing={1.75}>
-            <Stack spacing={0.5}>
+          <Stack spacing={0.5}>
               <Typography variant="h3">Upcoming</Typography>
               <Typography color="text.secondary">
-                Planned exercises stay ready without logging sets early.
+                Drag to change what comes next without logging sets early.
               </Typography>
             </Stack>
 
-            <Stack spacing={1}>
-              {upcomingEntries.map((entry) => (
-                <Paper
-                  key={entry.id}
-                  elevation={0}
-                  sx={{
-                    borderRadius: "8px",
-                    px: 2,
-                    py: 1.5,
-                    bgcolor: "rgba(255,255,255,0.02)",
-                  }}
-                >
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    spacing={1}
-                  >
-                    <EntryHeader entry={entry} />
-                    <Chip label="Planned" size="small" variant="outlined" />
-                  </Stack>
-                </Paper>
-              ))}
-            </Stack>
+            <PlannedExerciseOrderList
+              key={upcomingEntries.map((entry) => entry.id).join(":")}
+              sessionId={session.id}
+              entries={upcomingEntries}
+              reorderWorkoutEntriesAction={reorderWorkoutEntriesAction}
+            />
           </Stack>
         </Paper>
       ) : null}
@@ -593,7 +588,7 @@ export default async function WorkoutPage({
               label="Template name"
               name="name"
               defaultValue={formatWorkoutTemplateName(session.performedOn)}
-              inputProps={{ maxLength: 80 }}
+              slotProps={{ htmlInput: { maxLength: 80 } }}
               required
               fullWidth
             />

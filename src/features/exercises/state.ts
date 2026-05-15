@@ -1,6 +1,6 @@
-export const EXERCISE_UNITS = ["kg", "bodyweight"] as const;
+import { EXERCISE_UNITS, type ExerciseUnit } from "@/lib/exercise-units";
 
-export type ExerciseUnit = (typeof EXERCISE_UNITS)[number];
+export { EXERCISE_UNITS };
 
 export type CreateExerciseActionState = {
   error: string | null;

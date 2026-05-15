@@ -19,9 +19,9 @@ import { logInfo } from "@/lib/logger";
 import { getOpenWorkoutSessionForUser } from "./queries";
 import {
   addExerciseEntrySchema,
-  createWorkoutSetSchema,
+  parseWorkoutSetFields,
+  reorderWorkoutEntriesSchema,
   startWorkoutSessionSchema,
-  updateWorkoutSetSchema,
   workoutEntrySchema,
   workoutSessionIdSchema,
   workoutSetMutationSchema,
@@ -30,6 +30,14 @@ import {
 function getStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getStringListValue(formData: FormData, key: string) {
+  return formData
+    .getAll(key)
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
 }
 
 function getValidationMessage(error: { issues?: Array<{ message: string }> }) {
@@ -108,6 +116,7 @@ async function requireEntryForOpenSession(userId: string, entryId: string) {
     .select({
       entryId: workoutExerciseEntries.id,
       sessionId: workoutSessions.id,
+      unit: workoutExerciseEntries.unitSnapshot,
       sortOrder: workoutExerciseEntries.sortOrder,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
     })
@@ -134,6 +143,7 @@ async function requireSetForOpenSession(userId: string, setId: string) {
       setId: workoutSets.id,
       entryId: workoutExerciseEntries.id,
       sessionId: workoutSessions.id,
+      unit: workoutExerciseEntries.unitSnapshot,
       setNumber: workoutSets.setNumber,
     })
     .from(workoutSets)
@@ -253,11 +263,9 @@ export async function addExerciseEntryAction(formData: FormData) {
 
 export async function createSetAction(formData: FormData) {
   const user = await requireUser();
-  const parsedInput = createWorkoutSetSchema.safeParse({
+  const parsedInput = workoutEntrySchema.safeParse({
     sessionId: getStringValue(formData, "sessionId"),
     entryId: getStringValue(formData, "entryId"),
-    reps: getStringValue(formData, "reps"),
-    weight: getStringValue(formData, "weight"),
   });
 
   if (!parsedInput.success) {
@@ -272,7 +280,7 @@ export async function createSetAction(formData: FormData) {
     redirect("/");
   }
 
-  const { sessionId, entryId, reps, weight } = parsedInput.data;
+  const { sessionId, entryId } = parsedInput.data;
   const entry = await requireEntryForOpenSession(user.id, entryId);
 
   if (!entry) {
@@ -280,6 +288,19 @@ export async function createSetAction(formData: FormData) {
       error: "Workout exercise entry no longer exists or the session is closed.",
     });
   }
+
+  const metricInput = parseWorkoutSetFields(entry.unit, {
+    reps: getStringValue(formData, "reps"),
+    weight: getStringValue(formData, "weight"),
+  });
+
+  if (!metricInput.success) {
+    redirectToWorkoutSession(sessionId, {
+      error: getValidationMessage(metricInput.error),
+    });
+  }
+
+  const { reps, weight } = metricInput.data;
 
   const [lastSet] = await db
     .select({
@@ -436,13 +457,11 @@ export async function advanceWorkoutExerciseAction(formData: FormData) {
   redirectToWorkoutSession(sessionId);
 }
 
-export async function updateSetAction(formData: FormData) {
+export async function reorderWorkoutEntriesAction(formData: FormData) {
   const user = await requireUser();
-  const parsedInput = updateWorkoutSetSchema.safeParse({
+  const parsedInput = reorderWorkoutEntriesSchema.safeParse({
     sessionId: getStringValue(formData, "sessionId"),
-    setId: getStringValue(formData, "setId"),
-    reps: getStringValue(formData, "reps"),
-    weight: getStringValue(formData, "weight"),
+    entryIds: getStringListValue(formData, "entryId"),
   });
 
   if (!parsedInput.success) {
@@ -457,7 +476,107 @@ export async function updateSetAction(formData: FormData) {
     redirect("/");
   }
 
-  const { sessionId, setId, reps, weight } = parsedInput.data;
+  const { sessionId, entryIds } = parsedInput.data;
+  const session = await requireOpenSession(user.id, sessionId);
+
+  if (!session) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout session no longer exists or is already completed.",
+    });
+  }
+
+  const entries = await db
+    .select({
+      id: workoutExerciseEntries.id,
+      sortOrder: workoutExerciseEntries.sortOrder,
+    })
+    .from(workoutExerciseEntries)
+    .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
+    .orderBy(asc(workoutExerciseEntries.sortOrder));
+
+  if (entries.length === 0) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Add an exercise before reordering this workout.",
+    });
+  }
+
+  const fallbackSortOrder = entries.at(-1)?.sortOrder ?? entries[0].sortOrder;
+  const activeSortOrder =
+    entries.find((entry) => entry.sortOrder === session.activeEntrySortOrder)
+      ?.sortOrder ?? fallbackSortOrder;
+  const plannedEntries = entries.filter(
+    (entry) => entry.sortOrder > activeSortOrder,
+  );
+
+  if (plannedEntries.length === 0) {
+    redirectToWorkoutSession(sessionId);
+  }
+
+  if (plannedEntries.length !== entryIds.length) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Refresh the page and try reordering again.",
+    });
+  }
+
+  const plannedEntryIdSet = new Set(plannedEntries.map((entry) => entry.id));
+
+  if (entryIds.some((entryId) => !plannedEntryIdSet.has(entryId))) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Refresh the page and try reordering again.",
+    });
+  }
+
+  const firstPlannedSortOrder = plannedEntries[0]?.sortOrder;
+
+  if (firstPlannedSortOrder === undefined) {
+    redirectToWorkoutSession(sessionId);
+  }
+
+  await db.transaction(async (tx) => {
+    for (const entry of plannedEntries) {
+      await tx
+        .update(workoutExerciseEntries)
+        .set({ sortOrder: -entry.sortOrder })
+        .where(eq(workoutExerciseEntries.id, entry.id));
+    }
+
+    for (const [index, entryId] of entryIds.entries()) {
+      await tx
+        .update(workoutExerciseEntries)
+        .set({ sortOrder: firstPlannedSortOrder + index })
+        .where(eq(workoutExerciseEntries.id, entryId));
+    }
+
+    await tx
+      .update(workoutSessions)
+      .set({ updatedAt: new Date() })
+      .where(eq(workoutSessions.id, sessionId));
+  });
+
+  revalidatePath(`/workouts/${sessionId}`);
+  redirectToWorkoutSession(sessionId);
+}
+
+export async function updateSetAction(formData: FormData) {
+  const user = await requireUser();
+  const parsedInput = workoutSetMutationSchema.safeParse({
+    sessionId: getStringValue(formData, "sessionId"),
+    setId: getStringValue(formData, "setId"),
+  });
+
+  if (!parsedInput.success) {
+    const sessionId = getStringValue(formData, "sessionId");
+
+    if (sessionId) {
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(parsedInput.error),
+      });
+    }
+
+    redirect("/");
+  }
+
+  const { sessionId, setId } = parsedInput.data;
   const setRecord = await requireSetForOpenSession(user.id, setId);
 
   if (!setRecord) {
@@ -465,6 +584,19 @@ export async function updateSetAction(formData: FormData) {
       error: "Workout set no longer exists or the session is closed.",
     });
   }
+
+  const metricInput = parseWorkoutSetFields(setRecord.unit, {
+    reps: getStringValue(formData, "reps"),
+    weight: getStringValue(formData, "weight"),
+  });
+
+  if (!metricInput.success) {
+    redirectToWorkoutSession(sessionId, {
+      error: getValidationMessage(metricInput.error),
+    });
+  }
+
+  const { reps, weight } = metricInput.data;
 
   await db
     .update(workoutSets)

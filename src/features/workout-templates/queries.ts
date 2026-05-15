@@ -8,6 +8,7 @@ import {
   workoutTemplates,
 } from "@/db/schema";
 import { searchExercisesForUser } from "@/features/exercises/queries";
+import type { ExerciseUnit } from "@/lib/exercise-units";
 
 type TemplateExerciseRow = {
   id: string;
@@ -16,7 +17,7 @@ type TemplateExerciseRow = {
   sortOrder: number;
   exerciseName: string;
   exerciseCategory: string;
-  defaultUnit: "kg" | "bodyweight";
+  defaultUnit: ExerciseUnit;
 };
 
 function groupTemplateExercises(

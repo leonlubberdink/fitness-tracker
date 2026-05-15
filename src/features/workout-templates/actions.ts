@@ -33,6 +33,7 @@ import {
   addTemplateExerciseSchema,
   createTemplateSchema,
   moveTemplateExerciseSchema,
+  reorderTemplateExercisesSchema,
   renameTemplateSchema,
   saveWorkoutAsTemplateSchema,
   startTemplateSchema,
@@ -56,6 +57,14 @@ function getTodayDateString() {
 function getStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getStringListValue(formData: FormData, key: string) {
+  return formData
+    .getAll(key)
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
 }
 
 function getValidationMessage(error: { issues?: Array<{ message: string }> }) {
@@ -614,6 +623,73 @@ export async function moveTemplateExerciseAction(formData: FormData) {
       .update(workoutTemplateExercises)
       .set({ sortOrder: neighbor.sortOrder })
       .where(eq(workoutTemplateExercises.id, templateExercise.id));
+
+    await tx
+      .update(workoutTemplates)
+      .set({ updatedAt: new Date() })
+      .where(eq(workoutTemplates.id, templateId));
+  });
+
+  revalidatePath("/workouts");
+  revalidatePath(`/workouts/templates/${templateId}`);
+  redirectToTemplateEditor(templateId);
+}
+
+export async function reorderTemplateExercisesAction(formData: FormData) {
+  const user = await requireUser();
+  const parsedInput = reorderTemplateExercisesSchema.safeParse({
+    templateId: getStringValue(formData, "templateId"),
+    templateExerciseIds: getStringListValue(formData, "templateExerciseId"),
+  });
+
+  if (!parsedInput.success) {
+    redirectToWorkoutHub({ error: getValidationMessage(parsedInput.error) });
+  }
+
+  const { templateId, templateExerciseIds } = parsedInput.data;
+  const template = await requireTemplateForUser(user.id, templateId);
+
+  if (!template) {
+    redirectToWorkoutHub({ error: "Workout template no longer exists." });
+  }
+
+  const exercises = await db
+    .select({
+      id: workoutTemplateExercises.id,
+      sortOrder: workoutTemplateExercises.sortOrder,
+    })
+    .from(workoutTemplateExercises)
+    .where(eq(workoutTemplateExercises.workoutTemplateId, templateId))
+    .orderBy(asc(workoutTemplateExercises.sortOrder));
+
+  if (exercises.length !== templateExerciseIds.length) {
+    redirectToTemplateEditor(templateId, {
+      error: "Refresh the page and try reordering again.",
+    });
+  }
+
+  const exerciseIds = new Set(exercises.map((exercise) => exercise.id));
+
+  if (templateExerciseIds.some((exerciseId) => !exerciseIds.has(exerciseId))) {
+    redirectToTemplateEditor(templateId, {
+      error: "Refresh the page and try reordering again.",
+    });
+  }
+
+  await db.transaction(async (tx) => {
+    for (const exercise of exercises) {
+      await tx
+        .update(workoutTemplateExercises)
+        .set({ sortOrder: -exercise.sortOrder })
+        .where(eq(workoutTemplateExercises.id, exercise.id));
+    }
+
+    for (const [index, exerciseId] of templateExerciseIds.entries()) {
+      await tx
+        .update(workoutTemplateExercises)
+        .set({ sortOrder: index + 1 })
+        .where(eq(workoutTemplateExercises.id, exerciseId));
+    }
 
     await tx
       .update(workoutTemplates)

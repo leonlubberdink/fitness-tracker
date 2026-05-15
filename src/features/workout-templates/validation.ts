@@ -33,6 +33,17 @@ export const moveTemplateExerciseSchema =
     }),
   });
 
+export const reorderTemplateExercisesSchema = templateIdSchema.extend({
+  templateExerciseIds: z
+    .array(uuidField("Invalid template exercise."))
+    .min(1, "Add at least one exercise before reordering.")
+    .refine(
+      (templateExerciseIds) =>
+        new Set(templateExerciseIds).size === templateExerciseIds.length,
+      "Provide a valid exercise order.",
+    ),
+});
+
 export const startTemplateSchema = templateIdSchema;
 
 export const saveWorkoutAsTemplateSchema = templateNameSchema.extend({

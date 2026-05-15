@@ -115,6 +115,5 @@ export const workoutSets = pgTable(
     ),
     index("workout_sets_entry_idx").on(table.workoutExerciseEntryId),
     check("workout_sets_reps_check", sql`${table.reps} > 0`),
-    check("workout_sets_weight_check", sql`${table.weight} >= 0`),
   ],
 );
