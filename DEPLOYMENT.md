@@ -2,10 +2,11 @@
 
 ## Overview
 
-This repo is ready for a simple VPS deployment with three containers:
+This repo is ready for a simple VPS deployment with four containers:
 
 - `caddy`: public reverse proxy with automatic HTTPS
 - `app`: Next.js production server
+- `drizzle-gateway`: browser-based database admin UI bound to `127.0.0.1` on the VPS
 - `db`: PostgreSQL 17 with a named Docker volume
 
 The app runs database migrations on container startup, and the included GitHub Actions workflow can deploy every push to `master` over SSH.
@@ -43,10 +44,13 @@ Update `.env` for production:
 ```env
 POSTGRES_PASSWORD=use-a-strong-password
 DATABASE_URL=postgresql://fitness_app:use-a-strong-password@localhost:5432/fitness_app
+DRIZZLE_GATEWAY_MASTERPASS=use-a-long-random-password
 APP_DOMAIN=fit.leonlubberdink.com
 APP_URL=https://fit.leonlubberdink.com
 SESSION_TTL_DAYS=30
 ```
+
+`drizzle-gateway` is intentionally not exposed through Caddy and is not reachable from the public internet. Docker binds it to `127.0.0.1:4983` on the VPS only. The stack will refuse to start if `DRIZZLE_GATEWAY_MASTERPASS` is missing.
 
 Start the stack once manually:
 
@@ -106,6 +110,7 @@ Useful commands on the VPS:
 docker compose ps
 docker compose logs -f caddy
 docker compose logs -f app
+docker compose logs -f drizzle-gateway
 docker compose logs -f db
 ```
 
@@ -132,3 +137,25 @@ Remove containers and delete database data:
 ```bash
 docker compose down -v
 ```
+
+## 6. Access the database UI from home
+
+The database UI is served by `drizzle-gateway` on `127.0.0.1:4983` on the VPS. Reach it from your own machine over an SSH tunnel:
+
+```bash
+ssh -L 4983:127.0.0.1:4983 your-user@your-server
+```
+
+Keep that SSH session open, then open:
+
+```text
+http://127.0.0.1:4983
+```
+
+Sign in with the `DRIZZLE_GATEWAY_MASTERPASS` value from the server `.env`.
+
+This keeps the admin UI private:
+
+- no public DNS entry
+- no exposure through Caddy
+- no open firewall port beyond SSH
