@@ -67,16 +67,14 @@ export default async function Home() {
         }}
       >
         <Stack spacing={2.75}>
-          <Stack spacing={1}>
-            <Typography variant="h1">
-              {workoutSession ? "Continue workout." : "Choose a workout."}
-            </Typography>
-            <Typography color="text.secondary">
-              {workoutSession
-                ? `Open session from ${formatPerformedOn(workoutSession.performedOn)}.`
-                : "Create or select a template before logging begins."}
-            </Typography>
-          </Stack>
+          {workoutSession && (
+            <Stack spacing={1}>
+              <Typography variant="h1">Continue workout.</Typography>
+              <Typography color="text.secondary">
+                {`Open session from ${formatPerformedOn(workoutSession.performedOn)}.`}
+              </Typography>
+            </Stack>
+          )}
 
           {workoutSession ? (
             <Stack spacing={2.25}>
@@ -222,7 +220,9 @@ export default async function Home() {
                     <Typography variant="overline" color="text.secondary">
                       Week
                     </Typography>
-                    <Typography variant="h3">{activePlan.currentWeekNumber}</Typography>
+                    <Typography variant="h3">
+                      {activePlan.currentWeekNumber}
+                    </Typography>
                   </Stack>
                 </Paper>
               </Grid>
