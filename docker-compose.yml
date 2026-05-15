@@ -49,6 +49,22 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  drizzle-gateway:
+    image: ghcr.io/drizzle-team/gateway:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4983
+      STORE_PATH: /app
+      MASTERPASS: ${DRIZZLE_GATEWAY_MASTERPASS:?DRIZZLE_GATEWAY_MASTERPASS must be set}
+      DATABASE_URL_fitness: postgresql://${POSTGRES_USER:-fitness_app}:${POSTGRES_PASSWORD:-change-this-postgres-password}@db:5432/${POSTGRES_DB:-fitness_app}
+    ports:
+      - "127.0.0.1:4983:4983"
+    restart: unless-stopped
+    volumes:
+      - drizzle_gateway_data:/app
+
   db:
     image: postgres:17-bookworm
     environment:
@@ -67,5 +83,6 @@ services:
 
 volumes:
   postgres_data:
+  drizzle_gateway_data:
   caddy_data:
   caddy_config:
