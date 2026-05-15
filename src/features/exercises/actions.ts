@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -17,8 +17,15 @@ import {
 import { requireUser } from "@/features/auth/session";
 import { coerceExerciseUnit } from "@/lib/exercise-units";
 
-import type { CreateExerciseActionState } from "./state";
-import { createExerciseSchema, deleteExerciseSchema } from "./validation";
+import type {
+  CreateExerciseActionState,
+  UpdateExerciseActionState,
+} from "./state";
+import {
+  createExerciseSchema,
+  deleteExerciseSchema,
+  updateExerciseSchema,
+} from "./validation";
 
 function getStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -52,17 +59,32 @@ function redirectToExercises({
   redirect(search ? `/exercises?${search}` : "/exercises");
 }
 
+function getExerciseFormValues(formData: FormData) {
+  return {
+    name: getStringValue(formData, "name"),
+    category: getStringValue(formData, "category"),
+    defaultUnit: getStringValue(formData, "defaultUnit") || "kg",
+  };
+}
+
+function getNormalizedExerciseFormValues(rawValues: {
+  name: string;
+  category: string;
+  defaultUnit: string;
+}) {
+  return {
+    name: rawValues.name.trim(),
+    category: rawValues.category.trim(),
+    defaultUnit: coerceExerciseUnit(rawValues.defaultUnit),
+  };
+}
+
 export async function createExerciseAction(
   _previousState: CreateExerciseActionState,
   formData: FormData,
 ): Promise<CreateExerciseActionState> {
   const user = await requireUser();
-
-  const rawValues = {
-    name: getStringValue(formData, "name"),
-    category: getStringValue(formData, "category"),
-    defaultUnit: getStringValue(formData, "defaultUnit") || "kg",
-  };
+  const rawValues = getExerciseFormValues(formData);
 
   const parsedInput = createExerciseSchema.safeParse(rawValues);
 
@@ -71,11 +93,7 @@ export async function createExerciseAction(
       error: "Check the highlighted fields.",
       success: null,
       fieldErrors: parsedInput.error.flatten().fieldErrors,
-      values: {
-        name: rawValues.name.trim(),
-        category: rawValues.category.trim(),
-        defaultUnit: coerceExerciseUnit(rawValues.defaultUnit),
-      },
+      values: getNormalizedExerciseFormValues(rawValues),
     };
   }
 
@@ -122,6 +140,101 @@ export async function createExerciseAction(
       name: "",
       category: "",
       defaultUnit: "kg",
+    },
+  };
+}
+
+export async function updateExerciseAction(
+  _previousState: UpdateExerciseActionState,
+  formData: FormData,
+): Promise<UpdateExerciseActionState> {
+  const user = await requireUser();
+  const rawValues = {
+    exerciseId: getStringValue(formData, "exerciseId"),
+    ...getExerciseFormValues(formData),
+  };
+  const parsedInput = updateExerciseSchema.safeParse(rawValues);
+  const normalizedValues = getNormalizedExerciseFormValues(rawValues);
+
+  if (!parsedInput.success) {
+    return {
+      error: "Check the highlighted fields.",
+      success: null,
+      fieldErrors: parsedInput.error.flatten().fieldErrors,
+      values: normalizedValues,
+    };
+  }
+
+  const { exerciseId, name, category, defaultUnit } = parsedInput.data;
+
+  const [exercise] = await db
+    .select({
+      id: exercises.id,
+    })
+    .from(exercises)
+    .where(and(eq(exercises.id, exerciseId), eq(exercises.userId, user.id)))
+    .limit(1);
+
+  if (!exercise) {
+    return {
+      error: "Exercise no longer exists in your library.",
+      success: null,
+      fieldErrors: {},
+      values: {
+        name,
+        category,
+        defaultUnit,
+      },
+    };
+  }
+
+  const [existingExercise] = await db
+    .select({
+      id: exercises.id,
+    })
+    .from(exercises)
+    .where(
+      and(
+        eq(exercises.userId, user.id),
+        ne(exercises.id, exerciseId),
+        sql`lower(${exercises.name}) = ${name.toLowerCase()}`,
+      ),
+    )
+    .limit(1);
+
+  if (existingExercise) {
+    return {
+      error: "An exercise with that name already exists.",
+      success: null,
+      fieldErrors: {},
+      values: {
+        name,
+        category,
+        defaultUnit,
+      },
+    };
+  }
+
+  await db
+    .update(exercises)
+    .set({
+      name,
+      category,
+      defaultUnit,
+    })
+    .where(and(eq(exercises.id, exerciseId), eq(exercises.userId, user.id)));
+
+  revalidatePath("/exercises");
+  revalidatePath("/workouts");
+
+  return {
+    error: null,
+    success: `Updated ${name}.`,
+    fieldErrors: {},
+    values: {
+      name,
+      category,
+      defaultUnit,
     },
   };
 }

@@ -2,28 +2,42 @@ import { EXERCISE_UNITS, type ExerciseUnit } from "@/lib/exercise-units";
 
 export { EXERCISE_UNITS };
 
-export type CreateExerciseActionState = {
-  error: string | null;
-  success: string | null;
-  fieldErrors: {
-    name?: string[];
-    category?: string[];
-    defaultUnit?: string[];
-  };
-  values: {
-    name: string;
-    category: string;
-    defaultUnit: ExerciseUnit;
-  };
+export type ExerciseActionValues = {
+  name: string;
+  category: string;
+  defaultUnit: ExerciseUnit;
 };
 
-export const initialCreateExerciseActionState: CreateExerciseActionState = {
-  error: null,
-  success: null,
-  fieldErrors: {},
-  values: {
-    name: "",
-    category: "",
-    defaultUnit: "kg",
-  },
+export type ExerciseActionFieldErrors = {
+  exerciseId?: string[];
+  name?: string[];
+  category?: string[];
+  defaultUnit?: string[];
 };
+
+export type ExerciseEditorActionState = {
+  error: string | null;
+  success: string | null;
+  fieldErrors: ExerciseActionFieldErrors;
+  values: ExerciseActionValues;
+};
+
+export type CreateExerciseActionState = ExerciseEditorActionState;
+export type UpdateExerciseActionState = ExerciseEditorActionState;
+
+export function getExerciseActionState(
+  values: Partial<ExerciseActionValues> = {},
+): ExerciseEditorActionState {
+  return {
+    error: null,
+    success: null,
+    fieldErrors: {},
+    values: {
+      name: values.name ?? "",
+      category: values.category ?? "",
+      defaultUnit: values.defaultUnit ?? "kg",
+    },
+  };
+}
+
+export const initialCreateExerciseActionState = getExerciseActionState();

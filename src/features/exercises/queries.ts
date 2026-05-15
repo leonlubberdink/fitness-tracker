@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike } from "drizzle-orm";
+import { and, asc, eq, ilike, or } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { exercises } from "@/db/schema";
@@ -19,7 +19,10 @@ export async function getExercisesForUser(userId: string, searchQuery?: string) 
       normalizedQuery
         ? and(
             eq(exercises.userId, userId),
-            ilike(exercises.name, `%${normalizedQuery}%`),
+            or(
+              ilike(exercises.name, `%${normalizedQuery}%`),
+              ilike(exercises.category, `%${normalizedQuery}%`),
+            ),
           )
         : eq(exercises.userId, userId),
     )
@@ -45,7 +48,10 @@ export async function searchExercisesForUser(
       normalizedQuery
         ? and(
             eq(exercises.userId, userId),
-            ilike(exercises.name, `%${normalizedQuery}%`),
+            or(
+              ilike(exercises.name, `%${normalizedQuery}%`),
+              ilike(exercises.category, `%${normalizedQuery}%`),
+            ),
           )
         : eq(exercises.userId, userId),
     )

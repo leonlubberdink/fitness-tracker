@@ -2,18 +2,21 @@
 
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, gt, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNotNull, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db/client";
 import {
   exercises,
+  planWorkouts,
+  plans,
   workoutExerciseEntries,
   workoutSessions,
   workoutSets,
 } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
+import { syncPlanCompletionState } from "@/features/plans/core";
 import { logInfo } from "@/lib/logger";
 
 import { getOpenWorkoutSessionForUser } from "./queries";
@@ -78,6 +81,8 @@ async function requireOpenSession(userId: string, sessionId: string) {
       id: workoutSessions.id,
       userId: workoutSessions.userId,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
+      planId: workoutSessions.planId,
+      planWorkoutId: workoutSessions.planWorkoutId,
     })
     .from(workoutSessions)
     .where(
@@ -97,6 +102,8 @@ async function requireCompletedSession(userId: string, sessionId: string) {
     .select({
       id: workoutSessions.id,
       userId: workoutSessions.userId,
+      planId: workoutSessions.planId,
+      planWorkoutId: workoutSessions.planWorkoutId,
     })
     .from(workoutSessions)
     .where(
@@ -692,7 +699,32 @@ export async function completeWorkoutSessionAction(formData: FormData) {
         updatedAt: new Date(),
       })
       .where(eq(workoutSessions.id, sessionId));
+
+    if (session.planId && session.planWorkoutId) {
+      await tx
+        .update(planWorkouts)
+        .set({
+          completedAt: new Date(),
+          linkedWorkoutSessionId: sessionId,
+          skippedAt: null,
+          state: "completed",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(planWorkouts.id, session.planWorkoutId),
+            eq(planWorkouts.planId, session.planId),
+          ),
+        );
+    }
   });
+
+  if (session.planId) {
+    await syncPlanCompletionState(db, {
+      planId: session.planId,
+      timeZone: user.timeZone,
+    });
+  }
 
   logInfo("workout.session.completed", {
     userId: user.id,
@@ -701,6 +733,10 @@ export async function completeWorkoutSessionAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/history");
+  revalidatePath("/plans");
+  if (session.planId) {
+    revalidatePath(`/plans/${session.planId}`);
+  }
   revalidatePath("/statistics");
   revalidatePath(`/workouts/${sessionId}`);
   redirect("/history");
@@ -723,7 +759,70 @@ export async function deleteCompletedWorkoutSessionAction(formData: FormData) {
     redirect("/history");
   }
 
-  await db.delete(workoutSessions).where(eq(workoutSessions.id, sessionId));
+  let linkedPlanId: string | null = null;
+
+  if (session.planId && session.planWorkoutId) {
+    const [linkedPlan] = await db
+      .select({
+        id: plans.id,
+        status: plans.status,
+      })
+      .from(plans)
+      .where(eq(plans.id, session.planId))
+      .limit(1);
+
+    if (linkedPlan?.status === "completed") {
+      const [otherActivePlan] = await db
+        .select({
+          id: plans.id,
+        })
+        .from(plans)
+        .where(
+          and(eq(plans.userId, user.id), eq(plans.status, "active"), ne(plans.id, linkedPlan.id)),
+        )
+        .limit(1);
+
+      if (otherActivePlan) {
+        redirect(
+          `/history?error=${encodeURIComponent("Finish or archive your current active plan before deleting this linked workout.")}`,
+        );
+      }
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(planWorkouts)
+        .set({
+          completedAt: null,
+          linkedWorkoutSessionId: null,
+          state: "planned",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(planWorkouts.id, session.planWorkoutId as string),
+            eq(planWorkouts.planId, session.planId as string),
+          ),
+        );
+
+      if (linkedPlan?.status === "completed") {
+        await tx
+          .update(plans)
+          .set({
+            completedAt: null,
+            status: "active",
+            updatedAt: new Date(),
+          })
+          .where(eq(plans.id, linkedPlan.id));
+      }
+
+      await tx.delete(workoutSessions).where(eq(workoutSessions.id, sessionId));
+    });
+
+    linkedPlanId = session.planId;
+  } else {
+    await db.delete(workoutSessions).where(eq(workoutSessions.id, sessionId));
+  }
 
   logInfo("workout.session.deleted", {
     userId: user.id,
@@ -733,6 +832,10 @@ export async function deleteCompletedWorkoutSessionAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/history");
+  revalidatePath("/plans");
+  if (linkedPlanId) {
+    revalidatePath(`/plans/${linkedPlanId}`);
+  }
   revalidatePath("/statistics");
 }
 

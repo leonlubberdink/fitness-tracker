@@ -12,6 +12,10 @@ export const createExerciseSchema = z.object({
   }),
 });
 
+export const updateExerciseSchema = createExerciseSchema.extend({
+  exerciseId: uuidField("Invalid exercise."),
+});
+
 export const deleteExerciseSchema = z.object({
   exerciseId: uuidField("Invalid exercise."),
 });

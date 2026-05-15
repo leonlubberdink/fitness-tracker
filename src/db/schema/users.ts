@@ -15,6 +15,7 @@ export const users = pgTable(
     id: uuid("id").primaryKey(),
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
+    timeZone: text("time_zone").notNull().default("UTC"),
     isActive: boolean("is_active").notNull().default(true),
     lastLoginAt: timestamp("last_login_at", {
       withTimezone: true,

@@ -14,7 +14,11 @@ export default async function AppLayout({
   const activeWorkoutHref = openSession ? `/workouts/${openSession.id}` : null;
 
   return (
-    <AppShell email={user.email} activeWorkoutHref={activeWorkoutHref}>
+    <AppShell
+      email={user.email}
+      activeWorkoutHref={activeWorkoutHref}
+      userTimeZone={user.timeZone}
+    >
       {children}
     </AppShell>
   );
