@@ -13,6 +13,7 @@ import { logoutAction } from "@/features/auth/actions";
 
 import { ActiveWorkoutBanner } from "./ActiveWorkoutBanner";
 import { AppBottomNavigation } from "./AppBottomNavigation";
+import { AppDesktopNavigation } from "./AppDesktopNavigation";
 import { FormStatusIconButton } from "./FormStatusButtons";
 
 type AppShellProps = {
@@ -34,7 +35,15 @@ export function AppShell({
   return (
     <Box sx={{ minHeight: "100dvh", color: "text.primary" }}>
       <AppBar position="sticky" elevation={0}>
-        <Container maxWidth="sm" sx={{ px: 2 }}>
+        <Container
+          maxWidth={false}
+          sx={{
+            px: { xs: 2, md: 3 },
+            width: "100%",
+            maxWidth: { xs: 600, md: 1280 },
+            mx: "auto",
+          }}
+        >
           <Toolbar
             disableGutters
             sx={{
@@ -79,22 +88,34 @@ export function AppShell({
               </FormStatusIconButton>
             </form>
           </Toolbar>
+          <AppDesktopNavigation />
         </Container>
       </AppBar>
 
-      <Container maxWidth="sm" sx={{ px: 2 }}>
+      <Container
+        maxWidth={false}
+        sx={{
+          px: { xs: 2, md: 3 },
+          width: "100%",
+          maxWidth: { xs: 600, md: 1280 },
+          mx: "auto",
+        }}
+      >
         <ActiveWorkoutBanner activeWorkoutHref={activeWorkoutHref} />
       </Container>
 
       <Container
-        maxWidth="sm"
+        maxWidth={false}
         component="main"
         sx={{
-          px: 2,
-          pt: 3,
-          pb: "calc(112px + env(safe-area-inset-bottom))",
+          px: { xs: 2, md: 3 },
+          pt: { xs: 3, md: 4 },
+          pb: { xs: "calc(112px + env(safe-area-inset-bottom))", md: 5 },
+          width: "100%",
+          maxWidth: { xs: 600, md: 1280 },
+          mx: "auto",
         }}
-        >
+      >
         {children}
       </Container>
 

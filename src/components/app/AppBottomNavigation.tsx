@@ -1,10 +1,5 @@
 "use client";
 
-import HomeRounded from "@mui/icons-material/HomeRounded";
-import HistoryRounded from "@mui/icons-material/HistoryRounded";
-import InsightsRounded from "@mui/icons-material/InsightsRounded";
-import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
-import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Box from "@mui/material/Box";
@@ -13,26 +8,7 @@ import { alpha } from "@mui/material/styles";
 import { usePathname } from "next/navigation";
 
 import NextLink from "./NextLink";
-
-function getNavValue(pathname: string) {
-  if (pathname.startsWith("/workouts")) {
-    return "workouts";
-  }
-
-  if (pathname.startsWith("/exercises")) {
-    return "exercises";
-  }
-
-  if (pathname.startsWith("/statistics")) {
-    return "statistics";
-  }
-
-  if (pathname.startsWith("/history")) {
-    return "history";
-  }
-
-  return "home";
-}
+import { getPrimaryNavValue, primaryAppNavItems } from "./appNavigation";
 
 export function AppBottomNavigation() {
   const pathname = usePathname();
@@ -43,7 +19,7 @@ export function AppBottomNavigation() {
         position: "fixed",
         insetInline: 0,
         bottom: 0,
-        display: "flex",
+        display: { xs: "flex", md: "none" },
         justifyContent: "center",
         pb: "max(12px, env(safe-area-inset-bottom))",
         pointerEvents: "none",
@@ -61,42 +37,21 @@ export function AppBottomNavigation() {
           boxShadow: "0 8px 22px rgba(0, 0, 0, 0.2)",
         }}
       >
-        <BottomNavigation showLabels value={getNavValue(pathname)}>
-          <BottomNavigationAction
-            value="home"
-            label="Today"
-            href="/"
-            component={NextLink}
-            icon={<HomeRounded />}
-          />
-          <BottomNavigationAction
-            value="workouts"
-            label="Workouts"
-            href="/workouts"
-            component={NextLink}
-            icon={<FitnessCenterRounded />}
-          />
-          <BottomNavigationAction
-            value="exercises"
-            label="Exercises"
-            href="/exercises"
-            component={NextLink}
-            icon={<LibraryBooksRounded />}
-          />
-          <BottomNavigationAction
-            value="statistics"
-            label="Stats"
-            href="/statistics"
-            component={NextLink}
-            icon={<InsightsRounded />}
-          />
-          <BottomNavigationAction
-            value="history"
-            label="History"
-            href="/history"
-            component={NextLink}
-            icon={<HistoryRounded />}
-          />
+        <BottomNavigation showLabels value={getPrimaryNavValue(pathname)}>
+          {primaryAppNavItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <BottomNavigationAction
+                key={item.value}
+                value={item.value}
+                label={item.label}
+                href={item.href}
+                component={NextLink}
+                icon={<Icon />}
+              />
+            );
+          })}
         </BottomNavigation>
       </Paper>
     </Box>
