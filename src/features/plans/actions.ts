@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 
 import { and, asc, desc, eq, isNull, ne } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db/client";
@@ -45,6 +45,30 @@ function getValidationMessage(error: { issues?: Array<{ message: string }> }) {
   return error.issues?.[0]?.message ?? "Invalid input.";
 }
 
+function getOptionalWeekNumber(
+  formData: FormData,
+  key: string,
+  maxWeekNumber?: number,
+) {
+  const rawValue = getStringValue(formData, key);
+
+  if (!rawValue) {
+    return undefined;
+  }
+
+  const parsedValue = Number.parseInt(rawValue, 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue < 1) {
+    return undefined;
+  }
+
+  if (maxWeekNumber && parsedValue > maxWeekNumber) {
+    return undefined;
+  }
+
+  return parsedValue;
+}
+
 function redirectToPlansHub({
   error,
   success,
@@ -73,11 +97,13 @@ function redirectToPlan(
     error,
     resumeSessionId,
     success,
+    week,
   }: {
     conflictPlanWorkoutId?: string;
     error?: string;
     resumeSessionId?: string;
     success?: string;
+    week?: number;
   } = {},
 ): never {
   const searchParams = new URLSearchParams();
@@ -96,6 +122,10 @@ function redirectToPlan(
 
   if (conflictPlanWorkoutId) {
     searchParams.set("conflictPlanWorkoutId", conflictPlanWorkoutId);
+  }
+
+  if (week) {
+    searchParams.set("week", String(week));
   }
 
   const queryString = searchParams.toString();
@@ -236,6 +266,7 @@ export async function createPlanAction(formData: FormData) {
 
 export async function updatePlanDetailsAction(formData: FormData) {
   const user = await requireUser();
+  const returnWeek = getOptionalWeekNumber(formData, "returnWeek");
   const parsedInput = updatePlanDetailsSchema.safeParse({
     durationWeeks: getStringValue(formData, "durationWeeks"),
     goal: getStringValue(formData, "goal"),
@@ -254,7 +285,7 @@ export async function updatePlanDetailsAction(formData: FormData) {
   }
 
   if (plan.status === "completed" || plan.status === "archived") {
-    redirectToPlan(plan.id, { error: "This plan is read-only." });
+    redirectToPlan(plan.id, { error: "This plan is read-only.", week: returnWeek });
   }
 
   const highestWeek = await db
@@ -269,6 +300,7 @@ export async function updatePlanDetailsAction(formData: FormData) {
   if ((highestWeek[0]?.weekNumber ?? 0) > parsedInput.data.durationWeeks) {
     redirectToPlan(plan.id, {
       error: "Remove workouts from the later weeks before shortening this plan.",
+      week: returnWeek,
     });
   }
 
@@ -284,7 +316,7 @@ export async function updatePlanDetailsAction(formData: FormData) {
 
   revalidatePath("/plans");
   revalidatePath(`/plans/${plan.id}`);
-  redirectToPlan(plan.id, { success: "Plan details updated." });
+  redirectToPlan(plan.id, { success: "Plan details updated.", week: returnWeek });
 }
 
 export async function deletePlanAction(formData: FormData) {
@@ -383,16 +415,22 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
 
   const plan = await requirePlanRecord(user.id, parsedInput.data.planId);
 
+  const returnWeek = getOptionalWeekNumber(
+    formData,
+    "returnWeek",
+    plan?.durationWeeks,
+  );
+
   if (!plan) {
     redirectToPlansHub({ error: "Plan no longer exists." });
   }
 
   if (plan.status === "completed" || plan.status === "archived") {
-    redirectToPlan(plan.id, { error: "This plan is read-only." });
+    redirectToPlan(plan.id, { error: "This plan is read-only.", week: returnWeek });
   }
 
   if (parsedInput.data.weekNumber > plan.durationWeeks) {
-    redirectToPlan(plan.id, { error: "Choose a week inside this plan." });
+    redirectToPlan(plan.id, { error: "Choose a week inside this plan.", week: returnWeek });
   }
 
   const template = await requireTemplateRecord(
@@ -401,7 +439,10 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
   );
 
   if (!template) {
-    redirectToPlan(plan.id, { error: "Choose a workout template you own." });
+    redirectToPlan(plan.id, {
+      error: "Choose a workout template you own.",
+      week: returnWeek,
+    });
   }
 
   const conflictConditions = [
@@ -423,6 +464,7 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
   if (conflictingWorkout[0]) {
     redirectToPlan(plan.id, {
       error: "That day already has a workout. Pick another slot.",
+      week: returnWeek,
     });
   }
 
@@ -439,6 +481,7 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
     if (scheduledDate < todayDateKey) {
       redirectToPlan(plan.id, {
         error: "Past plan days cannot be changed.",
+        week: returnWeek,
       });
     }
   }
@@ -452,6 +495,7 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
     if (!existingWorkout) {
       redirectToPlan(plan.id, {
         error: "Planned workout no longer exists.",
+        week: returnWeek,
       });
     }
 
@@ -470,7 +514,10 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
           todayDateKey,
         )
       ) {
-        redirectToPlan(plan.id, { error: "That workout can no longer be changed." });
+        redirectToPlan(plan.id, {
+          error: "That workout can no longer be changed.",
+          week: returnWeek,
+        });
       }
     }
 
@@ -486,7 +533,8 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
 
     revalidatePath("/plans");
     revalidatePath(`/plans/${plan.id}`);
-    redirectToPlan(plan.id, { success: "Planned workout updated." });
+    refresh();
+    return;
   }
 
   await db.insert(planWorkouts).values({
@@ -499,11 +547,13 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
 
   revalidatePath("/plans");
   revalidatePath(`/plans/${plan.id}`);
-  redirectToPlan(plan.id, { success: "Planned workout added." });
+  refresh();
+  return;
 }
 
 export async function removePlanWorkoutAction(formData: FormData) {
   const user = await requireUser();
+  const returnWeek = getOptionalWeekNumber(formData, "returnWeek");
   const parsedInput = planWorkoutMutationSchema.safeParse({
     planId: getStringValue(formData, "planId"),
     planWorkoutId: getStringValue(formData, "planWorkoutId"),
@@ -525,11 +575,17 @@ export async function removePlanWorkoutAction(formData: FormData) {
   );
 
   if (!planWorkout) {
-    redirectToPlan(plan.id, { error: "Planned workout no longer exists." });
+    redirectToPlan(plan.id, {
+      error: "Planned workout no longer exists.",
+      week: returnWeek,
+    });
   }
 
   if (plan.status === "completed" || plan.status === "archived") {
-    redirectToPlan(plan.id, { error: "This plan is read-only." });
+    redirectToPlan(plan.id, {
+      error: "This plan is read-only.",
+      week: returnWeek ?? planWorkout.weekNumber,
+    });
   }
 
   if (plan.status === "active" && plan.startDate) {
@@ -542,7 +598,10 @@ export async function removePlanWorkoutAction(formData: FormData) {
     );
 
     if (!isPlanWorkoutEditable(planWorkout.state, scheduledDate, todayDateKey)) {
-      redirectToPlan(plan.id, { error: "That workout can no longer be removed." });
+      redirectToPlan(plan.id, {
+        error: "That workout can no longer be removed.",
+        week: returnWeek ?? planWorkout.weekNumber,
+      });
     }
   }
 
@@ -550,11 +609,13 @@ export async function removePlanWorkoutAction(formData: FormData) {
 
   revalidatePath("/plans");
   revalidatePath(`/plans/${plan.id}`);
-  redirectToPlan(plan.id, { success: "Planned workout removed." });
+  refresh();
+  return;
 }
 
 export async function startPlanAction(formData: FormData) {
   const user = await requireUser();
+  const returnWeek = getOptionalWeekNumber(formData, "returnWeek");
   const parsedInput = startPlanSchema.safeParse({
     planId: getStringValue(formData, "planId"),
     startDate: getStringValue(formData, "startDate"),
@@ -571,7 +632,10 @@ export async function startPlanAction(formData: FormData) {
   }
 
   if (plan.status !== "draft") {
-    redirectToPlan(plan.id, { error: "Only draft plans can be started." });
+    redirectToPlan(plan.id, {
+      error: "Only draft plans can be started.",
+      week: returnWeek,
+    });
   }
 
   const activePlan = await getActivePlanForUser(user.id, plan.id);
@@ -579,6 +643,7 @@ export async function startPlanAction(formData: FormData) {
   if (activePlan) {
     redirectToPlan(plan.id, {
       error: "Finish or archive your current active plan before starting another one.",
+      week: returnWeek,
     });
   }
 
@@ -593,7 +658,10 @@ export async function startPlanAction(formData: FormData) {
     .orderBy(asc(planWorkouts.weekNumber), asc(planWorkouts.weekday));
 
   if (workouts.length === 0) {
-    redirectToPlan(plan.id, { error: "Add at least one workout before starting this plan." });
+    redirectToPlan(plan.id, {
+      error: "Add at least one workout before starting this plan.",
+      week: returnWeek,
+    });
   }
 
   const cutoffWeekday = getWeekOneCutoffWeekday(parsedInput.data.startDate);
@@ -606,6 +674,7 @@ export async function startPlanAction(formData: FormData) {
   if (weekOneWorkoutIdsToDelete.length === workouts.length) {
     redirectToPlan(plan.id, {
       error: "This start date would remove every scheduled workout in week one. Add a later week or choose an earlier start date.",
+      week: returnWeek,
     });
   }
 
@@ -632,7 +701,7 @@ export async function startPlanAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/plans");
   revalidatePath(`/plans/${plan.id}`);
-  redirectToPlan(plan.id, { success: "Plan started." });
+  redirectToPlan(plan.id, { success: "Plan started.", week: returnWeek });
 }
 
 export async function archivePlanAction(formData: FormData) {
@@ -672,6 +741,7 @@ export async function archivePlanAction(formData: FormData) {
 
 export async function skipPlanWorkoutAction(formData: FormData) {
   const user = await requireUser();
+  const returnWeek = getOptionalWeekNumber(formData, "returnWeek");
   const parsedInput = planWorkoutMutationSchema.safeParse({
     planId: getStringValue(formData, "planId"),
     planWorkoutId: getStringValue(formData, "planWorkoutId"),
@@ -695,7 +765,10 @@ export async function skipPlanWorkoutAction(formData: FormData) {
   );
 
   if (!planWorkout) {
-    redirectToPlan(plan.id, { error: "Planned workout no longer exists." });
+    redirectToPlan(plan.id, {
+      error: "Planned workout no longer exists.",
+      week: returnWeek,
+    });
   }
 
   const todayDateKey = getTodayDateKey(user.timeZone);
@@ -706,7 +779,10 @@ export async function skipPlanWorkoutAction(formData: FormData) {
   );
 
   if (!isPlanWorkoutEditable(planWorkout.state, scheduledDate, todayDateKey)) {
-    redirectToPlan(plan.id, { error: "That workout can no longer be skipped." });
+    redirectToPlan(plan.id, {
+      error: "That workout can no longer be skipped.",
+      week: returnWeek ?? planWorkout.weekNumber,
+    });
   }
 
   await db
@@ -727,11 +803,13 @@ export async function skipPlanWorkoutAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/plans");
   revalidatePath(`/plans/${plan.id}`);
-  redirectToPlan(plan.id, { success: "Planned workout skipped." });
+  refresh();
+  return;
 }
 
 export async function unskipPlanWorkoutAction(formData: FormData) {
   const user = await requireUser();
+  const returnWeek = getOptionalWeekNumber(formData, "returnWeek");
   const parsedInput = planWorkoutMutationSchema.safeParse({
     planId: getStringValue(formData, "planId"),
     planWorkoutId: getStringValue(formData, "planWorkoutId"),
@@ -755,7 +833,10 @@ export async function unskipPlanWorkoutAction(formData: FormData) {
   );
 
   if (!planWorkout) {
-    redirectToPlan(plan.id, { error: "Planned workout no longer exists." });
+    redirectToPlan(plan.id, {
+      error: "Planned workout no longer exists.",
+      week: returnWeek,
+    });
   }
 
   const todayDateKey = getTodayDateKey(user.timeZone);
@@ -766,7 +847,10 @@ export async function unskipPlanWorkoutAction(formData: FormData) {
   );
 
   if (planWorkout.state !== "skipped" || scheduledDate < todayDateKey) {
-    redirectToPlan(plan.id, { error: "That workout can no longer be restored." });
+    redirectToPlan(plan.id, {
+      error: "That workout can no longer be restored.",
+      week: returnWeek ?? planWorkout.weekNumber,
+    });
   }
 
   await db
@@ -781,11 +865,13 @@ export async function unskipPlanWorkoutAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/plans");
   revalidatePath(`/plans/${plan.id}`);
-  redirectToPlan(plan.id, { success: "Planned workout restored." });
+  refresh();
+  return;
 }
 
 export async function startPlannedWorkoutAction(formData: FormData) {
   const user = await requireUser();
+  const returnWeek = getOptionalWeekNumber(formData, "returnWeek");
   const parsedInput = planWorkoutMutationSchema.safeParse({
     planId: getStringValue(formData, "planId"),
     planWorkoutId: getStringValue(formData, "planWorkoutId"),
@@ -809,7 +895,10 @@ export async function startPlannedWorkoutAction(formData: FormData) {
   );
 
   if (!planWorkout) {
-    redirectToPlan(plan.id, { error: "Planned workout no longer exists." });
+    redirectToPlan(plan.id, {
+      error: "Planned workout no longer exists.",
+      week: returnWeek,
+    });
   }
 
   const todayDateKey = getTodayDateKey(user.timeZone);
@@ -822,6 +911,7 @@ export async function startPlannedWorkoutAction(formData: FormData) {
   if (scheduledDate !== todayDateKey || planWorkout.state !== "planned") {
     redirectToPlan(plan.id, {
       error: "You can only start a planned workout on its scheduled day.",
+      week: returnWeek ?? planWorkout.weekNumber,
     });
   }
 
@@ -843,6 +933,7 @@ export async function startPlannedWorkoutAction(formData: FormData) {
       conflictPlanWorkoutId: planWorkout.id,
       error: "Finish or resume your current workout before starting this plan day.",
       resumeSessionId: existingOpenSession.id,
+      week: returnWeek ?? planWorkout.weekNumber,
     });
   }
 
@@ -865,6 +956,7 @@ export async function startPlannedWorkoutAction(formData: FormData) {
   if (templateExercises.length === 0) {
     redirectToPlan(plan.id, {
       error: "This template no longer has any exercises.",
+      week: returnWeek ?? planWorkout.weekNumber,
     });
   }
 

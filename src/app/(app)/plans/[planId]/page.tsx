@@ -1,4 +1,6 @@
 import ArchiveRounded from "@mui/icons-material/ArchiveRounded";
+import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import EastRounded from "@mui/icons-material/EastRounded";
 import FileCopyRounded from "@mui/icons-material/FileCopyRounded";
@@ -9,6 +11,7 @@ import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -46,6 +49,7 @@ type PlanDetailPageProps = {
     error?: string;
     resumeSessionId?: string;
     success?: string;
+    week?: string;
   }>;
 };
 
@@ -115,6 +119,31 @@ export default async function PlanDetailPage({
     resolvedSearchParams?.conflictPlanWorkoutId?.trim() ?? "";
   const plan = await requirePlanByIdForUser(user.id, planId, user.timeZone);
   const todayDateKey = getTodayDateKey(plan.timeZone);
+  const isPlanEditable = plan.status === "draft" || plan.status === "active";
+  const canAddWorkouts = isPlanEditable && plan.templateOptions.length > 0;
+  const fallbackWeekNumber =
+    plan.status === "active"
+      ? plan.currentWeekNumber
+      : plan.status === "completed" || plan.status === "archived"
+        ? plan.currentWeekNumber
+        : 1;
+  const requestedWeekNumber = Number.parseInt(
+    resolvedSearchParams?.week?.trim() ?? "",
+    10,
+  );
+  const selectedWeekNumber =
+    Number.isInteger(requestedWeekNumber) &&
+    requestedWeekNumber >= 1 &&
+    requestedWeekNumber <= plan.durationWeeks
+      ? requestedWeekNumber
+      : Math.min(Math.max(fallbackWeekNumber, 1), plan.durationWeeks);
+  const selectedWeek =
+    plan.weeks.find((week) => week.weekNumber === selectedWeekNumber) ??
+    plan.weeks[0] ??
+    null;
+  const selectedWeekHref = selectedWeek
+    ? `/plans/${plan.id}?week=${selectedWeek.weekNumber}`
+    : `/plans/${plan.id}`;
 
   return (
     <Stack spacing={3}>
@@ -147,7 +176,7 @@ export default async function PlanDetailPage({
               </Button>
               <Button
                 component={NextLink}
-                href={`/plans/${plan.id}`}
+                href={selectedWeekHref}
                 color="inherit"
                 size="small"
                 variant="text"
@@ -351,6 +380,11 @@ export default async function PlanDetailPage({
                     <input type="hidden" name="planId" value={plan.id} />
                     <input
                       type="hidden"
+                      name="returnWeek"
+                      value={String(selectedWeekNumber)}
+                    />
+                    <input
+                      type="hidden"
                       name="planWorkoutId"
                       value={plan.todayWorkout.id}
                     />
@@ -371,7 +405,7 @@ export default async function PlanDetailPage({
         </Stack>
       </Paper>
 
-      {(plan.status === "draft" || plan.status === "active") ? (
+      {isPlanEditable ? (
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, lg: 7 }}>
             <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
@@ -379,6 +413,11 @@ export default async function PlanDetailPage({
                 <Stack spacing={1.75}>
                   <Typography variant="h3">Plan details</Typography>
                   <input type="hidden" name="planId" value={plan.id} />
+                  <input
+                    type="hidden"
+                    name="returnWeek"
+                    value={String(selectedWeekNumber)}
+                  />
                   <TextField
                     label="Plan name"
                     name="name"
@@ -439,6 +478,11 @@ export default async function PlanDetailPage({
                       in that first week will be omitted automatically.
                     </Typography>
                     <input type="hidden" name="planId" value={plan.id} />
+                    <input
+                      type="hidden"
+                      name="returnWeek"
+                      value={String(selectedWeekNumber)}
+                    />
                     <TextField
                       label="Start date"
                       name="startDate"
@@ -482,146 +526,196 @@ export default async function PlanDetailPage({
         </Grid>
       ) : null}
 
-      {plan.weeks.map((week) => (
-        <Paper
-          key={week.weekNumber}
-          elevation={0}
-          sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}
-        >
-          <Stack spacing={1.75}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={1}
-              alignItems={{ xs: "flex-start", sm: "center" }}
-              justifyContent="space-between"
-            >
-              <Stack spacing={0.35}>
-                <Typography variant="h3">Week {week.weekNumber}</Typography>
-                <Typography color="text.secondary">
-                  {week.resolvedCount}/{week.totalCount} resolved
-                </Typography>
-              </Stack>
-              {plan.status === "active" && week.weekNumber === plan.currentWeekNumber ? (
-                <Chip label="Current week" color="secondary" variant="outlined" size="small" />
-              ) : null}
-            </Stack>
+      {selectedWeek
+        ? (() => {
+            const scheduledWorkoutCountLabel =
+              selectedWeek.workouts.length === 1
+                ? "1 scheduled workout"
+                : `${selectedWeek.workouts.length} scheduled workouts`;
 
-            {week.workouts.length === 0 ? (
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: "8px",
-                  px: 2,
-                  py: 2,
-                  bgcolor: "rgba(255,255,255,0.02)",
-                }}
-              >
-                <Typography color="text.secondary">
-                  No workouts scheduled in this week.
-                </Typography>
-              </Paper>
-            ) : (
-              <Stack spacing={1.25}>
-                {week.workouts.map((workout) => (
-                  <Paper
-                    key={workout.id}
-                    elevation={0}
-                    sx={{
-                      borderRadius: "8px",
-                      px: 2,
-                      py: 1.75,
-                      bgcolor:
-                        workout.effectiveState === "today"
-                          ? "rgba(152, 168, 216, 0.05)"
-                          : "rgba(255,255,255,0.02)",
-                    }}
+            return (
+              <Stack spacing={2}>
+                <Paper
+                  elevation={0}
+                  sx={{ borderRadius: "10px", px: 1.5, py: 1.25 }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    justifyContent="space-between"
                   >
-                    <Stack spacing={1.5}>
-                      <Stack
-                        direction={{ xs: "column", md: "row" }}
-                        spacing={1}
-                        alignItems={{ xs: "flex-start", md: "center" }}
-                        justifyContent="space-between"
+                    {selectedWeek.weekNumber > 1 ? (
+                      <IconButton
+                        component={NextLink}
+                        href={`/plans/${plan.id}?week=${selectedWeek.weekNumber - 1}`}
+                        scroll={false}
+                        color="inherit"
+                        aria-label="Previous week"
                       >
-                        <Stack spacing={0.35}>
-                          <Typography variant="body1" fontWeight={700}>
-                            {workout.templateName}
+                        <ChevronLeftRounded />
+                      </IconButton>
+                    ) : (
+                      <IconButton disabled aria-label="Previous week">
+                        <ChevronLeftRounded />
+                      </IconButton>
+                    )}
+
+                    <Stack spacing={0.25} alignItems="center" sx={{ flex: 1 }}>
+                      <Typography variant="overline" color="text.secondary">
+                        Plan weeks
+                      </Typography>
+                      <Typography variant="h3" textAlign="center">
+                        Week {selectedWeek.weekNumber} of {plan.durationWeeks}
+                      </Typography>
+                    </Stack>
+
+                    {selectedWeek.weekNumber < plan.durationWeeks ? (
+                      <IconButton
+                        component={NextLink}
+                        href={`/plans/${plan.id}?week=${selectedWeek.weekNumber + 1}`}
+                        scroll={false}
+                        color="inherit"
+                        aria-label="Next week"
+                      >
+                        <ChevronRightRounded />
+                      </IconButton>
+                    ) : (
+                      <IconButton disabled aria-label="Next week">
+                        <ChevronRightRounded />
+                      </IconButton>
+                    )}
+                  </Stack>
+                </Paper>
+
+                <Paper
+                  elevation={0}
+                  sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}
+                >
+                  <Stack spacing={2}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={1}
+                      alignItems={{ xs: "flex-start", sm: "center" }}
+                      justifyContent="space-between"
+                    >
+                      <Stack spacing={0.5}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          flexWrap="wrap"
+                          useFlexGap
+                        >
+                          <Typography variant="h3">
+                            Week {selectedWeek.weekNumber}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {workout.weekdayLabel}
-                            {workout.displayDateLabel
-                              ? ` · ${workout.displayDateLabel}`
-                              : ""}
-                          </Typography>
-                        </Stack>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           <Chip
-                            label={getWorkoutStateLabel(workout.effectiveState)}
-                            color={getWorkoutStateChipColor(workout.effectiveState)}
+                            label={scheduledWorkoutCountLabel}
                             variant="outlined"
                             size="small"
                           />
-                          {workout.completedAt ? (
-                            <Chip
-                              label="Logged"
-                              color="success"
-                              variant="outlined"
-                              size="small"
-                            />
-                          ) : null}
                         </Stack>
+                        <Typography color="text.secondary">
+                          {selectedWeek.resolvedCount}/{selectedWeek.totalCount} resolved
+                        </Typography>
                       </Stack>
+                      {plan.status === "active" &&
+                      selectedWeek.weekNumber === plan.currentWeekNumber ? (
+                        <Chip
+                          label="Current week"
+                          color="secondary"
+                          variant="outlined"
+                          size="small"
+                        />
+                      ) : null}
+                    </Stack>
 
-                      {workout.canEdit && plan.templateOptions.length > 0 ? (
-                        <Stack spacing={1.25}>
+                    {canAddWorkouts ? (
+                      <Stack
+                        spacing={1.5}
+                        sx={{
+                          borderRadius: "12px",
+                          px: 2.25,
+                          py: 2.25,
+                          bgcolor: "rgba(139,194,172,0.1)",
+                          border: "1px solid rgba(139,194,172,0.22)",
+                          boxShadow: "inset 0 1px 0 rgba(184, 221, 207, 0.08)",
+                        }}
+                      >
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={1}
+                          alignItems={{ xs: "flex-start", sm: "center" }}
+                          justifyContent="space-between"
+                        >
+                          <Stack spacing={0.45}>
+                            <Typography variant="overline" color="primary.light">
+                              Week setup
+                            </Typography>
+                            <Typography variant="body1" fontWeight={700}>
+                              Add workout to week {selectedWeek.weekNumber}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Build this week here, then review the scheduled slots
+                              below.
+                            </Typography>
+                          </Stack>
+                          <Chip
+                            label="Editing week structure"
+                            color="primary"
+                            variant="outlined"
+                            size="small"
+                          />
+                        </Stack>
+
+                        <Stack
+                          sx={{
+                            borderRadius: "10px",
+                            px: 1.5,
+                            py: 1.5,
+                            bgcolor: "rgba(12, 17, 13, 0.16)",
+                            border: "1px solid rgba(139,194,172,0.12)",
+                          }}
+                        >
                           <form action={upsertPlanWorkoutAction}>
                             <Stack spacing={1.25}>
                               <input type="hidden" name="planId" value={plan.id} />
                               <input
                                 type="hidden"
-                                name="existingPlanWorkoutId"
-                                value={workout.id}
+                                name="returnWeek"
+                                value={String(selectedWeek.weekNumber)}
+                              />
+                              <input
+                                type="hidden"
+                                name="weekNumber"
+                                value={String(selectedWeek.weekNumber)}
                               />
                               <Grid container spacing={1.25}>
-                                <Grid size={{ xs: 12, md: 3 }}>
-                                  <TextField
-                                    select
-                                    label="Week"
-                                    name="weekNumber"
-                                    defaultValue={String(workout.weekNumber)}
-                                    fullWidth
-                                  >
-                                    {Array.from(
-                                      { length: plan.durationWeeks },
-                                      (_, index) => index + 1,
-                                    ).map((weekNumber) => (
-                                      <MenuItem key={weekNumber} value={String(weekNumber)}>
-                                        Week {weekNumber}
-                                      </MenuItem>
-                                    ))}
-                                  </TextField>
-                                </Grid>
-                                <Grid size={{ xs: 12, md: 3 }}>
+                                <Grid size={{ xs: 12, md: 4 }}>
                                   <TextField
                                     select
                                     label="Day"
                                     name="weekday"
-                                    defaultValue={String(workout.weekday)}
+                                    defaultValue="1"
                                     fullWidth
                                   >
                                     {PLAN_WEEKDAY_OPTIONS.map((option) => (
-                                      <MenuItem key={option.value} value={String(option.value)}>
+                                      <MenuItem
+                                        key={option.value}
+                                        value={String(option.value)}
+                                      >
                                         {option.label}
                                       </MenuItem>
                                     ))}
                                   </TextField>
                                 </Grid>
-                                <Grid size={{ xs: 12, md: 6 }}>
+                                <Grid size={{ xs: 12, md: 8 }}>
                                   <TextField
                                     select
                                     label="Template"
                                     name="workoutTemplateId"
-                                    defaultValue={workout.workoutTemplateId}
+                                    defaultValue={plan.templateOptions[0]?.id ?? ""}
                                     fullWidth
                                   >
                                     {plan.templateOptions.map((template) => (
@@ -634,235 +728,421 @@ export default async function PlanDetailPage({
                               </Grid>
                               <FormStatusButton
                                 type="submit"
-                                variant="outlined"
-                                loadingLabel="Saving..."
+                                variant="contained"
+                                color="primary"
+                                loadingLabel="Adding..."
                                 fullWidth
                               >
-                                Save workout
+                                Add planned workout
                               </FormStatusButton>
                             </Stack>
                           </form>
+                        </Stack>
+                      </Stack>
+                    ) : null}
 
-                          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                            {plan.status === "active" &&
-                            workout.persistedState === "planned" ? (
-                              <form action={skipPlanWorkoutAction} style={{ flex: 1 }}>
-                                <input type="hidden" name="planId" value={plan.id} />
-                                <input
-                                  type="hidden"
-                                  name="planWorkoutId"
-                                  value={workout.id}
-                                />
-                                <FormStatusButton
-                                  type="submit"
-                                  variant="outlined"
-                                  color="warning"
-                                  startIcon={<SkipNextRounded />}
-                                  loadingLabel="Skipping..."
-                                  fullWidth
-                                >
-                                  Skip
-                                </FormStatusButton>
-                              </form>
-                            ) : null}
+                    <Stack spacing={1.25}>
+                      <Stack spacing={0.35}>
+                        <Typography variant="overline" color="text.secondary">
+                          Scheduled workouts
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {selectedWeek.workouts.length > 0
+                            ? "Existing workout slots live here. Each row keeps its own schedule and state."
+                            : "No workouts scheduled in this week yet."}
+                        </Typography>
+                      </Stack>
 
-                            {plan.status === "active" &&
-                            workout.persistedState === "skipped" ? (
-                              <form action={unskipPlanWorkoutAction} style={{ flex: 1 }}>
-                                <input type="hidden" name="planId" value={plan.id} />
-                                <input
-                                  type="hidden"
-                                  name="planWorkoutId"
-                                  value={workout.id}
-                                />
-                                <FormStatusButton
-                                  type="submit"
-                                  variant="outlined"
-                                  startIcon={<ReplayRounded />}
-                                  loadingLabel="Restoring..."
-                                  fullWidth
-                                >
-                                  Restore
-                                </FormStatusButton>
-                              </form>
-                            ) : null}
-
-                            {workout.canStart ? (
-                              <form action={startPlannedWorkoutAction} style={{ flex: 1 }}>
-                                <input type="hidden" name="planId" value={plan.id} />
-                                <input
-                                  type="hidden"
-                                  name="planWorkoutId"
-                                  value={workout.id}
-                                />
-                                <FormStatusButton
-                                  type="submit"
-                                  variant="contained"
-                                  color="secondary"
-                                  startIcon={<PlayArrowRounded />}
-                                  loadingLabel="Starting..."
-                                  fullWidth
-                                >
-                                  Start
-                                </FormStatusButton>
-                              </form>
-                            ) : null}
-
-                            <form action={removePlanWorkoutAction} style={{ flex: 1 }}>
-                              <input type="hidden" name="planId" value={plan.id} />
-                              <input
-                                type="hidden"
-                                name="planWorkoutId"
-                                value={workout.id}
-                              />
-                              <FormStatusButton
-                                type="submit"
-                                variant="text"
-                                color="inherit"
-                                startIcon={<DeleteOutlineRounded />}
-                                loadingLabel="Removing..."
-                                fullWidth
-                              >
-                                Remove
-                              </FormStatusButton>
-                            </form>
-                          </Stack>
+                      {selectedWeek.workouts.length === 0 ? (
+                        <Stack
+                          spacing={0.5}
+                          sx={{
+                            borderRadius: "8px",
+                            px: 2,
+                            py: 2,
+                            bgcolor: "rgba(255,255,255,0.02)",
+                            border: "1px solid rgba(255,255,255,0.04)",
+                          }}
+                        >
+                          <Typography color="text.secondary">
+                            No workouts scheduled in this week.
+                          </Typography>
                         </Stack>
                       ) : (
-                        <Stack
-                          direction={{ xs: "column", sm: "row" }}
-                          spacing={1}
-                          alignItems={{ xs: "stretch", sm: "center" }}
-                        >
-                          {workout.canStart ? (
-                            <form action={startPlannedWorkoutAction}>
-                              <input type="hidden" name="planId" value={plan.id} />
-                              <input
-                                type="hidden"
-                                name="planWorkoutId"
-                                value={workout.id}
-                              />
-                              <FormStatusButton
-                                type="submit"
-                                variant="contained"
-                                color="secondary"
-                                startIcon={<PlayArrowRounded />}
-                                loadingLabel="Starting..."
-                                fullWidth
+                        <Stack spacing={1.25}>
+                          {selectedWeek.workouts.map((workout) => (
+                            <Stack
+                              key={workout.id}
+                              spacing={1.5}
+                              sx={{
+                                borderRadius: "10px",
+                                px: 2,
+                                py: 1.75,
+                                bgcolor:
+                                  workout.effectiveState === "today"
+                                    ? "rgba(152, 168, 216, 0.06)"
+                                    : "rgba(255,255,255,0.02)",
+                                border:
+                                  workout.effectiveState === "today"
+                                    ? "1px solid rgba(152, 168, 216, 0.16)"
+                                    : "1px solid rgba(255,255,255,0.04)",
+                              }}
+                            >
+                              <Stack
+                                direction={{ xs: "column", md: "row" }}
+                                spacing={1}
+                                alignItems={{ xs: "flex-start", md: "center" }}
+                                justifyContent="space-between"
                               >
-                                Start scheduled workout
-                              </FormStatusButton>
-                            </form>
-                          ) : null}
+                                <Stack spacing={0.35}>
+                                  <Typography variant="body1" fontWeight={700}>
+                                    {workout.templateName}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {workout.weekdayLabel}
+                                    {workout.displayDateLabel
+                                      ? ` · ${workout.displayDateLabel}`
+                                      : ""}
+                                  </Typography>
+                                </Stack>
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  flexWrap="wrap"
+                                  useFlexGap
+                                >
+                                  {workout.effectiveState !== "planned" ? (
+                                    <Chip
+                                      label={getWorkoutStateLabel(
+                                        workout.effectiveState,
+                                      )}
+                                      color={getWorkoutStateChipColor(
+                                        workout.effectiveState,
+                                      )}
+                                      variant="outlined"
+                                      size="small"
+                                    />
+                                  ) : null}
+                                  {workout.completedAt ? (
+                                    <Chip
+                                      label="Logged"
+                                      color="success"
+                                      variant="outlined"
+                                      size="small"
+                                    />
+                                  ) : null}
+                                </Stack>
+                              </Stack>
 
-                          {plan.status === "active" &&
-                          workout.persistedState === "skipped" &&
-                          workout.scheduledDate &&
-                          workout.scheduledDate >= todayDateKey ? (
-                            <form action={unskipPlanWorkoutAction}>
-                              <input type="hidden" name="planId" value={plan.id} />
-                              <input
-                                type="hidden"
-                                name="planWorkoutId"
-                                value={workout.id}
-                              />
-                              <FormStatusButton
-                                type="submit"
-                                variant="outlined"
-                                startIcon={<ReplayRounded />}
-                                loadingLabel="Restoring..."
-                                fullWidth
-                              >
-                                Restore this day
-                              </FormStatusButton>
-                            </form>
-                          ) : null}
+                              {workout.canEdit && plan.templateOptions.length > 0 ? (
+                                <Stack
+                                  spacing={1.25}
+                                  sx={{
+                                    borderTop: "1px solid rgba(255,255,255,0.06)",
+                                    pt: 1.5,
+                                  }}
+                                >
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    Adjust this scheduled slot
+                                  </Typography>
+
+                                  <form action={upsertPlanWorkoutAction}>
+                                    <Stack spacing={1.25}>
+                                      <input
+                                        type="hidden"
+                                        name="planId"
+                                        value={plan.id}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="returnWeek"
+                                        value={String(selectedWeek.weekNumber)}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="existingPlanWorkoutId"
+                                        value={workout.id}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="planWorkoutId"
+                                        value={workout.id}
+                                      />
+                                      <Grid container spacing={1.25}>
+                                        <Grid size={{ xs: 12, md: 3 }}>
+                                          <TextField
+                                            select
+                                            label="Week"
+                                            name="weekNumber"
+                                            defaultValue={String(workout.weekNumber)}
+                                            fullWidth
+                                          >
+                                            {Array.from(
+                                              { length: plan.durationWeeks },
+                                              (_, index) => index + 1,
+                                            ).map((weekNumber) => (
+                                              <MenuItem
+                                                key={weekNumber}
+                                                value={String(weekNumber)}
+                                              >
+                                                Week {weekNumber}
+                                              </MenuItem>
+                                            ))}
+                                          </TextField>
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 3 }}>
+                                          <TextField
+                                            select
+                                            label="Day"
+                                            name="weekday"
+                                            defaultValue={String(workout.weekday)}
+                                            fullWidth
+                                          >
+                                            {PLAN_WEEKDAY_OPTIONS.map((option) => (
+                                              <MenuItem
+                                                key={option.value}
+                                                value={String(option.value)}
+                                              >
+                                                {option.label}
+                                              </MenuItem>
+                                            ))}
+                                          </TextField>
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                          <TextField
+                                            select
+                                            label="Template"
+                                            name="workoutTemplateId"
+                                            defaultValue={workout.workoutTemplateId}
+                                            fullWidth
+                                          >
+                                            {plan.templateOptions.map((template) => (
+                                              <MenuItem
+                                                key={template.id}
+                                                value={template.id}
+                                              >
+                                                {template.name}
+                                              </MenuItem>
+                                            ))}
+                                          </TextField>
+                                        </Grid>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                          <FormStatusButton
+                                            type="submit"
+                                            variant="outlined"
+                                            loadingLabel="Saving..."
+                                            fullWidth
+                                          >
+                                            Save workout
+                                          </FormStatusButton>
+                                        </Grid>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                          <FormStatusButton
+                                            type="submit"
+                                            formAction={removePlanWorkoutAction}
+                                            variant="text"
+                                            color="inherit"
+                                            startIcon={<DeleteOutlineRounded />}
+                                            loadingLabel="Removing..."
+                                            fullWidth
+                                          >
+                                            Remove
+                                          </FormStatusButton>
+                                        </Grid>
+                                      </Grid>
+                                    </Stack>
+                                  </form>
+
+                                  <Stack
+                                    direction={{ xs: "column", sm: "row" }}
+                                    spacing={1}
+                                  >
+                                    {plan.status === "active" &&
+                                    workout.persistedState === "planned" ? (
+                                      <form
+                                        action={skipPlanWorkoutAction}
+                                        style={{ flex: 1 }}
+                                      >
+                                        <input
+                                          type="hidden"
+                                          name="planId"
+                                          value={plan.id}
+                                        />
+                                        <input
+                                          type="hidden"
+                                          name="returnWeek"
+                                          value={String(selectedWeek.weekNumber)}
+                                        />
+                                        <input
+                                          type="hidden"
+                                          name="planWorkoutId"
+                                          value={workout.id}
+                                        />
+                                        <FormStatusButton
+                                          type="submit"
+                                          variant="outlined"
+                                          color="warning"
+                                          startIcon={<SkipNextRounded />}
+                                          loadingLabel="Skipping..."
+                                          fullWidth
+                                        >
+                                          Skip
+                                        </FormStatusButton>
+                                      </form>
+                                    ) : null}
+
+                                    {plan.status === "active" &&
+                                    workout.persistedState === "skipped" ? (
+                                      <form
+                                        action={unskipPlanWorkoutAction}
+                                        style={{ flex: 1 }}
+                                      >
+                                        <input
+                                          type="hidden"
+                                          name="planId"
+                                          value={plan.id}
+                                        />
+                                        <input
+                                          type="hidden"
+                                          name="returnWeek"
+                                          value={String(selectedWeek.weekNumber)}
+                                        />
+                                        <input
+                                          type="hidden"
+                                          name="planWorkoutId"
+                                          value={workout.id}
+                                        />
+                                        <FormStatusButton
+                                          type="submit"
+                                          variant="outlined"
+                                          startIcon={<ReplayRounded />}
+                                          loadingLabel="Restoring..."
+                                          fullWidth
+                                        >
+                                          Restore
+                                        </FormStatusButton>
+                                      </form>
+                                    ) : null}
+
+                                    {workout.canStart ? (
+                                      <form
+                                        action={startPlannedWorkoutAction}
+                                        style={{ flex: 1 }}
+                                      >
+                                        <input
+                                          type="hidden"
+                                          name="planId"
+                                          value={plan.id}
+                                        />
+                                        <input
+                                          type="hidden"
+                                          name="returnWeek"
+                                          value={String(selectedWeek.weekNumber)}
+                                        />
+                                        <input
+                                          type="hidden"
+                                          name="planWorkoutId"
+                                          value={workout.id}
+                                        />
+                                        <FormStatusButton
+                                          type="submit"
+                                          variant="contained"
+                                          color="secondary"
+                                          startIcon={<PlayArrowRounded />}
+                                          loadingLabel="Starting..."
+                                          fullWidth
+                                        >
+                                          Start
+                                        </FormStatusButton>
+                                      </form>
+                                    ) : null}
+                                  </Stack>
+                                </Stack>
+                              ) : (
+                                <Stack
+                                  direction={{ xs: "column", sm: "row" }}
+                                  spacing={1}
+                                  alignItems={{ xs: "stretch", sm: "center" }}
+                                >
+                                  {workout.canStart ? (
+                                    <form action={startPlannedWorkoutAction}>
+                                      <input
+                                        type="hidden"
+                                        name="planId"
+                                        value={plan.id}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="returnWeek"
+                                        value={String(selectedWeek.weekNumber)}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="planWorkoutId"
+                                        value={workout.id}
+                                      />
+                                      <FormStatusButton
+                                        type="submit"
+                                        variant="contained"
+                                        color="secondary"
+                                        startIcon={<PlayArrowRounded />}
+                                        loadingLabel="Starting..."
+                                        fullWidth
+                                      >
+                                        Start scheduled workout
+                                      </FormStatusButton>
+                                    </form>
+                                  ) : null}
+
+                                  {plan.status === "active" &&
+                                  workout.persistedState === "skipped" &&
+                                  workout.scheduledDate &&
+                                  workout.scheduledDate >= todayDateKey ? (
+                                    <form action={unskipPlanWorkoutAction}>
+                                      <input
+                                        type="hidden"
+                                        name="planId"
+                                        value={plan.id}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="returnWeek"
+                                        value={String(selectedWeek.weekNumber)}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="planWorkoutId"
+                                        value={workout.id}
+                                      />
+                                      <FormStatusButton
+                                        type="submit"
+                                        variant="outlined"
+                                        startIcon={<ReplayRounded />}
+                                        loadingLabel="Restoring..."
+                                        fullWidth
+                                      >
+                                        Restore this day
+                                      </FormStatusButton>
+                                    </form>
+                                  ) : null}
+                                </Stack>
+                              )}
+                            </Stack>
+                          ))}
                         </Stack>
                       )}
                     </Stack>
-                  </Paper>
-                ))}
-              </Stack>
-            )}
-
-            {(plan.status === "draft" || plan.status === "active") &&
-            plan.templateOptions.length > 0 ? (
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: "8px",
-                  px: 2,
-                  py: 2,
-                  bgcolor: "rgba(255,255,255,0.02)",
-                }}
-              >
-                <form action={upsertPlanWorkoutAction}>
-                  <Stack spacing={1.25}>
-                    <Stack spacing={0.35}>
-                      <Typography variant="body1" fontWeight={700}>
-                        Add workout to week {week.weekNumber}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Rest days stay implicit, so only add the days that need a
-                        template.
-                      </Typography>
-                    </Stack>
-                    <input type="hidden" name="planId" value={plan.id} />
-                    <input
-                      type="hidden"
-                      name="weekNumber"
-                      value={String(week.weekNumber)}
-                    />
-                    <Grid container spacing={1.25}>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <TextField
-                          select
-                          label="Day"
-                          name="weekday"
-                          defaultValue="1"
-                          fullWidth
-                        >
-                          {PLAN_WEEKDAY_OPTIONS.map((option) => (
-                            <MenuItem key={option.value} value={String(option.value)}>
-                              {option.label}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 8 }}>
-                        <TextField
-                          select
-                          label="Template"
-                          name="workoutTemplateId"
-                          defaultValue={plan.templateOptions[0]?.id ?? ""}
-                          fullWidth
-                        >
-                          {plan.templateOptions.map((template) => (
-                            <MenuItem key={template.id} value={template.id}>
-                              {template.name}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                    </Grid>
-                    <FormStatusButton
-                      type="submit"
-                      variant="outlined"
-                      loadingLabel="Adding..."
-                      fullWidth
-                    >
-                      Add planned workout
-                    </FormStatusButton>
                   </Stack>
-                </form>
-              </Paper>
-            ) : null}
-          </Stack>
-        </Paper>
-      ))}
+                </Paper>
+              </Stack>
+            );
+          })()
+        : null}
 
-      {plan.templateOptions.length === 0 &&
-      (plan.status === "draft" || plan.status === "active") ? (
+      {plan.templateOptions.length === 0 && isPlanEditable ? (
         <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
           <Stack spacing={1.25}>
             <Typography variant="h3">No workout templates yet</Typography>
