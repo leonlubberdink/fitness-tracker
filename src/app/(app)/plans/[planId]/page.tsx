@@ -23,6 +23,7 @@ import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import {
   archivePlanAction,
+  copyPreviousPlanWeekAction,
   deletePlanAction,
   duplicatePlanAction,
   removePlanWorkoutAction,
@@ -141,9 +142,22 @@ export default async function PlanDetailPage({
     plan.weeks.find((week) => week.weekNumber === selectedWeekNumber) ??
     plan.weeks[0] ??
     null;
+  const previousWeek =
+    selectedWeek && selectedWeek.weekNumber > 1
+      ? plan.weeks[selectedWeek.weekNumber - 2] ?? null
+      : null;
   const selectedWeekHref = selectedWeek
     ? `/plans/${plan.id}?week=${selectedWeek.weekNumber}`
     : `/plans/${plan.id}`;
+  const copyPreviousWeekDisabledReason = !selectedWeek
+    ? null
+    : !previousWeek
+      ? "Week 1 is the starting point."
+      : previousWeek.workouts.length === 0
+        ? `Week ${previousWeek.weekNumber} has no workouts to copy yet.`
+        : selectedWeek.workouts.length > 0
+          ? "Clear this week before copying the previous one."
+          : null;
 
   return (
     <Stack spacing={3}>
@@ -643,12 +657,7 @@ export default async function PlanDetailPage({
                           boxShadow: "inset 0 1px 0 rgba(184, 221, 207, 0.08)",
                         }}
                       >
-                        <Stack
-                          direction={{ xs: "column", sm: "row" }}
-                          spacing={1}
-                          alignItems={{ xs: "flex-start", sm: "center" }}
-                          justifyContent="space-between"
-                        >
+                        <Stack spacing={0.45}>
                           <Stack spacing={0.45}>
                             <Typography variant="overline" color="primary.light">
                               Week setup
@@ -661,12 +670,6 @@ export default async function PlanDetailPage({
                               below.
                             </Typography>
                           </Stack>
-                          <Chip
-                            label="Editing week structure"
-                            color="primary"
-                            variant="outlined"
-                            size="small"
-                          />
                         </Stack>
 
                         <Stack
@@ -726,20 +729,66 @@ export default async function PlanDetailPage({
                                   </TextField>
                                 </Grid>
                               </Grid>
-                              <FormStatusButton
-                                type="submit"
-                                variant="contained"
-                                color="primary"
-                                loadingLabel="Adding..."
+                        <FormStatusButton
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          loadingLabel="Adding..."
                                 fullWidth
-                              >
-                                Add planned workout
-                              </FormStatusButton>
-                            </Stack>
-                          </form>
-                        </Stack>
+                        >
+                          Add planned workout
+                        </FormStatusButton>
                       </Stack>
-                    ) : null}
+                    </form>
+                  </Stack>
+
+                  {previousWeek ? (
+                    <Stack
+                      spacing={1}
+                      sx={{
+                        borderTop: "1px solid rgba(139,194,172,0.12)",
+                        pt: 1.5,
+                      }}
+                    >
+                      <Stack spacing={0.35}>
+                        <Typography variant="caption" color="text.secondary">
+                          Reuse the same schedule from week {previousWeek.weekNumber}
+                          when the split repeats.
+                        </Typography>
+                        {copyPreviousWeekDisabledReason ? (
+                          <Typography variant="caption" color="text.secondary">
+                            {copyPreviousWeekDisabledReason}
+                          </Typography>
+                        ) : null}
+                      </Stack>
+
+                      <form action={copyPreviousPlanWeekAction}>
+                        <input type="hidden" name="planId" value={plan.id} />
+                        <input
+                          type="hidden"
+                          name="returnWeek"
+                          value={String(selectedWeek.weekNumber)}
+                        />
+                        <input
+                          type="hidden"
+                          name="targetWeekNumber"
+                          value={String(selectedWeek.weekNumber)}
+                        />
+                        <FormStatusButton
+                          type="submit"
+                          variant="outlined"
+                          startIcon={<FileCopyRounded />}
+                          loadingLabel="Copying..."
+                          disabled={Boolean(copyPreviousWeekDisabledReason)}
+                          fullWidth
+                        >
+                          Copy week {previousWeek.weekNumber} into this week
+                        </FormStatusButton>
+                      </form>
+                    </Stack>
+                  ) : null}
+                </Stack>
+              ) : null}
 
                     <Stack spacing={1.25}>
                       <Stack spacing={0.35}>

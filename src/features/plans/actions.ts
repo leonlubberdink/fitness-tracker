@@ -551,6 +551,124 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
   return;
 }
 
+export async function copyPreviousPlanWeekAction(formData: FormData) {
+  const user = await requireUser();
+  const planId = getStringValue(formData, "planId");
+  const parsedPlan = planIdSchema.safeParse({ planId });
+
+  if (!parsedPlan.success) {
+    redirectToPlansHub({ error: getValidationMessage(parsedPlan.error) });
+  }
+
+  const plan = await requirePlanRecord(user.id, parsedPlan.data.planId);
+  const targetWeekNumber = getOptionalWeekNumber(
+    formData,
+    "targetWeekNumber",
+    plan?.durationWeeks,
+  );
+  const returnWeek = getOptionalWeekNumber(
+    formData,
+    "returnWeek",
+    plan?.durationWeeks,
+  );
+
+  if (!plan) {
+    redirectToPlansHub({ error: "Plan no longer exists." });
+  }
+
+  if (plan.status === "completed" || plan.status === "archived") {
+    redirectToPlan(plan.id, {
+      error: "This plan is read-only.",
+      week: returnWeek,
+    });
+  }
+
+  if (!targetWeekNumber || targetWeekNumber <= 1) {
+    redirectToPlan(plan.id, {
+      error: "Choose a valid target week.",
+      week: returnWeek,
+    });
+  }
+
+  const sourceWeekNumber = targetWeekNumber - 1;
+  const [sourceWorkouts, targetWorkouts] = await Promise.all([
+    db
+      .select({
+        weekday: planWorkouts.weekday,
+        workoutTemplateId: planWorkouts.workoutTemplateId,
+      })
+      .from(planWorkouts)
+      .where(
+        and(
+          eq(planWorkouts.planId, plan.id),
+          eq(planWorkouts.weekNumber, sourceWeekNumber),
+        ),
+      )
+      .orderBy(asc(planWorkouts.weekday)),
+    db
+      .select({
+        id: planWorkouts.id,
+      })
+      .from(planWorkouts)
+      .where(
+        and(
+          eq(planWorkouts.planId, plan.id),
+          eq(planWorkouts.weekNumber, targetWeekNumber),
+        ),
+      )
+      .limit(1),
+  ]);
+
+  if (sourceWorkouts.length === 0) {
+    redirectToPlan(plan.id, {
+      error: `Week ${sourceWeekNumber} has no workouts to copy.`,
+      week: returnWeek ?? targetWeekNumber,
+    });
+  }
+
+  if (targetWorkouts.length > 0) {
+    redirectToPlan(plan.id, {
+      error: `Clear week ${targetWeekNumber} before copying another week into it.`,
+      week: returnWeek ?? targetWeekNumber,
+    });
+  }
+
+  if (plan.status === "active" && plan.startDate) {
+    const todayDateKey = getTodayDateKey(user.timeZone);
+
+    for (const workout of sourceWorkouts) {
+      const scheduledDate = getPlanWorkoutScheduledDate(
+        plan.startDate,
+        targetWeekNumber,
+        workout.weekday,
+      );
+
+      if (scheduledDate < todayDateKey) {
+        redirectToPlan(plan.id, {
+          error:
+            "This week already includes past days. Copy a later week or add only the remaining days.",
+          week: returnWeek ?? targetWeekNumber,
+        });
+      }
+    }
+  }
+
+  await db.insert(planWorkouts).values(
+    sourceWorkouts.map((workout) => ({
+      id: randomUUID(),
+      planId: plan.id,
+      weekNumber: targetWeekNumber,
+      weekday: workout.weekday,
+      workoutTemplateId: workout.workoutTemplateId,
+    })),
+  );
+
+  revalidatePath("/plans");
+  revalidatePath(`/plans/${plan.id}`);
+  refresh();
+  return;
+}
+
 export async function removePlanWorkoutAction(formData: FormData) {
   const user = await requireUser();
   const returnWeek = getOptionalWeekNumber(formData, "returnWeek");
