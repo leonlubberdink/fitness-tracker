@@ -1,8 +1,7 @@
 import AddRounded from "@mui/icons-material/AddRounded";
-import EditRounded from "@mui/icons-material/EditRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import Alert from "@mui/material/Alert";
-import Button from "@mui/material/Button";
+import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
@@ -32,7 +31,9 @@ function formatTemplateUpdatedAt(updatedAt: Date) {
   }).format(updatedAt);
 }
 
-export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) {
+export default async function WorkoutsPage({
+  searchParams,
+}: WorkoutsPageProps) {
   const user = await requireUser();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const errorMessage = resolvedSearchParams?.error?.trim() ?? "";
@@ -70,9 +71,6 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
             <Stack spacing={2.5}>
               <Stack spacing={0.75}>
                 <Typography variant="h3">Workout templates</Typography>
-                <Typography color="text.secondary">
-                  Starting a workout begins from one of these plans.
-                </Typography>
               </Stack>
 
               {templates.length === 0 ? (
@@ -102,12 +100,37 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
                       key={template.id}
                       elevation={0}
                       sx={{
+                        position: "relative",
                         borderRadius: "8px",
                         px: 2,
                         py: 1.75,
                         bgcolor: "rgba(255,255,255,0.02)",
                       }}
                     >
+                      <Box
+                        component={NextLink}
+                        href={`/workouts/templates/${template.id}`}
+                        aria-label={`Open ${template.name} template`}
+                        sx={{
+                          position: "absolute",
+                          inset: 0,
+                          zIndex: 1,
+                          display: "block",
+                          borderRadius: "inherit",
+                          textDecoration: "none",
+                          cursor: "pointer",
+                          "&:hover": {
+                            bgcolor: "rgba(255,255,255,0.03)",
+                          },
+                          "&:focus-visible": {
+                            bgcolor: "rgba(255,255,255,0.03)",
+                            outline: "2px solid",
+                            outlineColor: "primary.main",
+                            outlineOffset: "2px",
+                          },
+                        }}
+                      />
+
                       <Stack spacing={1.5}>
                         <Stack spacing={0.5}>
                           <Stack
@@ -131,7 +154,8 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
                             />
                           </Stack>
                           <Typography variant="caption" color="text.secondary">
-                            Updated {formatTemplateUpdatedAt(template.updatedAt)}
+                            Updated{" "}
+                            {formatTemplateUpdatedAt(template.updatedAt)}
                           </Typography>
                         </Stack>
 
@@ -163,33 +187,27 @@ export default async function WorkoutsPage({ searchParams }: WorkoutsPageProps) 
                           </Typography>
                         )}
 
-                        <Stack direction="row" spacing={1}>
-                          <Button
-                            component={NextLink}
-                            href={`/workouts/templates/${template.id}`}
-                            variant="outlined"
-                            startIcon={<EditRounded />}
-                            sx={{ flex: 1 }}
+                        <Box
+                          component="form"
+                          action={startWorkoutFromTemplateAction}
+                          sx={{ position: "relative", zIndex: 2 }}
+                        >
+                          <input
+                            type="hidden"
+                            name="templateId"
+                            value={template.id}
+                          />
+                          <FormStatusButton
+                            type="submit"
+                            variant="contained"
+                            startIcon={<PlayArrowRounded />}
+                            loadingLabel="Starting..."
+                            disabled={template.exerciseCount === 0}
+                            fullWidth
                           >
-                            Edit
-                          </Button>
-                          <form action={startWorkoutFromTemplateAction}>
-                            <input
-                              type="hidden"
-                              name="templateId"
-                              value={template.id}
-                            />
-                            <FormStatusButton
-                              type="submit"
-                              variant="contained"
-                              startIcon={<PlayArrowRounded />}
-                              loadingLabel="Starting..."
-                              disabled={template.exerciseCount === 0}
-                            >
-                              Start
-                            </FormStatusButton>
-                          </form>
-                        </Stack>
+                            Start
+                          </FormStatusButton>
+                        </Box>
                       </Stack>
                     </Paper>
                   ))}
