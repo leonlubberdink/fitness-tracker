@@ -7,8 +7,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "node .next/standalone/server.js",
-    "check": "pnpm lint && pnpm typecheck",
+    "check": "pnpm lint && pnpm typecheck && pnpm test:unit",
     "lint": "eslint",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -45,6 +47,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.6"
   }
 }
