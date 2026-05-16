@@ -13,6 +13,7 @@ concurrency:
 jobs:
   lint:
     name: Lint
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -38,6 +39,7 @@ jobs:
 
   typecheck:
     name: Typecheck
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -63,6 +65,7 @@ jobs:
 
   unit-tests:
     name: Unit Tests
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -88,6 +91,7 @@ jobs:
 
   component-tests:
     name: Component Tests
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
