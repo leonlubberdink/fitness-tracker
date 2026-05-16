@@ -20,7 +20,7 @@ function getExerciseSearchWhereClause(userId: string, searchQuery?: string) {
     eq(exercises.userId, userId),
     sql`(
       ${exercises.name} ilike ${searchPattern}
-      or array_to_string(${exercises.category}, ', ') ilike ${searchPattern}
+      or ${exercises.category} ilike ${searchPattern}
     )`,
   );
 }
