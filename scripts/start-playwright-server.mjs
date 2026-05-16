@@ -38,6 +38,7 @@ async function main() {
     PORT: port,
   };
 
+  await runCommand("pnpm db:migrate:runtime", env);
   await runCommand("pnpm build", env);
 
   const standaloneDir = path.resolve(".next/standalone");
