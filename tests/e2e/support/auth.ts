@@ -47,6 +47,11 @@ export function seedE2EUser(credentials: E2ECredentials) {
 
 export async function loginAsE2EUser(page: Page, credentials: E2ECredentials) {
   await page.goto("/login");
+  if (!page.url().endsWith("/login")) {
+    await expect(page.getByText(credentials.email)).toBeVisible();
+    return;
+  }
+
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
   await page.getByLabel("Email").fill(credentials.email);
   await page.getByLabel("Password").fill(credentials.password);
