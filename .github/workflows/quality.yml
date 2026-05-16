@@ -85,3 +85,51 @@ jobs:
 
       - name: Run unit tests
         run: pnpm test:unit
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fitness_app
+          POSTGRES_USER: fitness_app
+          POSTGRES_PASSWORD: fitness_app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fitness_app -d fitness_app"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CI: true
+      DATABASE_URL: postgresql://fitness_app:fitness_app@127.0.0.1:5432/fitness_app
+      SESSION_TTL_DAYS: 30
+      E2E_USER_EMAIL: e2e@example.com
+      E2E_USER_PASSWORD: ChangeMe123!
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
