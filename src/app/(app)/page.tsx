@@ -17,6 +17,7 @@ import Typography from "@mui/material/Typography";
 
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
+import { getTodayHealthCheckinStatus } from "@/features/health-coach/queries";
 import { getPlansPageData } from "@/features/plans/queries";
 import {
   getOpenWorkoutSessionForUser,
@@ -37,8 +38,11 @@ function formatTime(value: Date) {
 
 export default async function Home() {
   const user = await requireUser();
-  const { activePlan } = await getPlansPageData(user.id, user.timeZone);
-  const openSession = await getOpenWorkoutSessionForUser(user.id);
+  const [{ activePlan }, openSession, healthCheckinStatus] = await Promise.all([
+    getPlansPageData(user.id, user.timeZone),
+    getOpenWorkoutSessionForUser(user.id),
+    getTodayHealthCheckinStatus(user.id, user.timeZone),
+  ]);
   const workoutSession = openSession
     ? await getWorkoutSessionForLogging(user.id, openSession.id)
     : null;
@@ -58,6 +62,44 @@ export default async function Home() {
 
   return (
     <Stack spacing={3}>
+      {!healthCheckinStatus.hasTodayCheckin ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "12px",
+            px: 2.75,
+            py: 2.75,
+            bgcolor: "rgba(230,195,123,0.08)",
+            borderColor: "rgba(230,195,123,0.18)",
+          }}
+        >
+          <Stack spacing={1.5}>
+            <Stack spacing={0.5}>
+              <Typography variant="overline" color="warning.main">
+                Daily check-in
+              </Typography>
+              <Typography variant="h3">
+                Today&apos;s health check-in is still missing.
+              </Typography>
+              <Typography color="text.secondary">
+                Log today&apos;s weight, recovery, and soreness so the Health
+                coach has current data to work from.
+              </Typography>
+            </Stack>
+
+            <Button
+              component={NextLink}
+              href="/health-coach"
+              variant="contained"
+              color="warning"
+              fullWidth
+            >
+              Open Health coach
+            </Button>
+          </Stack>
+        </Paper>
+      ) : null}
+
       {activePlan ? (
         <Paper
           elevation={0}

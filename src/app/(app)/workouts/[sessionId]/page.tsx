@@ -20,6 +20,7 @@ import Typography from "@mui/material/Typography";
 
 import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
+import { WorkoutSessionNoteForm } from "@/components/app/WorkoutSessionNoteForm";
 import { requireUser } from "@/features/auth/session";
 import { saveActiveWorkoutAsTemplateAction } from "@/features/workout-templates/actions";
 import {
@@ -603,6 +604,15 @@ export default async function WorkoutPage({
             </FormStatusButton>
           </Stack>
         </form>
+      </Paper>
+
+      <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
+        <WorkoutSessionNoteForm
+          sessionId={session.id}
+          initialNote={session.note}
+          title="Workout note"
+          description="Capture how this session felt or what should change next time."
+        />
       </Paper>
 
       {currentEntry === null ? (

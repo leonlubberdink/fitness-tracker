@@ -64,6 +64,7 @@ export async function getOpenWorkoutSessionForUser(userId: string) {
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
+      note: workoutSessions.note,
     })
     .from(workoutSessions)
     .where(
@@ -90,6 +91,7 @@ export async function getWorkoutSessionForLogging(
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
+      note: workoutSessions.note,
     })
     .from(workoutSessions)
     .where(
@@ -219,6 +221,7 @@ type CompletedWorkoutSessionRow = {
   performedOn: string;
   startedAt: Date;
   completedAt: Date | null;
+  note: string | null;
 };
 
 type CompletedWorkoutEntry = ReturnType<typeof groupEntriesWithSets>[number];
@@ -239,6 +242,7 @@ export async function getCompletedWorkoutHistoryForUser(
       performedOn: workoutSessions.performedOn,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      note: workoutSessions.note,
     })
     .from(workoutSessions)
     .where(

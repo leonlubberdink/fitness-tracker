@@ -65,6 +65,14 @@ export const workoutSetMutationSchema = workoutSessionIdSchema.extend({
   setId: uuidField("Invalid workout set."),
 });
 
+export const workoutSessionNoteSchema = workoutSessionIdSchema.extend({
+  note: z
+    .string()
+    .trim()
+    .max(1000, "Note must be 1000 characters or less.")
+    .transform((value) => value || ""),
+});
+
 export function parseWorkoutSetFields(
   unit: ExerciseUnit,
   values: {

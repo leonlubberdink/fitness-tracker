@@ -15,10 +15,12 @@ import { ActiveWorkoutBanner } from "./ActiveWorkoutBanner";
 import { AppBottomNavigation } from "./AppBottomNavigation";
 import { AppDesktopNavigation } from "./AppDesktopNavigation";
 import { FormStatusIconButton } from "./FormStatusButtons";
+import { HealthCoachLauncher } from "./HealthCoachLauncher";
 import { UserTimeZoneSync } from "./UserTimeZoneSync";
 
 type AppShellProps = {
   children: ReactNode;
+  coachModal?: ReactNode;
   email: string;
   activeWorkoutHref: string | null;
   userTimeZone: string;
@@ -31,6 +33,7 @@ function getInitials(email: string) {
 
 export function AppShell({
   children,
+  coachModal,
   email,
   activeWorkoutHref,
   userTimeZone,
@@ -129,6 +132,8 @@ export function AppShell({
         {children}
       </Container>
 
+      <HealthCoachLauncher />
+      {coachModal}
       <AppBottomNavigation />
     </Box>
   );

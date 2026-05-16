@@ -24,6 +24,7 @@ type ExerciseLibraryItem = {
   name: string;
   category: string;
   defaultUnit: ExerciseUnit;
+  note: string | null;
 };
 
 type ExerciseLibraryProps = {
@@ -37,8 +38,17 @@ function matchesSearchQuery(
 ) {
   return (
     exercise.name.toLowerCase().includes(normalizedSearchQuery) ||
-    exercise.category.toLowerCase().includes(normalizedSearchQuery)
+    exercise.category.toLowerCase().includes(normalizedSearchQuery) ||
+    exercise.note?.toLowerCase().includes(normalizedSearchQuery) === true
   );
+}
+
+function getExerciseNotePreview(note: string | null) {
+  if (!note) {
+    return null;
+  }
+
+  return note.length > 120 ? `${note.slice(0, 117)}...` : note;
 }
 
 export function ExerciseLibrary({
@@ -142,6 +152,11 @@ export function ExerciseLibrary({
                       color="primary"
                     />
                   </Stack>
+                  {exercise.note ? (
+                    <Typography variant="body2" color="text.secondary">
+                      {getExerciseNotePreview(exercise.note)}
+                    </Typography>
+                  ) : null}
                 </Stack>
 
                 <Stack direction="row" spacing={1}>
@@ -150,6 +165,7 @@ export function ExerciseLibrary({
                     name={exercise.name}
                     category={exercise.category}
                     defaultUnit={exercise.defaultUnit}
+                    note={exercise.note}
                   />
                   <ExerciseDeleteButton
                     exerciseId={exercise.id}

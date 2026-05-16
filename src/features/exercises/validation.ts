@@ -14,6 +14,11 @@ export const createExerciseSchema = z.object({
   defaultUnit: z.enum(EXERCISE_UNITS, {
     error: "Choose a valid default unit.",
   }),
+  note: z
+    .string()
+    .trim()
+    .max(1000, "Note must be 1000 characters or less.")
+    .transform((value) => value || ""),
 });
 
 export const updateExerciseSchema = createExerciseSchema.extend({

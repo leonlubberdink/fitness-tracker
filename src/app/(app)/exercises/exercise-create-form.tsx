@@ -24,6 +24,7 @@ export function ExerciseCreateForm() {
   const nameError = state.fieldErrors.name?.[0];
   const categoryError = state.fieldErrors.category?.[0];
   const defaultUnitError = state.fieldErrors.defaultUnit?.[0];
+  const noteError = state.fieldErrors.note?.[0];
 
   return (
     <Box component="form" action={formAction}>
@@ -67,6 +68,18 @@ export function ExerciseCreateForm() {
             </MenuItem>
           ))}
         </TextField>
+
+        <TextField
+          label="Note"
+          name="note"
+          defaultValue={state.values.note}
+          placeholder="Technique cues, setup reminders, or limitations"
+          error={Boolean(noteError)}
+          helperText={noteError ?? "Optional."}
+          multiline
+          minRows={3}
+          fullWidth
+        />
 
         {state.error ? (
           <Alert severity="error" variant="outlined">

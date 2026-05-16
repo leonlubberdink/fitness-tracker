@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 
 import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
+import { WorkoutSessionNoteForm } from "@/components/app/WorkoutSessionNoteForm";
 import { requireUser } from "@/features/auth/session";
 import { saveCompletedWorkoutAsTemplateAction } from "@/features/workout-templates/actions";
 import { getCompletedWorkoutHistoryForUser } from "@/features/workouts/queries";
@@ -171,6 +172,23 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                     </AccordionSummary>
                     <AccordionDetails sx={{ pt: 0.5 }}>
                       <Stack spacing={1.5}>
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            borderRadius: "8px",
+                            px: 2,
+                            py: 1.75,
+                            bgcolor: "rgba(255,255,255,0.02)",
+                          }}
+                        >
+                          <WorkoutSessionNoteForm
+                            sessionId={session.id}
+                            initialNote={session.note}
+                            title="Workout note"
+                            description="Add or update the note for this completed workout."
+                          />
+                        </Paper>
+
                         <Paper
                           elevation={0}
                           sx={{

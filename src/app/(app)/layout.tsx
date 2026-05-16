@@ -6,8 +6,10 @@ import { AppShell } from "@/components/app/AppShell";
 
 export default async function AppLayout({
   children,
+  coachModal,
 }: Readonly<{
   children: ReactNode;
+  coachModal?: ReactNode;
 }>) {
   const user = await requireUser();
   const openSession = await getOpenWorkoutSessionForUser(user.id);
@@ -17,6 +19,7 @@ export default async function AppLayout({
     <AppShell
       email={user.email}
       activeWorkoutHref={activeWorkoutHref}
+      coachModal={coachModal}
       userTimeZone={user.timeZone}
     >
       {children}

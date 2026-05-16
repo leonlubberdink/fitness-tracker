@@ -32,6 +32,7 @@ export async function getExercisesForUser(userId: string, searchQuery?: string) 
       name: exercises.name,
       category: exercises.category,
       defaultUnit: exercises.defaultUnit,
+      note: exercises.note,
       createdAt: exercises.createdAt,
     })
     .from(exercises)

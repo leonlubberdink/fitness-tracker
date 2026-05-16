@@ -27,9 +27,11 @@ import {
   reorderWorkoutEntriesSchema,
   startWorkoutSessionSchema,
   workoutEntrySchema,
+  workoutSessionNoteSchema,
   workoutSessionIdSchema,
   workoutSetMutationSchema,
 } from "./validation";
+import type { WorkoutSessionNoteActionState } from "./state";
 
 function getStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -112,6 +114,25 @@ async function requireCompletedSession(userId: string, sessionId: string) {
         eq(workoutSessions.id, sessionId),
         eq(workoutSessions.userId, userId),
         isNotNull(workoutSessions.completedAt),
+      ),
+    )
+    .limit(1);
+
+  return session ?? null;
+}
+
+async function requireSessionForUser(userId: string, sessionId: string) {
+  const [session] = await db
+    .select({
+      id: workoutSessions.id,
+      userId: workoutSessions.userId,
+      completedAt: workoutSessions.completedAt,
+    })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.id, sessionId),
+        eq(workoutSessions.userId, userId),
       ),
     )
     .limit(1);
@@ -990,4 +1011,52 @@ export async function removeExerciseEntryAction(formData: FormData) {
 
   revalidatePath(`/workouts/${entry.sessionId}`);
   redirectToWorkoutSession(entry.sessionId);
+}
+
+export async function updateWorkoutSessionNoteAction(
+  _previousState: WorkoutSessionNoteActionState,
+  formData: FormData,
+): Promise<WorkoutSessionNoteActionState> {
+  const user = await requireUser();
+  const rawValues = {
+    sessionId: getStringValue(formData, "sessionId"),
+    note: getStringValue(formData, "note"),
+  };
+  const parsedInput = workoutSessionNoteSchema.safeParse(rawValues);
+
+  if (!parsedInput.success) {
+    return {
+      error: parsedInput.error.issues[0]?.message ?? "Invalid note.",
+      success: null,
+      note: rawValues.note.trim(),
+    };
+  }
+
+  const session = await requireSessionForUser(user.id, parsedInput.data.sessionId);
+
+  if (!session) {
+    return {
+      error: "Workout session no longer exists.",
+      success: null,
+      note: parsedInput.data.note,
+    };
+  }
+
+  await db
+    .update(workoutSessions)
+    .set({
+      note: parsedInput.data.note || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(workoutSessions.id, session.id));
+
+  revalidatePath("/");
+  revalidatePath("/history");
+  revalidatePath(`/workouts/${session.id}`);
+
+  return {
+    error: null,
+    success: "Workout note saved.",
+    note: parsedInput.data.note,
+  };
 }

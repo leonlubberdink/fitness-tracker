@@ -68,6 +68,7 @@ function getExerciseFormValues(formData: FormData) {
     name: getStringValue(formData, "name"),
     category: getStringValue(formData, "category"),
     defaultUnit: getStringValue(formData, "defaultUnit") || "kg",
+    note: getStringValue(formData, "note"),
   };
 }
 
@@ -75,6 +76,7 @@ function getNormalizedExerciseFormValues(rawValues: {
   name: string;
   category: string;
   defaultUnit: string;
+  note: string;
 }) {
   const normalizedCategories = normalizeExerciseCategories(rawValues.category);
 
@@ -85,6 +87,7 @@ function getNormalizedExerciseFormValues(rawValues: {
         ? formatExerciseCategories(normalizedCategories)
         : rawValues.category.trim(),
     defaultUnit: coerceExerciseUnit(rawValues.defaultUnit),
+    note: rawValues.note.trim(),
   };
 }
 
@@ -106,7 +109,7 @@ export async function createExerciseAction(
     };
   }
 
-  const { name, category, defaultUnit } = parsedInput.data;
+  const { name, category, defaultUnit, note } = parsedInput.data;
   const categories = normalizeExerciseCategories(category);
   const formattedCategory = formatExerciseCategories(categories);
 
@@ -129,6 +132,7 @@ export async function createExerciseAction(
         name,
         category: formattedCategory,
         defaultUnit,
+        note,
       },
     };
   }
@@ -139,6 +143,7 @@ export async function createExerciseAction(
     name,
     category: formattedCategory,
     defaultUnit,
+    note: note || null,
   });
 
   revalidatePath("/exercises");
@@ -151,6 +156,7 @@ export async function createExerciseAction(
       name: "",
       category: "",
       defaultUnit: "kg",
+      note: "",
     },
   };
 }
@@ -176,7 +182,7 @@ export async function updateExerciseAction(
     };
   }
 
-  const { exerciseId, name, category, defaultUnit } = parsedInput.data;
+  const { exerciseId, name, category, defaultUnit, note } = parsedInput.data;
   const categories = normalizeExerciseCategories(category);
   const formattedCategory = formatExerciseCategories(categories);
 
@@ -197,6 +203,7 @@ export async function updateExerciseAction(
         name,
         category: formattedCategory,
         defaultUnit,
+        note,
       },
     };
   }
@@ -224,6 +231,7 @@ export async function updateExerciseAction(
         name,
         category: formattedCategory,
         defaultUnit,
+        note,
       },
     };
   }
@@ -234,6 +242,7 @@ export async function updateExerciseAction(
       name,
       category: formattedCategory,
       defaultUnit,
+      note: note || null,
     })
     .where(and(eq(exercises.id, exerciseId), eq(exercises.userId, user.id)));
 
@@ -248,6 +257,7 @@ export async function updateExerciseAction(
       name,
       category: formattedCategory,
       defaultUnit,
+      note,
     },
   };
 }

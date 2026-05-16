@@ -6,6 +6,7 @@ export type ExerciseActionValues = {
   name: string;
   category: string;
   defaultUnit: ExerciseUnit;
+  note: string;
 };
 
 export type ExerciseActionFieldErrors = {
@@ -13,6 +14,7 @@ export type ExerciseActionFieldErrors = {
   name?: string[];
   category?: string[];
   defaultUnit?: string[];
+  note?: string[];
 };
 
 export type ExerciseEditorActionState = {
@@ -36,6 +38,7 @@ export function getExerciseActionState(
       name: values.name ?? "",
       category: values.category ?? "",
       defaultUnit: values.defaultUnit ?? "kg",
+      note: values.note ?? "",
     },
   };
 }

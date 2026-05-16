@@ -25,6 +25,7 @@ export const exercises = pgTable(
     name: text("name").notNull(),
     category: text("category").notNull(),
     defaultUnit: exerciseUnitEnum("default_unit").notNull(),
+    note: text("note"),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",

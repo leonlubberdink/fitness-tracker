@@ -4,6 +4,7 @@ import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import HomeRounded from "@mui/icons-material/HomeRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
 import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
+import PsychologyRounded from "@mui/icons-material/PsychologyRounded";
 
 export type AppNavItem = {
   value: string;
@@ -50,6 +51,14 @@ export const primaryAppNavItems: AppNavItem[] = [
     href: "/statistics",
     icon: InsightsRounded,
     matches: (pathname) => pathname.startsWith("/statistics"),
+  },
+  {
+    value: "health-coach",
+    label: "Coach",
+    desktopLabel: "Health coach",
+    href: "/health-coach",
+    icon: PsychologyRounded,
+    matches: (pathname) => pathname.startsWith("/health-coach"),
   },
   {
     value: "history",

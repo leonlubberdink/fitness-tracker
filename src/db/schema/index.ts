@@ -1,4 +1,6 @@
 export * from "./exercises";
+export * from "./health";
+export * from "./health-coach";
 export * from "./login-rate-limits";
 export * from "./plans";
 export * from "./sessions";

@@ -30,6 +30,7 @@ type ExerciseEditButtonProps = {
   name: string;
   category: string;
   defaultUnit: ExerciseUnit;
+  note: string | null;
 };
 
 type ExerciseEditDialogFormProps = ExerciseEditButtonProps & {
@@ -41,6 +42,7 @@ function ExerciseEditDialogForm({
   name,
   category,
   defaultUnit,
+  note,
   onClose,
 }: ExerciseEditDialogFormProps) {
   async function handleUpdateExerciseAction(
@@ -52,6 +54,7 @@ function ExerciseEditDialogForm({
         name,
         category,
         defaultUnit,
+        note: note ?? "",
       }),
       formData,
     );
@@ -69,11 +72,13 @@ function ExerciseEditDialogForm({
       name,
       category,
       defaultUnit,
+      note: note ?? "",
     }),
   );
   const nameError = state.fieldErrors.name?.[0];
   const categoryError = state.fieldErrors.category?.[0];
   const defaultUnitError = state.fieldErrors.defaultUnit?.[0];
+  const noteError = state.fieldErrors.note?.[0];
 
   return (
     <Box component="form" action={formAction}>
@@ -124,6 +129,18 @@ function ExerciseEditDialogForm({
             ))}
           </TextField>
 
+          <TextField
+            label="Note"
+            name="note"
+            defaultValue={state.values.note}
+            placeholder="Technique cues, setup reminders, or limitations"
+            error={Boolean(noteError)}
+            helperText={noteError ?? "Optional."}
+            multiline
+            minRows={3}
+            fullWidth
+          />
+
           {state.error ? (
             <Alert severity="error" variant="outlined">
               {state.error}
@@ -153,6 +170,7 @@ export function ExerciseEditButton({
   name,
   category,
   defaultUnit,
+  note,
 }: ExerciseEditButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formResetKey, setFormResetKey] = useState(0);
@@ -182,11 +200,12 @@ export function ExerciseEditButton({
       <Dialog open={isOpen} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>Edit exercise</DialogTitle>
         <ExerciseEditDialogForm
-          key={`${exerciseId}:${name}:${category}:${defaultUnit}:${formResetKey}`}
+          key={`${exerciseId}:${name}:${category}:${defaultUnit}:${note ?? ""}:${formResetKey}`}
           exerciseId={exerciseId}
           name={name}
           category={category}
           defaultUnit={defaultUnit}
+          note={note}
           onClose={handleClose}
         />
       </Dialog>
