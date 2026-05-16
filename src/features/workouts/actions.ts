@@ -243,6 +243,8 @@ export async function addExerciseEntryAction(formData: FormData) {
     .limit(1);
 
   const nextSortOrder = (lastEntry?.sortOrder ?? 0) + 1;
+  const nextActiveSortOrder =
+    session.activeEntrySortOrder ?? lastEntry?.sortOrder ?? nextSortOrder;
   const entryId = randomUUID();
 
   await db.transaction(async (tx) => {
@@ -259,7 +261,7 @@ export async function addExerciseEntryAction(formData: FormData) {
     await tx
       .update(workoutSessions)
       .set({
-        activeEntrySortOrder: nextSortOrder,
+        activeEntrySortOrder: nextActiveSortOrder,
         updatedAt: new Date(),
       })
       .where(eq(workoutSessions.id, sessionId));
