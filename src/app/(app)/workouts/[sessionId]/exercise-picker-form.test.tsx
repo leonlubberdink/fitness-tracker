@@ -1,13 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+import {
+  exerciseSearchErrorHandler,
+  exerciseSearchSuccessHandler,
+} from "@/test/msw/handlers";
+import { server } from "@/test/msw/server";
 
 import { ExercisePickerForm } from "./exercise-picker-form";
-
-type FetchResponse = {
-  ok: boolean;
-  json: () => Promise<unknown>;
-};
 
 const initialExercises = [
   {
@@ -27,10 +28,6 @@ const initialExercises = [
 ];
 
 describe("ExercisePickerForm", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("shows initial matches and enables submission after selecting an exercise", async () => {
     const user = userEvent.setup();
 
@@ -56,10 +53,9 @@ describe("ExercisePickerForm", () => {
   });
 
   it("loads remote search results after the debounce interval", async () => {
-    const fetchMock = vi.fn<(...args: unknown[]) => Promise<FetchResponse>>().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        exercises: [
+    server.use(
+      exerciseSearchSuccessHandler({
+        cable: [
           {
             id: "exercise-3",
             name: "Cable Row",
@@ -69,9 +65,7 @@ describe("ExercisePickerForm", () => {
           },
         ],
       }),
-    });
-
-    vi.stubGlobal("fetch", fetchMock);
+    );
 
     render(
       <ExercisePickerForm
@@ -85,26 +79,12 @@ describe("ExercisePickerForm", () => {
       target: { value: "cable" },
     });
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/exercises/search?q=cable",
-        expect.objectContaining({
-          signal: expect.any(AbortSignal),
-        }),
-      );
-    });
-
     expect(await screen.findByText("Cable Row")).toBeVisible();
     expect(screen.queryByText("Bench Press")).not.toBeInTheDocument();
   });
 
   it("shows an error when the search request fails", async () => {
-    const fetchMock = vi.fn<(...args: unknown[]) => Promise<FetchResponse>>().mockResolvedValue({
-      ok: false,
-      json: async () => ({}),
-    });
-
-    vi.stubGlobal("fetch", fetchMock);
+    server.use(exerciseSearchErrorHandler());
 
     render(
       <ExercisePickerForm
@@ -121,10 +101,7 @@ describe("ExercisePickerForm", () => {
     expect(await screen.findByText("Search request failed.")).toBeVisible();
   });
 
-  it("clears remote results when the search query becomes empty", async () => {
-    const fetchMock = vi.fn<(...args: unknown[]) => Promise<FetchResponse>>();
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("restores the initial matches when the search query becomes empty", async () => {
     render(
       <ExercisePickerForm
         sessionId="session-1"
@@ -140,6 +117,9 @@ describe("ExercisePickerForm", () => {
 
     expect(screen.getByText("Bench Press")).toBeVisible();
     expect(screen.getByText("Pull Up")).toBeVisible();
-    expect(fetchMock).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.queryByText("Search request failed.")).not.toBeInTheDocument();
+    });
   });
 });

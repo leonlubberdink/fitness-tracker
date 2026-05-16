@@ -1,6 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+import { exerciseSearchSuccessHandler } from "@/test/msw/handlers";
+import { server } from "@/test/msw/server";
 
 import { TemplateExercisePickerForm } from "./template-exercise-picker-form";
 
@@ -29,10 +32,6 @@ const initialExercises = [
 ];
 
 describe("TemplateExercisePickerForm", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("filters out excluded exercises from the available matches", () => {
     render(
       <TemplateExercisePickerForm
@@ -47,6 +46,39 @@ describe("TemplateExercisePickerForm", () => {
     expect(screen.getByText("Bench Press")).toBeVisible();
     expect(screen.getByText("Air Bike")).toBeVisible();
     expect(screen.queryByText("Pull Up")).not.toBeInTheDocument();
+  });
+
+  it("loads remote search matches through the shared MSW handlers", async () => {
+    server.use(
+      exerciseSearchSuccessHandler({
+        bike: [
+          {
+            id: "exercise-4",
+            name: "Bike Sprint",
+            categories: ["Conditioning"],
+            category: "Conditioning",
+            defaultUnit: "time",
+          },
+        ],
+      }),
+    );
+
+    render(
+      <TemplateExercisePickerForm
+        templateId="template-1"
+        availableCategories={["Push", "Pull", "Conditioning"]}
+        initialExercises={initialExercises}
+        excludedExerciseIds={[]}
+        addTemplateExerciseAction={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Exercise"), {
+      target: { value: "bike" },
+    });
+
+    expect(await screen.findByText("Bike Sprint")).toBeVisible();
+    expect(screen.queryByText("Bench Press")).not.toBeInTheDocument();
   });
 
   it("filters the visible matches by selected categories", async () => {
