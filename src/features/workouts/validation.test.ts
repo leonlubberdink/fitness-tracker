@@ -43,6 +43,33 @@ describe("workout validation", () => {
     });
   });
 
+  it("parses signed load values for weighted exercises", () => {
+    const kgResult = parseWorkoutSetFields("kg", {
+      reps: "5",
+      weight: "-12.5",
+    });
+    const bodyweightResult = parseWorkoutSetFields("bodyweight", {
+      reps: "5",
+      weight: "-20",
+    });
+
+    expect(kgResult.success).toBe(true);
+    expect(bodyweightResult.success).toBe(true);
+
+    if (!kgResult.success || !bodyweightResult.success) {
+      return;
+    }
+
+    expect(kgResult.data).toEqual({
+      reps: 5,
+      weight: -12.5,
+    });
+    expect(bodyweightResult.data).toEqual({
+      reps: 5,
+      weight: -20,
+    });
+  });
+
   it("rejects invalid reps and invalid time metrics", () => {
     const invalidReps = parseWorkoutSetFields("kg", {
       reps: "3.5",
