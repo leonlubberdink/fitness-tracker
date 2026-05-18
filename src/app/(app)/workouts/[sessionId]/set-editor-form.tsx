@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { InputHTMLAttributes } from "react";
 
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -10,6 +9,13 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
+import {
+  getWorkoutInputHtmlProps,
+  getWorkoutInputType,
+  selectWorkoutInputValueOnFocus,
+  type WorkoutNumericInputProps,
+} from "./numeric-input-behavior";
+
 type WorkoutSetEditorFormProps = {
   sessionId: string;
   setId: string;
@@ -17,10 +23,7 @@ type WorkoutSetEditorFormProps = {
   initialReps: number;
   initialMetricValue: number;
   metricLabel: string;
-  metricInputProps: Pick<
-    InputHTMLAttributes<HTMLInputElement>,
-    "inputMode" | "min" | "step"
-  >;
+  metricInputProps: WorkoutNumericInputProps;
   canDelete: boolean;
   emphasize?: boolean;
   updateSetAction: (formData: FormData) => Promise<void>;
@@ -55,6 +58,7 @@ export function WorkoutSetEditorForm({
   const [weight, setWeight] = useState(initialWeightValue);
   const [isSaving, startSavingTransition] = useTransition();
   const [isDeleting, startDeletingTransition] = useTransition();
+  const allowsSignedMetricValue = metricInputProps.inputMode === "decimal";
   const isDirty = areValuesChanged(
     initialRepsValue,
     initialWeightValue,
@@ -110,12 +114,17 @@ export function WorkoutSetEditorForm({
                   fullWidth
                   label="Reps"
                   name="reps"
-                  type="number"
+                  type={getWorkoutInputType()}
                   slotProps={{
-                    htmlInput: { min: 1, step: 1, inputMode: "numeric" },
+                    htmlInput: getWorkoutInputHtmlProps({
+                      min: 1,
+                      step: 1,
+                      inputMode: "numeric",
+                    }),
                   }}
                   value={reps}
                   onChange={(event) => setReps(event.target.value)}
+                  onFocus={selectWorkoutInputValueOnFocus}
                   required
                 />
               </Grid>
@@ -124,10 +133,15 @@ export function WorkoutSetEditorForm({
                   fullWidth
                   label={metricLabel}
                   name="weight"
-                  type="number"
-                  slotProps={{ htmlInput: metricInputProps }}
+                  type={getWorkoutInputType()}
+                  slotProps={{
+                    htmlInput: getWorkoutInputHtmlProps(metricInputProps, {
+                      allowSignedValue: allowsSignedMetricValue,
+                    }),
+                  }}
                   value={weight}
                   onChange={(event) => setWeight(event.target.value)}
+                  onFocus={selectWorkoutInputValueOnFocus}
                   required
                 />
               </Grid>
