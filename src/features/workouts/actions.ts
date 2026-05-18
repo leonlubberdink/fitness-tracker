@@ -52,9 +52,11 @@ function redirectToWorkoutSession(
   sessionId: string,
   {
     error,
+    scrollTo,
     success,
   }: {
     error?: string;
+    scrollTo?: string;
     success?: string;
   } = {},
 ): never {
@@ -66,6 +68,10 @@ function redirectToWorkoutSession(
 
   if (success) {
     searchParams.set("success", success);
+  }
+
+  if (scrollTo) {
+    searchParams.set("scrollTo", scrollTo);
   }
 
   const queryString = searchParams.toString();
@@ -464,7 +470,9 @@ export async function advanceWorkoutExerciseAction(formData: FormData) {
     .where(eq(workoutSessions.id, sessionId));
 
   revalidatePath(`/workouts/${sessionId}`);
-  redirectToWorkoutSession(sessionId);
+  redirectToWorkoutSession(sessionId, {
+    scrollTo: "current-exercise",
+  });
 }
 
 export async function reorderWorkoutEntriesAction(formData: FormData) {

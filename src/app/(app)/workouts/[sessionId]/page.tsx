@@ -44,6 +44,7 @@ import {
 import { ExercisePickerForm } from "./exercise-picker-form";
 import { WorkoutFirstSetForm } from "./first-set-form";
 import { PlannedExerciseOrderList } from "./planned-exercise-order-list";
+import { ActiveExerciseScroll } from "./active-exercise-scroll";
 import { WorkoutSetEditorForm } from "./set-editor-form";
 
 type WorkoutSessionData = Awaited<
@@ -58,6 +59,7 @@ type WorkoutPageProps = {
   }>;
   searchParams?: Promise<{
     error?: string;
+    scrollTo?: string;
     success?: string;
   }>;
 };
@@ -263,6 +265,8 @@ export default async function WorkoutPage({
   const currentFirstSetDefaults = currentEntry
     ? getFirstSetDefaults(currentEntry)
     : null;
+  const shouldScrollToCurrentExercise =
+    resolvedSearchParams?.scrollTo === "current-exercise";
 
   return (
     <Stack spacing={3}>
@@ -403,113 +407,122 @@ export default async function WorkoutPage({
       </Paper>
 
       {currentEntry ? (
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: "10px",
-            px: 2.25,
-            py: 2.5,
-            bgcolor: "rgba(139,194,172,0.04)",
-            borderColor: "rgba(139,194,172,0.14)",
-          }}
-        >
-          <Stack spacing={2}>
-            <Stack spacing={1.25}>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="flex-start"
-                spacing={1}
-              >
-                <EntryHeader entry={currentEntry} current />
+        <>
+          <ActiveExerciseScroll
+            enabled={shouldScrollToCurrentExercise}
+            targetId="current-exercise"
+          />
 
-                <form action={removeExerciseEntryAction}>
-                  <input type="hidden" name="sessionId" value={session.id} />
-                  <input type="hidden" name="entryId" value={currentEntry.id} />
-                  <FormStatusButton
-                    type="submit"
-                    variant="text"
-                    color="inherit"
-                    startIcon={<DeleteOutlineRounded />}
-                    loadingLabel="Removing..."
-                    sx={{ color: "text.secondary", minWidth: 0, px: 1 }}
-                  >
-                    Remove
-                  </FormStatusButton>
-                </form>
+          <Paper
+            id="current-exercise"
+            elevation={0}
+            sx={{
+              borderRadius: "10px",
+              px: 2.25,
+              py: 2.5,
+              bgcolor: "rgba(139,194,172,0.04)",
+              borderColor: "rgba(139,194,172,0.14)",
+              scrollMarginTop: { xs: "108px", md: "136px" },
+            }}
+          >
+            <Stack spacing={2}>
+              <Stack spacing={1.25}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="flex-start"
+                  spacing={1}
+                >
+                  <EntryHeader entry={currentEntry} current />
+
+                  <form action={removeExerciseEntryAction}>
+                    <input type="hidden" name="sessionId" value={session.id} />
+                    <input type="hidden" name="entryId" value={currentEntry.id} />
+                    <FormStatusButton
+                      type="submit"
+                      variant="text"
+                      color="inherit"
+                      startIcon={<DeleteOutlineRounded />}
+                      loadingLabel="Removing..."
+                      sx={{ color: "text.secondary", minWidth: 0, px: 1 }}
+                    >
+                      Remove
+                    </FormStatusButton>
+                  </form>
+                </Stack>
+
+                <Paper
+                  elevation={0}
+                  sx={{
+                    borderRadius: "8px",
+                    px: 1.75,
+                    py: 1.5,
+                    bgcolor: "rgba(255,255,255,0.02)",
+                  }}
+                >
+                  <Stack spacing={0.5}>
+                    <Typography variant="overline" color="text.secondary">
+                      Last completed set
+                    </Typography>
+                    <Typography variant="body2">
+                      {formatPreviousSet(currentEntry.previousSet)}
+                    </Typography>
+                  </Stack>
+                </Paper>
               </Stack>
 
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: "8px",
-                  px: 1.75,
-                  py: 1.5,
-                  bgcolor: "rgba(255,255,255,0.02)",
-                }}
-              >
-                <Stack spacing={0.5}>
-                  <Typography variant="overline" color="text.secondary">
-                    Last completed set
-                  </Typography>
-                  <Typography variant="body2">
-                    {formatPreviousSet(currentEntry.previousSet)}
-                  </Typography>
-                </Stack>
-              </Paper>
-            </Stack>
-
-            {currentEntry.sets.length === 0 && currentFirstSetDefaults ? (
-              <WorkoutFirstSetForm
-                sessionId={session.id}
-                entryId={currentEntry.id}
-                initialReps={currentFirstSetDefaults.reps}
-                initialMetricValue={currentFirstSetDefaults.weight}
-                metricLabel={getExerciseMetricLabel(currentEntry.unitSnapshot)}
-                metricInputProps={getMetricInputProps(currentEntry.unitSnapshot)}
-                createSetAction={createSetAction}
-              />
-            ) : (
-              <>
-                <LoggedSets
+              {currentEntry.sets.length === 0 && currentFirstSetDefaults ? (
+                <WorkoutFirstSetForm
                   sessionId={session.id}
-                  entry={currentEntry}
-                  currentSetId={currentSetId}
+                  entryId={currentEntry.id}
+                  initialReps={currentFirstSetDefaults.reps}
+                  initialMetricValue={currentFirstSetDefaults.weight}
+                  metricLabel={getExerciseMetricLabel(currentEntry.unitSnapshot)}
+                  metricInputProps={getMetricInputProps(currentEntry.unitSnapshot)}
+                  createSetAction={createSetAction}
                 />
+              ) : (
+                <>
+                  <LoggedSets
+                    sessionId={session.id}
+                    entry={currentEntry}
+                    currentSetId={currentSetId}
+                  />
 
-                <form action={addSetAction}>
+                  <form action={addSetAction}>
+                    <input type="hidden" name="sessionId" value={session.id} />
+                    <input type="hidden" name="entryId" value={currentEntry.id} />
+                    <FormStatusButton
+                      type="submit"
+                      variant="outlined"
+                      startIcon={<AddBoxRounded />}
+                      loadingLabel="Logging next set..."
+                      fullWidth
+                    >
+                      Log next set
+                    </FormStatusButton>
+                  </form>
+                </>
+              )}
+
+              {nextEntry ? (
+                <form action={advanceWorkoutExerciseAction}>
                   <input type="hidden" name="sessionId" value={session.id} />
-                  <input type="hidden" name="entryId" value={currentEntry.id} />
                   <FormStatusButton
                     type="submit"
-                    variant="outlined"
-                    startIcon={<AddBoxRounded />}
-                    loadingLabel="Logging next set..."
+                    variant="contained"
+                    color="secondary"
+                    startIcon={<SkipNextRounded />}
+                    loadingLabel="Moving..."
                     fullWidth
                   >
-                    Log next set
+                    Next exercise
                   </FormStatusButton>
                 </form>
-              </>
-            )}
-
-            {nextEntry ? (
-              <form action={advanceWorkoutExerciseAction}>
-                <input type="hidden" name="sessionId" value={session.id} />
-                <FormStatusButton
-                  type="submit"
-                  variant="contained"
-                  color="secondary"
-                  startIcon={<SkipNextRounded />}
-                  loadingLabel="Moving..."
-                  fullWidth
-                >
-                  Next exercise
-                </FormStatusButton>
-              </form>
-            ) : null}
-          </Stack>
-        </Paper>
+              ) : null}
+            </Stack>
+          </Paper>
+        </>
       ) : null}
 
       {upcomingEntries.length > 0 ? (
