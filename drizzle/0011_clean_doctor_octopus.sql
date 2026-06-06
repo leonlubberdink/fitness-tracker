@@ -1,0 +1,2 @@
+CREATE TYPE "public"."workout_load_recommendation" AS ENUM('increase', 'keep', 'decrease');--> statement-breakpoint
+ALTER TABLE "workout_exercise_entries" ADD COLUMN "next_load_recommendation" "workout_load_recommendation";

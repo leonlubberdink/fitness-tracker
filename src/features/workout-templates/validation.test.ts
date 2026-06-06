@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   addTemplateExerciseSchema,
   moveTemplateExerciseSchema,
-  renameTemplateSchema,
   reorderTemplateExercisesSchema,
   saveWorkoutAsTemplateSchema,
+  updateTemplateDetailsSchema,
 } from "@/features/workout-templates/validation";
 
 const templateId = "11111111-1111-4111-8111-111111111111";
@@ -15,9 +15,10 @@ const exerciseId = "44444444-4444-4444-8444-444444444444";
 
 describe("workout template validation", () => {
   it("parses valid template mutations", () => {
-    const renameResult = renameTemplateSchema.safeParse({
+    const updateDetailsResult = updateTemplateDetailsSchema.safeParse({
       templateId,
       name: " Pull day ",
+      description: " Focus on heavy rows. ",
     });
     const addExerciseResult = addTemplateExerciseSchema.safeParse({
       templateId,
@@ -32,12 +33,12 @@ describe("workout template validation", () => {
       sessionId,
     });
 
-    expect(renameResult.success).toBe(true);
+    expect(updateDetailsResult.success).toBe(true);
     expect(addExerciseResult.success).toBe(true);
     expect(reorderResult.success).toBe(true);
     expect(saveResult.success).toBe(true);
     if (
-      !renameResult.success ||
+      !updateDetailsResult.success ||
       !addExerciseResult.success ||
       !reorderResult.success ||
       !saveResult.success
@@ -45,7 +46,8 @@ describe("workout template validation", () => {
       return;
     }
 
-    expect(renameResult.data.name).toBe("Pull day");
+    expect(updateDetailsResult.data.name).toBe("Pull day");
+    expect(updateDetailsResult.data.description).toBe("Focus on heavy rows.");
     expect(saveResult.data.name).toBe("Upper split");
   });
 
@@ -59,14 +61,15 @@ describe("workout template validation", () => {
       templateId,
       templateExerciseIds: [templateExerciseId, templateExerciseId],
     });
-    const renameResult = renameTemplateSchema.safeParse({
+    const updateDetailsResult = updateTemplateDetailsSchema.safeParse({
       templateId: "invalid",
       name: "",
+      description: "",
     });
 
     expect(moveResult.success).toBe(false);
     expect(reorderResult.success).toBe(false);
-    expect(renameResult.success).toBe(false);
+    expect(updateDetailsResult.success).toBe(false);
 
     if (!moveResult.success) {
       expect(moveResult.error.flatten().fieldErrors.direction).toContain(
@@ -80,8 +83,8 @@ describe("workout template validation", () => {
       );
     }
 
-    if (!renameResult.success) {
-      const issues = renameResult.error.flatten().fieldErrors;
+    if (!updateDetailsResult.success) {
+      const issues = updateDetailsResult.error.flatten().fieldErrors;
       expect(issues.templateId).toContain("Invalid workout template.");
       expect(issues.name).toContain("Template name is required.");
     }

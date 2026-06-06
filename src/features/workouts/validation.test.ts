@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  parseLoadRecommendation,
   parseWorkoutSetFields,
   reorderWorkoutEntriesSchema,
 } from "@/features/workouts/validation";
@@ -136,5 +137,36 @@ describe("workout validation", () => {
     expect(result.error.flatten().fieldErrors.entryIds).toContain(
       "Provide a valid exercise order.",
     );
+  });
+
+  it("parses valid next-time load recommendations", () => {
+    const result = parseLoadRecommendation("increase");
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    expect(result.data).toBe("increase");
+  });
+
+  it("rejects missing or invalid next-time load recommendations", () => {
+    const missingResult = parseLoadRecommendation("");
+    const invalidResult = parseLoadRecommendation("more");
+
+    expect(missingResult.success).toBe(false);
+    expect(invalidResult.success).toBe(false);
+
+    if (!missingResult.success) {
+      expect(missingResult.error.issues[0]?.message).toBe(
+        "Choose what to do with this exercise next time.",
+      );
+    }
+
+    if (!invalidResult.success) {
+      expect(invalidResult.error.issues[0]?.message).toBe(
+        "Choose a valid next-time load recommendation.",
+      );
+    }
   });
 });

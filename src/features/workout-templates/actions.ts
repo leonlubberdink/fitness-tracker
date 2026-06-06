@@ -37,10 +37,10 @@ import {
   createTemplateSchema,
   moveTemplateExerciseSchema,
   reorderTemplateExercisesSchema,
-  renameTemplateSchema,
   saveWorkoutAsTemplateSchema,
   startTemplateSchema,
   templateExerciseMutationSchema,
+  updateTemplateDetailsSchema,
   templateIdSchema,
 } from "./validation";
 
@@ -177,6 +177,7 @@ async function requireTemplateForUser(userId: string, templateId: string) {
     .select({
       id: workoutTemplates.id,
       name: workoutTemplates.name,
+      description: workoutTemplates.description,
     })
     .from(workoutTemplates)
     .where(
@@ -240,10 +241,12 @@ function validateTemplateExerciseSources(
 async function createTemplateFromExerciseSources({
   userId,
   name,
+  description,
   exerciseSources,
 }: {
   userId: string;
   name: string;
+  description?: string | null;
   exerciseSources: WorkoutTemplateExerciseSource[];
 }) {
   const sourceError = validateTemplateExerciseSources(exerciseSources);
@@ -274,6 +277,7 @@ async function createTemplateFromExerciseSources({
       id: templateId,
       userId,
       name,
+      description: description?.trim() ? description.trim() : null,
     });
 
     await tx.insert(workoutTemplateExercises).values(
@@ -328,18 +332,19 @@ export async function createWorkoutTemplateAction(formData: FormData) {
   });
 }
 
-export async function renameWorkoutTemplateAction(formData: FormData) {
+export async function updateWorkoutTemplateDetailsAction(formData: FormData) {
   const user = await requireUser();
-  const parsedInput = renameTemplateSchema.safeParse({
+  const parsedInput = updateTemplateDetailsSchema.safeParse({
     templateId: getStringValue(formData, "templateId"),
     name: getStringValue(formData, "name"),
+    description: getStringValue(formData, "description"),
   });
 
   if (!parsedInput.success) {
     redirectToWorkoutHub({ error: getValidationMessage(parsedInput.error) });
   }
 
-  const { templateId, name } = parsedInput.data;
+  const { description, templateId, name } = parsedInput.data;
   const template = await requireTemplateForUser(user.id, templateId);
 
   if (!template) {
@@ -357,6 +362,7 @@ export async function renameWorkoutTemplateAction(formData: FormData) {
   await db
     .update(workoutTemplates)
     .set({
+      description: description.trim() ? description : null,
       name,
       updatedAt: new Date(),
     })
@@ -364,7 +370,7 @@ export async function renameWorkoutTemplateAction(formData: FormData) {
 
   revalidatePath("/workouts");
   revalidatePath(`/workouts/templates/${templateId}`);
-  redirectToTemplateEditor(templateId, { success: "Template renamed." });
+  redirectToTemplateEditor(templateId, { success: "Template details saved." });
 }
 
 export async function deleteWorkoutTemplateAction(formData: FormData) {
@@ -788,6 +794,7 @@ export async function startWorkoutFromTemplateAction(formData: FormData) {
       userId: user.id,
       performedOn: getTodayDateString(),
       activeEntrySortOrder: templateExercises[0].sortOrder,
+      workoutTemplateId: templateId,
     });
 
     await tx.insert(workoutExerciseEntries).values(
@@ -891,6 +898,7 @@ export async function saveActiveWorkoutAsTemplateAction(formData: FormData) {
   const result = await createTemplateFromExerciseSources({
     userId: user.id,
     name,
+    description: null,
     exerciseSources,
   });
 
@@ -962,6 +970,7 @@ export async function saveCompletedWorkoutAsTemplateAction(formData: FormData) {
   const result = await createTemplateFromExerciseSources({
     userId: user.id,
     name,
+    description: null,
     exerciseSources,
   });
 

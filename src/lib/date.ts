@@ -99,11 +99,19 @@ export function getDateKeyDifferenceInDays(left: string, right: string) {
 
 export function formatDateForDisplay(
   dateKey: string,
-  _timeZone: string,
+  timeZone: string = DEFAULT_TIME_ZONE,
+  options: Intl.DateTimeFormatOptions,
+) {
+  return formatInstantForDisplay(parseDateKey(dateKey), timeZone, options);
+}
+
+export function formatInstantForDisplay(
+  value: Date,
+  timeZone: string = DEFAULT_TIME_ZONE,
   options: Intl.DateTimeFormatOptions,
 ) {
   return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "UTC",
+    timeZone,
     ...options,
-  }).format(parseDateKey(dateKey));
+  }).format(value);
 }

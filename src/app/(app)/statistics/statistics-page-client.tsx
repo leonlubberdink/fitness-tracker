@@ -1,38 +1,26 @@
 "use client";
 
 import Autocomplete from "@mui/material/Autocomplete";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { alpha, useTheme } from "@mui/material/styles";
-import { LineChart } from "@mui/x-charts";
+import { BarChart, LineChart } from "@mui/x-charts";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
 import type {
   StatisticsExerciseOption,
   StatisticsExerciseProgression,
-  StatisticsRangeKey,
   StatisticsWeeklyTrendPoint,
 } from "@/features/statistics/queries";
 import { formatExerciseUnitShort } from "@/lib/exercise-units";
 
-const RANGE_OPTIONS: Array<{
-  key: StatisticsRangeKey;
-  label: string;
-}> = [
-  { key: "30d", label: "30 days" },
-  { key: "12w", label: "12 weeks" },
-  { key: "all", label: "All time" },
-];
-
 type StatisticsPageClientProps = {
   exerciseOptions: StatisticsExerciseOption[];
   selectedExercise: StatisticsExerciseProgression | null;
-  selectedRange: StatisticsRangeKey;
   weeklyTrend: StatisticsWeeklyTrendPoint[];
 };
 
@@ -40,6 +28,20 @@ function formatDecimalValue(value: number) {
   return new Intl.NumberFormat("en-GB", {
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function formatIntegerValue(value: number) {
+  return new Intl.NumberFormat("en-GB", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatThousandsValue(value: number) {
+  if (Math.abs(value) >= 1000) {
+    return `${formatIntegerValue(value / 1000)}k`;
+  }
+
+  return formatIntegerValue(value);
 }
 
 function formatFullDate(value: string) {
@@ -90,7 +92,6 @@ function ChartCard({
 export function StatisticsPageClient({
   exerciseOptions,
   selectedExercise,
-  selectedRange,
   weeklyTrend,
 }: StatisticsPageClientProps) {
   const router = useRouter();
@@ -124,71 +125,44 @@ export function StatisticsPageClient({
 
   return (
     <Stack spacing={3}>
-      <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
-        <Stack spacing={2.25}>
-          <Stack spacing={0.75}>
-            <Typography variant="h3">Filters</Typography>
-            <Typography color="text.secondary">
-              Narrow the dashboard by time range before reviewing exercise
-              progression below.
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {RANGE_OPTIONS.map((option) => (
-              <Button
-                key={option.key}
-                variant={
-                  selectedRange === option.key ? "contained" : "outlined"
-                }
-                color={selectedRange === option.key ? "primary" : "inherit"}
-                disabled={isPending}
-                onClick={() =>
-                  updateSearchParams((params) => {
-                    params.set("range", option.key);
-                  })
-                }
-              >
-                {option.label}
-              </Button>
-            ))}
-          </Stack>
-        </Stack>
-      </Paper>
-
       {weeklyTrend.length > 0 ? (
         <ChartCard
           title="Overall volume over time"
-          description="Each point shows total kg volume across all exercises in that week. This is not cumulative."
+          description="Each column shows total kg volume across all exercises in that week."
         >
-          <LineChart
-            axisHighlight={{ x: "line" }}
+          <BarChart
             grid={{ horizontal: true }}
             height={260}
             hideLegend
-            margin={{ bottom: 28, left: 52, right: 12, top: 12 }}
+            margin={{ bottom: 10, left: 0, right: 10, top: 10 }}
             series={[
               {
                 color: theme.palette.success.main,
-                curve: "linear",
                 data: weeklyTrend.map((point) => point.volumeKg),
                 label: "Overall volume",
-                showMark: weeklyTrend.length <= 18,
                 valueFormatter: (value: number | null) =>
-                  `${formatDecimalValue(value ?? 0)} kg`,
+                  `${formatIntegerValue(value ?? 0)} kg`,
               },
             ]}
+            slotProps={{
+              barLabel: {
+                style: {
+                  fontSize: 10,
+                },
+              },
+            }}
             sx={{ width: "100%" }}
             xAxis={[
               {
                 data: weeklyTrend.map((point) => point.shortLabel),
-                scaleType: "point",
+                scaleType: "band",
               },
             ]}
             yAxis={[
               {
                 min: 0,
-                valueFormatter: (value: number) => formatDecimalValue(value),
+                valueFormatter: (value: number) => formatThousandsValue(value),
+                width: 36,
               },
             ]}
           />
@@ -199,10 +173,7 @@ export function StatisticsPageClient({
         <Stack spacing={2.25}>
           <Stack spacing={0.75}>
             <Typography variant="h3">Exercise progression</Typography>
-            <Typography color="text.secondary">
-              Choose one exercise above to compare completed sessions visually,
-              then use History when you want full set-by-set review.
-            </Typography>
+            <Typography color="text.secondary">Choose an exercise.</Typography>
           </Stack>
 
           <Autocomplete
@@ -227,7 +198,7 @@ export function StatisticsPageClient({
                 label="Exercise selection"
                 placeholder={
                   exerciseOptions.length === 0
-                    ? "No exercises in this range"
+                    ? "No exercises in the last 12 weeks"
                     : "Search exercise"
                 }
               />
@@ -282,7 +253,7 @@ export function StatisticsPageClient({
                   grid={{ horizontal: true }}
                   height={280}
                   hideLegend
-                  margin={{ bottom: 28, left: 42, right: 12, top: 12 }}
+                  margin={{ bottom: 10, left: 0, right: 10, top: 10 }}
                   series={[
                     {
                       color: theme.palette.secondary.main,
@@ -399,10 +370,6 @@ export function StatisticsPageClient({
               <Stack spacing={0.75}>
                 <Typography variant="h3" sx={{ fontSize: "1rem" }}>
                   No exercise selected yet.
-                </Typography>
-                <Typography color="text.secondary">
-                  Search for one exercise above to load a progression chart and
-                  per-session detail list.
                 </Typography>
               </Stack>
             </Paper>

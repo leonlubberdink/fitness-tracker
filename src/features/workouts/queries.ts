@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { db } from "@/db/client";
 import {
+  workoutTemplates,
   workoutExerciseEntries,
   workoutSessions,
   workoutSets,
@@ -10,6 +11,7 @@ import {
 import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import { searchExercisesForUser } from "@/features/exercises/queries";
 import type { ExerciseUnit } from "@/lib/exercise-units";
+import type { LoadRecommendation } from "./load-recommendations";
 
 type WorkoutEntryRow = {
   id: string;
@@ -18,6 +20,7 @@ type WorkoutEntryRow = {
   exerciseNameSnapshot: string;
   exerciseCategorySnapshot: string;
   unitSnapshot: ExerciseUnit;
+  nextLoadRecommendation: LoadRecommendation | null;
   sortOrder: number;
   createdAt: Date;
 };
@@ -37,6 +40,7 @@ type PreviousExerciseSet = {
   setNumber: number;
   weight: number;
   unit: ExerciseUnit;
+  nextLoadRecommendation: LoadRecommendation | null;
 };
 
 function groupEntriesWithSets(
@@ -90,8 +94,13 @@ export async function getWorkoutSessionForLogging(
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
+      workoutTemplateDescription: workoutTemplates.description,
     })
     .from(workoutSessions)
+    .leftJoin(
+      workoutTemplates,
+      eq(workoutSessions.workoutTemplateId, workoutTemplates.id),
+    )
     .where(
       and(
         eq(workoutSessions.id, sessionId),
@@ -115,6 +124,7 @@ export async function getWorkoutSessionForLogging(
         exerciseCategorySnapshot:
           workoutExerciseEntries.exerciseCategorySnapshot,
         unitSnapshot: workoutExerciseEntries.unitSnapshot,
+        nextLoadRecommendation: workoutExerciseEntries.nextLoadRecommendation,
         sortOrder: workoutExerciseEntries.sortOrder,
         createdAt: workoutExerciseEntries.createdAt,
       })
@@ -155,6 +165,7 @@ export async function getWorkoutSessionForLogging(
         exerciseId: workoutExerciseEntries.exerciseId,
         performedOn: workoutSessions.performedOn,
         unit: workoutExerciseEntries.unitSnapshot,
+        nextLoadRecommendation: workoutExerciseEntries.nextLoadRecommendation,
         reps: workoutSets.reps,
         setNumber: workoutSets.setNumber,
         weight: workoutSets.weight,
@@ -270,6 +281,7 @@ export async function getCompletedWorkoutHistoryForUser(
         exerciseCategorySnapshot:
           workoutExerciseEntries.exerciseCategorySnapshot,
         unitSnapshot: workoutExerciseEntries.unitSnapshot,
+        nextLoadRecommendation: workoutExerciseEntries.nextLoadRecommendation,
         sortOrder: workoutExerciseEntries.sortOrder,
         createdAt: workoutExerciseEntries.createdAt,
       })

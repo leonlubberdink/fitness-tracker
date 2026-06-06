@@ -25,6 +25,7 @@ type WorkoutSetEditorFormProps = {
   metricLabel: string;
   metricInputProps: WorkoutNumericInputProps;
   canDelete: boolean;
+  autoFocus?: boolean;
   emphasize?: boolean;
   updateSetAction: (formData: FormData) => Promise<void>;
   removeSetAction: (formData: FormData) => Promise<void>;
@@ -48,6 +49,7 @@ export function WorkoutSetEditorForm({
   metricLabel,
   metricInputProps,
   canDelete,
+  autoFocus = false,
   emphasize = false,
   updateSetAction,
   removeSetAction,
@@ -111,6 +113,7 @@ export function WorkoutSetEditorForm({
             <Grid container spacing={1.25} sx={{ flex: 1, minWidth: 0 }}>
               <Grid size={6}>
                 <TextField
+                  autoFocus={autoFocus}
                   fullWidth
                   label="Reps"
                   name="reps"

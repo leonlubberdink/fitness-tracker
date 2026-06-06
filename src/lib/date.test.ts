@@ -6,6 +6,7 @@ import {
   coerceTimeZone,
   compareDateKeys,
   formatDateForDisplay,
+  formatInstantForDisplay,
   getDateKeyDifferenceInDays,
   getDateKeyInTimeZone,
   getScheduledDateKey,
@@ -48,5 +49,13 @@ describe("date utilities", () => {
         month: "long",
       }),
     ).toBe("Monday 6 January");
+  });
+
+  it("formats instants in the requested time zone", () => {
+    expect(
+      formatInstantForDisplay(new Date("2025-06-06T08:30:00.000Z"), "Europe/Berlin", {
+        timeStyle: "short",
+      }),
+    ).toBe("10:30");
   });
 });

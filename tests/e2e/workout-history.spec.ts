@@ -47,6 +47,12 @@ test.describe("workout and history flow", () => {
     await page.getByRole("button", { name: "Log next set" }).click();
     await expect(page.getByText("Set 2")).toBeVisible();
 
+    const nextTimeRecommendation = page.getByRole("group", {
+      name: "Next-time recommendation",
+    });
+
+    await nextTimeRecommendation.getByRole("button", { name: "Keep" }).click();
+    await expect(page.getByRole("button", { name: "Next exercise" })).toBeEnabled();
     await page.getByRole("button", { name: "Next exercise" }).click();
     await expect(page.getByRole("button", { name: "Next exercise" })).toHaveCount(0);
     await expect(page.getByText(secondExercise, { exact: true }).first()).toBeVisible();
@@ -59,6 +65,8 @@ test.describe("workout and history flow", () => {
       .getByRole("button", { name: "Log first set" })
       .click();
 
+    await nextTimeRecommendation.getByRole("button", { name: "Keep" }).click();
+    await expect(page.getByRole("button", { name: "Finish workout" })).toBeEnabled();
     await page.getByRole("button", { name: "Finish workout" }).click();
     await expect(page).toHaveURL("/history");
     await expect(

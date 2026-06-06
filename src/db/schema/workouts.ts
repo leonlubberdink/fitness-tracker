@@ -5,6 +5,7 @@ import {
   index,
   integer,
   numeric,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -12,9 +13,17 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { LOAD_RECOMMENDATIONS } from "@/features/workouts/load-recommendations";
+
 import { exerciseUnitEnum, exercises } from "./exercises";
 import { plans, planWorkouts } from "./plans";
+import { workoutTemplates } from "./workout-templates";
 import { users } from "./users";
+
+export const workoutLoadRecommendationEnum = pgEnum(
+  "workout_load_recommendation",
+  LOAD_RECOMMENDATIONS,
+);
 
 export const workoutSessions = pgTable(
   "workout_sessions",
@@ -29,6 +38,12 @@ export const workoutSessions = pgTable(
     planWorkoutId: uuid("plan_workout_id").references(() => planWorkouts.id, {
       onDelete: "set null",
     }),
+    workoutTemplateId: uuid("workout_template_id").references(
+      () => workoutTemplates.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     performedOn: date("performed_on", { mode: "string" }).notNull(),
     startedAt: timestamp("started_at", {
       withTimezone: true,
@@ -61,6 +76,7 @@ export const workoutSessions = pgTable(
       table.startedAt.desc(),
     ),
     index("workout_sessions_plan_idx").on(table.planId, table.planWorkoutId),
+    index("workout_sessions_template_idx").on(table.workoutTemplateId),
     uniqueIndex("workout_sessions_user_open_unique_idx")
       .on(table.userId)
       .where(sql`${table.completedAt} is null`),
@@ -83,6 +99,9 @@ export const workoutExerciseEntries = pgTable(
     exerciseNameSnapshot: text("exercise_name_snapshot").notNull(),
     exerciseCategorySnapshot: text("exercise_category_snapshot").notNull(),
     unitSnapshot: exerciseUnitEnum("unit_snapshot").notNull(),
+    nextLoadRecommendation: workoutLoadRecommendationEnum(
+      "next_load_recommendation",
+    ),
     sortOrder: integer("sort_order").notNull(),
     createdAt: timestamp("created_at", {
       withTimezone: true,

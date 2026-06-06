@@ -23,6 +23,7 @@ import { logInfo } from "@/lib/logger";
 import { getOpenWorkoutSessionForUser } from "./queries";
 import {
   addExerciseEntrySchema,
+  parseLoadRecommendation,
   parseWorkoutSetFields,
   reorderWorkoutEntriesSchema,
   startWorkoutSessionSchema,
@@ -52,10 +53,12 @@ function redirectToWorkoutSession(
   sessionId: string,
   {
     error,
+    focusSet,
     scrollTo,
     success,
   }: {
     error?: string;
+    focusSet?: string;
     scrollTo?: string;
     success?: string;
   } = {},
@@ -72,6 +75,10 @@ function redirectToWorkoutSession(
 
   if (scrollTo) {
     searchParams.set("scrollTo", scrollTo);
+  }
+
+  if (focusSet) {
+    searchParams.set("focusSet", focusSet);
   }
 
   const queryString = searchParams.toString();
@@ -102,6 +109,63 @@ async function requireOpenSession(userId: string, sessionId: string) {
     .limit(1);
 
   return session ?? null;
+}
+
+async function getActiveEntryForSession(sessionId: string) {
+  const entries = await db
+    .select({
+      id: workoutExerciseEntries.id,
+      sortOrder: workoutExerciseEntries.sortOrder,
+    })
+    .from(workoutExerciseEntries)
+    .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
+    .orderBy(asc(workoutExerciseEntries.sortOrder));
+
+  if (entries.length === 0) {
+    return {
+      currentEntry: null,
+      entries,
+    };
+  }
+
+  const [session] = await db
+    .select({
+      activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
+    })
+    .from(workoutSessions)
+    .where(eq(workoutSessions.id, sessionId))
+    .limit(1);
+
+  const fallbackSortOrder = entries.at(-1)?.sortOrder ?? entries[0].sortOrder;
+  const currentEntry =
+    entries.find((entry) => entry.sortOrder === session?.activeEntrySortOrder) ??
+    entries.find((entry) => entry.sortOrder === fallbackSortOrder) ??
+    null;
+
+  return {
+    currentEntry,
+    entries,
+  };
+}
+
+async function saveNextLoadRecommendationForEntry(
+  entryId: string,
+  recommendation: string,
+) {
+  const parsedRecommendation = parseLoadRecommendation(recommendation);
+
+  if (!parsedRecommendation.success) {
+    return parsedRecommendation;
+  }
+
+  await db
+    .update(workoutExerciseEntries)
+    .set({
+      nextLoadRecommendation: parsedRecommendation.data,
+    })
+    .where(eq(workoutExerciseEntries.id, entryId));
+
+  return parsedRecommendation;
 }
 
 async function requireCompletedSession(userId: string, sessionId: string) {
@@ -327,9 +391,11 @@ export async function createSetAction(formData: FormData) {
     .orderBy(desc(workoutSets.setNumber))
     .limit(1);
 
+  const setId = randomUUID();
+
   await db.transaction(async (tx) => {
     await tx.insert(workoutSets).values({
-      id: randomUUID(),
+      id: setId,
       workoutExerciseEntryId: entryId,
       setNumber: (lastSet?.setNumber ?? 0) + 1,
       reps,
@@ -346,7 +412,10 @@ export async function createSetAction(formData: FormData) {
   });
 
   revalidatePath(`/workouts/${entry.sessionId}`);
-  redirectToWorkoutSession(entry.sessionId);
+  redirectToWorkoutSession(entry.sessionId, {
+    scrollTo: "current-exercise",
+    focusSet: setId,
+  });
 }
 
 export async function addSetAction(formData: FormData) {
@@ -425,13 +494,7 @@ export async function advanceWorkoutExerciseAction(formData: FormData) {
     });
   }
 
-  const entries = await db
-    .select({
-      sortOrder: workoutExerciseEntries.sortOrder,
-    })
-    .from(workoutExerciseEntries)
-    .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
-    .orderBy(asc(workoutExerciseEntries.sortOrder));
+  const { currentEntry, entries } = await getActiveEntryForSession(sessionId);
 
   if (entries.length === 0) {
     redirectToWorkoutSession(sessionId, {
@@ -439,10 +502,35 @@ export async function advanceWorkoutExerciseAction(formData: FormData) {
     });
   }
 
-  const fallbackSortOrder = entries.at(-1)?.sortOrder ?? entries[0].sortOrder;
   const activeSortOrder =
-    entries.find((entry) => entry.sortOrder === session.activeEntrySortOrder)
-      ?.sortOrder ?? fallbackSortOrder;
+    currentEntry?.sortOrder ??
+    entries.at(-1)?.sortOrder ??
+    entries[0].sortOrder;
+
+  if (currentEntry) {
+    const [currentSet] = await db
+      .select({
+        id: workoutSets.id,
+      })
+      .from(workoutSets)
+      .where(eq(workoutSets.workoutExerciseEntryId, currentEntry.id))
+      .limit(1);
+
+    if (currentSet) {
+      const recommendationResult = await saveNextLoadRecommendationForEntry(
+        currentEntry.id,
+        getStringValue(formData, "nextLoadRecommendation"),
+      );
+
+      if (!recommendationResult.success) {
+        redirectToWorkoutSession(sessionId, {
+          error: getValidationMessage(recommendationResult.error),
+          scrollTo: "current-exercise",
+        });
+      }
+    }
+  }
+
   const [nextEntry] = await db
     .select({
       sortOrder: workoutExerciseEntries.sortOrder,
@@ -647,6 +735,7 @@ export async function completeWorkoutSessionAction(formData: FormData) {
     });
   }
 
+  const { currentEntry } = await getActiveEntryForSession(sessionId);
   const [entryRows, setRows] = await Promise.all([
     db
       .select({
@@ -681,6 +770,20 @@ export async function completeWorkoutSessionAction(formData: FormData) {
   const remainingEntries = entryRows.filter((entry) =>
     entryIdsWithSets.has(entry.id),
   );
+
+  if (currentEntry && entryIdsWithSets.has(currentEntry.id)) {
+    const recommendationResult = await saveNextLoadRecommendationForEntry(
+      currentEntry.id,
+      getStringValue(formData, "nextLoadRecommendation"),
+    );
+
+    if (!recommendationResult.success) {
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(recommendationResult.error),
+        scrollTo: "current-exercise",
+      });
+    }
+  }
 
   await db.transaction(async (tx) => {
     for (const entry of untouchedEntries) {

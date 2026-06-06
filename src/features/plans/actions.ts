@@ -1089,6 +1089,7 @@ export async function startPlannedWorkoutAction(formData: FormData) {
       planId: plan.id,
       planWorkoutId: planWorkout.id,
       userId: user.id,
+      workoutTemplateId: planWorkout.workoutTemplateId,
     });
 
     await tx.insert(workoutExerciseEntries).values(

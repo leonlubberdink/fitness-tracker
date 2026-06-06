@@ -22,6 +22,7 @@ import { PLAN_STATUS_LABELS } from "@/features/plans/utils";
 import { requireUser } from "@/features/auth/session";
 import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
+import { formatInstantForDisplay } from "@/lib/date";
 
 type PlansPageProps = {
   searchParams?: Promise<{
@@ -46,10 +47,10 @@ function getPlanStatusColor(status: keyof typeof PLAN_STATUS_LABELS) {
   return "primary" as const;
 }
 
-function formatUpdatedAt(updatedAt: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
+function formatUpdatedAt(updatedAt: Date, timeZone: string) {
+  return formatInstantForDisplay(updatedAt, timeZone, {
     dateStyle: "medium",
-  }).format(updatedAt);
+  });
 }
 
 export default async function PlansPage({ searchParams }: PlansPageProps) {
@@ -336,7 +337,7 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
                           </Stack>
                           <Typography color="text.secondary">{plan.goal}</Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Updated {formatUpdatedAt(plan.updatedAt)}
+                            Updated {formatUpdatedAt(plan.updatedAt, user.timeZone)}
                           </Typography>
                           <Button
                             component={NextLink}
@@ -388,7 +389,7 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {PLAN_STATUS_LABELS[plan.status]} · Updated{" "}
-                                {formatUpdatedAt(plan.updatedAt)}
+                                {formatUpdatedAt(plan.updatedAt, user.timeZone)}
                               </Typography>
                             </Stack>
                             <Chip

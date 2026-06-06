@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import type { ExerciseUnit } from "@/lib/exercise-units";
+import {
+  isLoadRecommendation,
+  type LoadRecommendation,
+} from "@/features/workouts/load-recommendations";
 
 const uuidField = (message: string) => z.string().trim().uuid(message);
 
@@ -64,6 +68,19 @@ export const reorderWorkoutEntriesSchema = workoutSessionIdSchema.extend({
 export const workoutSetMutationSchema = workoutSessionIdSchema.extend({
   setId: uuidField("Invalid workout set."),
 });
+
+export function parseLoadRecommendation(value: string) {
+  return z
+    .string()
+    .trim()
+    .min(1, "Choose what to do with this exercise next time.")
+    .refine(
+      isLoadRecommendation,
+      "Choose a valid next-time load recommendation.",
+    )
+    .transform((nextValue) => nextValue as LoadRecommendation)
+    .safeParse(value);
+}
 
 export function parseWorkoutSetFields(
   unit: ExerciseUnit,

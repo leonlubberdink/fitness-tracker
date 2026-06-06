@@ -48,6 +48,7 @@ export async function getWorkoutTemplatesForUser(userId: string) {
     .select({
       id: workoutTemplates.id,
       name: workoutTemplates.name,
+      description: workoutTemplates.description,
       createdAt: workoutTemplates.createdAt,
       updatedAt: workoutTemplates.updatedAt,
     })
@@ -108,6 +109,7 @@ export async function getWorkoutTemplateForEditing(
     .select({
       id: workoutTemplates.id,
       name: workoutTemplates.name,
+      description: workoutTemplates.description,
       createdAt: workoutTemplates.createdAt,
       updatedAt: workoutTemplates.updatedAt,
     })

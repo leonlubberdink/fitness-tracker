@@ -435,7 +435,11 @@ export function buildExerciseProgression(
       }, matchingRecords[0]);
       const unit = latestRecord.unitSnapshot;
       const chartValue =
-        unit === "kg" ? bestSet.weight : unit === "time" ? bestSet.weight : bestSet.reps;
+        unit === "kg"
+          ? bestSet.weight
+          : unit === "time"
+            ? bestSet.weight
+            : bestSet.reps;
 
       return {
         bestSetLabel: formatBestSetLabel(unit, bestSet.weight, bestSet.reps),
@@ -487,10 +491,10 @@ export function buildExerciseProgression(
     category: latestSession.category,
     chartHelpText:
       latestSession.unit === "kg"
-        ? "Line shows the heaviest logged set in each completed workout. Use the list below to review reps and total work."
+        ? "Line shows the heaviest logged set in each completed workout."
         : latestSession.unit === "time"
-          ? "Line shows the longest logged set in each completed workout. Use the list below to review reps and time."
-          : "Line shows reps from the best logged set in each completed workout. Use the list below to review bodyweight load.",
+          ? "Line shows the longest logged set in each completed workout."
+          : "Line shows reps from the best logged set in each completed workout.",
     chartMetric,
     chartMetricLabel:
       latestSession.unit === "kg"
@@ -560,13 +564,16 @@ export function getStatisticsPageDataFromSessions(
   const safeExerciseKey = exerciseOptions.some(
     (option) => option.key === exerciseKey,
   )
-    ? exerciseKey ?? null
+    ? (exerciseKey ?? null)
     : null;
 
   return {
     exerciseOptions,
     hasCompletedWorkouts: sessions.length > 0,
-    selectedExercise: buildExerciseProgression(currentSessions, safeExerciseKey),
+    selectedExercise: buildExerciseProgression(
+      currentSessions,
+      safeExerciseKey,
+    ),
     summary: buildSummary(currentSessions, previousSessions, window),
     weeklyTrend: buildWeeklyTrend(currentSessions, window),
   };
