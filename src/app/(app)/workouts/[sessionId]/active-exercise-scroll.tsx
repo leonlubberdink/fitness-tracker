@@ -27,6 +27,7 @@ export function ActiveExerciseScroll({
     }
 
     const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("focusSet");
     nextParams.delete("scrollTo");
     const nextSearch = nextParams.toString();
     const nextUrl = nextSearch ? `${pathname}?${nextSearch}` : pathname;

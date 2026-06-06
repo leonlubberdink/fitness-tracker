@@ -61,6 +61,7 @@ type WorkoutPageProps = {
   }>;
   searchParams?: Promise<{
     error?: string;
+    focusSet?: string;
     scrollTo?: string;
     success?: string;
   }>;
@@ -170,11 +171,13 @@ function SetEditor({
   sessionId,
   entry,
   set,
+  autoFocus = false,
   emphasize = false,
 }: {
   sessionId: string;
   entry: WorkoutEntry;
   set: WorkoutSet;
+  autoFocus?: boolean;
   emphasize?: boolean;
 }) {
   return (
@@ -187,6 +190,7 @@ function SetEditor({
       metricLabel={getExerciseMetricLabel(entry.unitSnapshot)}
       metricInputProps={getMetricInputProps(entry.unitSnapshot)}
       canDelete={entry.sets.length > 1}
+      autoFocus={autoFocus}
       emphasize={emphasize}
       updateSetAction={updateSetAction}
       removeSetAction={removeSetAction}
@@ -198,10 +202,12 @@ function LoggedSets({
   sessionId,
   entry,
   currentSetId,
+  focusSetId,
 }: {
   sessionId: string;
   entry: WorkoutEntry;
   currentSetId?: string;
+  focusSetId?: string;
 }) {
   if (entry.sets.length === 0) {
     return (
@@ -227,6 +233,7 @@ function LoggedSets({
           sessionId={sessionId}
           entry={entry}
           set={set}
+          autoFocus={set.id === focusSetId}
           emphasize={set.id === currentSetId}
         />
       ))}
@@ -271,6 +278,7 @@ export default async function WorkoutPage({
   const currentFirstSetDefaults = currentEntry
     ? getFirstSetDefaults(currentEntry)
     : null;
+  const focusSetId = resolvedSearchParams?.focusSet?.trim();
   const shouldScrollToCurrentExercise =
     resolvedSearchParams?.scrollTo === "current-exercise";
   return (
@@ -487,6 +495,7 @@ export default async function WorkoutPage({
                     sessionId={session.id}
                     entry={currentEntry}
                     currentSetId={currentSetId}
+                    focusSetId={focusSetId}
                   />
 
                   <form action={addSetAction}>

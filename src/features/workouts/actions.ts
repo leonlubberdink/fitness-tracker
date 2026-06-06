@@ -52,10 +52,12 @@ function redirectToWorkoutSession(
   sessionId: string,
   {
     error,
+    focusSet,
     scrollTo,
     success,
   }: {
     error?: string;
+    focusSet?: string;
     scrollTo?: string;
     success?: string;
   } = {},
@@ -72,6 +74,10 @@ function redirectToWorkoutSession(
 
   if (scrollTo) {
     searchParams.set("scrollTo", scrollTo);
+  }
+
+  if (focusSet) {
+    searchParams.set("focusSet", focusSet);
   }
 
   const queryString = searchParams.toString();
@@ -327,9 +333,11 @@ export async function createSetAction(formData: FormData) {
     .orderBy(desc(workoutSets.setNumber))
     .limit(1);
 
+  const setId = randomUUID();
+
   await db.transaction(async (tx) => {
     await tx.insert(workoutSets).values({
-      id: randomUUID(),
+      id: setId,
       workoutExerciseEntryId: entryId,
       setNumber: (lastSet?.setNumber ?? 0) + 1,
       reps,
@@ -346,7 +354,10 @@ export async function createSetAction(formData: FormData) {
   });
 
   revalidatePath(`/workouts/${entry.sessionId}`);
-  redirectToWorkoutSession(entry.sessionId);
+  redirectToWorkoutSession(entry.sessionId, {
+    scrollTo: "current-exercise",
+    focusSet: setId,
+  });
 }
 
 export async function addSetAction(formData: FormData) {

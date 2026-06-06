@@ -44,4 +44,24 @@ describe("WorkoutSetEditorForm", () => {
       expect(selectSpy).toHaveBeenCalledTimes(2);
     });
   });
+
+  it("autofocuses the reps input when requested", () => {
+    render(
+      <WorkoutSetEditorForm
+        sessionId="session-1"
+        setId="set-1"
+        setNumber={2}
+        initialReps={6}
+        initialMetricValue={20}
+        metricLabel="Load"
+        metricInputProps={{ inputMode: "decimal", step: 0.5 }}
+        canDelete
+        autoFocus
+        updateSetAction={vi.fn()}
+        removeSetAction={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: /reps/i })).toHaveFocus();
+  });
 });

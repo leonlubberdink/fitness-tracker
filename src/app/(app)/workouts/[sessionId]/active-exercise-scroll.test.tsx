@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ActiveExerciseScroll } from "./active-exercise-scroll";
 
 let pathname = "/workouts/session-1";
-let searchParams = new URLSearchParams("scrollTo=current-exercise&success=saved");
+let searchParams = new URLSearchParams(
+  "scrollTo=current-exercise&focusSet=set-1&success=saved",
+);
 
 vi.mock("next/navigation", () => ({
   usePathname: () => pathname,
@@ -15,7 +17,7 @@ describe("ActiveExerciseScroll", () => {
   beforeEach(() => {
     pathname = "/workouts/session-1";
     searchParams = new URLSearchParams(
-      "scrollTo=current-exercise&success=saved",
+      "scrollTo=current-exercise&focusSet=set-1&success=saved",
     );
 
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
