@@ -1,11 +1,12 @@
-import CheckCircleRounded from "@mui/icons-material/CheckCircleRounded";
 import AddBoxRounded from "@mui/icons-material/AddBoxRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
+import HorizontalRuleRounded from "@mui/icons-material/HorizontalRuleRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
 import PlaylistAddRounded from "@mui/icons-material/PlaylistAddRounded";
 import RepeatRounded from "@mui/icons-material/RepeatRounded";
-import SkipNextRounded from "@mui/icons-material/SkipNextRounded";
+import TrendingDownRounded from "@mui/icons-material/TrendingDownRounded";
+import TrendingUpRounded from "@mui/icons-material/TrendingUpRounded";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -33,6 +34,10 @@ import {
   removeSetAction,
   updateSetAction,
 } from "@/features/workouts/actions";
+import {
+  getLoadRecommendationLabel,
+  type LoadRecommendation,
+} from "@/features/workouts/load-recommendations";
 import { requireWorkoutSessionForLogging } from "@/features/workouts/queries";
 import {
   formatExerciseMetricValue,
@@ -42,12 +47,12 @@ import {
 } from "@/lib/exercise-units";
 import { formatDateForDisplay, formatInstantForDisplay } from "@/lib/date";
 
+import { ActiveExerciseScroll } from "./active-exercise-scroll";
+import { ExerciseCompletionActions } from "./exercise-completion-actions";
 import { ExercisePickerForm } from "./exercise-picker-form";
 import { WorkoutFirstSetForm } from "./first-set-form";
 import { PlannedExerciseOrderList } from "./planned-exercise-order-list";
-import { ActiveExerciseScroll } from "./active-exercise-scroll";
 import { WorkoutSetEditorForm } from "./set-editor-form";
-import { Session } from "inspector/promises";
 
 type WorkoutSessionData = Awaited<
   ReturnType<typeof requireWorkoutSessionForLogging>
@@ -95,6 +100,7 @@ function formatPreviousSet(
     setNumber: number;
     weight: number;
     unit: ExerciseUnit;
+    nextLoadRecommendation: LoadRecommendation | null;
   } | null,
   timeZone: string,
 ) {
@@ -108,6 +114,48 @@ function formatPreviousSet(
   });
 
   return `${date} · set ${previousSet.setNumber} · ${previousSet.reps} reps · ${formatExerciseMetricValue(previousSet.unit, previousSet.weight)}`;
+}
+
+function LoadRecommendationChip({
+  recommendation,
+  size = "medium",
+}: {
+  recommendation: LoadRecommendation;
+  size?: "small" | "medium";
+}) {
+  const label = `Next time: ${getLoadRecommendationLabel(recommendation)}`;
+
+  switch (recommendation) {
+    case "increase":
+      return (
+        <Chip
+          icon={<TrendingUpRounded />}
+          label={label}
+          color="success"
+          variant="outlined"
+          size={size}
+        />
+      );
+    case "keep":
+      return (
+        <Chip
+          icon={<HorizontalRuleRounded />}
+          label={label}
+          variant="outlined"
+          size={size}
+        />
+      );
+    case "decrease":
+      return (
+        <Chip
+          icon={<TrendingDownRounded />}
+          label={label}
+          color="warning"
+          variant="outlined"
+          size={size}
+        />
+      );
+  }
 }
 
 function getFirstSetDefaults(entry: WorkoutEntry) {
@@ -387,19 +435,6 @@ export default async function WorkoutPage({
             </Grid>
           </Grid>
 
-          <form action={completeWorkoutSessionAction}>
-            <input type="hidden" name="sessionId" value={session.id} />
-            <FormStatusButton
-              type="submit"
-              variant="contained"
-              color="primary"
-              startIcon={<CheckCircleRounded />}
-              loadingLabel="Finishing workout..."
-              fullWidth
-            >
-              Finish workout
-            </FormStatusButton>
-          </form>
         </Stack>
       </Paper>
 
@@ -465,12 +500,21 @@ export default async function WorkoutPage({
                     <Typography variant="overline" color="text.secondary">
                       Last completed set
                     </Typography>
-                    <Typography variant="body2">
-                      {formatPreviousSet(
-                        currentEntry.previousSet,
-                        user.timeZone,
-                      )}
-                    </Typography>
+                    <Stack spacing={1}>
+                      <Typography variant="body2">
+                        {formatPreviousSet(
+                          currentEntry.previousSet,
+                          user.timeZone,
+                        )}
+                      </Typography>
+                      {currentEntry.previousSet?.nextLoadRecommendation ? (
+                        <LoadRecommendationChip
+                          recommendation={
+                            currentEntry.previousSet.nextLoadRecommendation
+                          }
+                        />
+                      ) : null}
+                    </Stack>
                   </Stack>
                 </Paper>
               </Stack>
@@ -518,21 +562,14 @@ export default async function WorkoutPage({
                 </>
               )}
 
-              {nextEntry ? (
-                <form action={advanceWorkoutExerciseAction}>
-                  <input type="hidden" name="sessionId" value={session.id} />
-                  <FormStatusButton
-                    type="submit"
-                    variant="contained"
-                    color="secondary"
-                    startIcon={<SkipNextRounded />}
-                    loadingLabel="Moving..."
-                    fullWidth
-                  >
-                    Next exercise
-                  </FormStatusButton>
-                </form>
-              ) : null}
+              <ExerciseCompletionActions
+                sessionId={session.id}
+                canAdvance={Boolean(nextEntry)}
+                recommendationRequired={currentEntry.sets.length > 0}
+                initialRecommendation={currentEntry.nextLoadRecommendation}
+                advanceWorkoutExerciseAction={advanceWorkoutExerciseAction}
+                completeWorkoutSessionAction={completeWorkoutSessionAction}
+              />
             </Stack>
           </Paper>
         </>
@@ -684,6 +721,12 @@ export default async function WorkoutPage({
                       size="small"
                       variant="outlined"
                     />
+                    {entry.previousSet?.nextLoadRecommendation ? (
+                      <LoadRecommendationChip
+                        recommendation={entry.previousSet.nextLoadRecommendation}
+                        size="small"
+                      />
+                    ) : null}
                   </Stack>
                 </Stack>
               </AccordionSummary>
@@ -718,9 +761,18 @@ export default async function WorkoutPage({
                       <Typography variant="overline" color="text.secondary">
                         Last completed set
                       </Typography>
-                      <Typography variant="body2">
-                        {formatPreviousSet(entry.previousSet, user.timeZone)}
-                      </Typography>
+                      <Stack spacing={1}>
+                        <Typography variant="body2">
+                          {formatPreviousSet(entry.previousSet, user.timeZone)}
+                        </Typography>
+                        {entry.previousSet?.nextLoadRecommendation ? (
+                          <LoadRecommendationChip
+                            recommendation={
+                              entry.previousSet.nextLoadRecommendation
+                            }
+                          />
+                        ) : null}
+                      </Stack>
                     </Stack>
                   </Paper>
 

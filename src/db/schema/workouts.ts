@@ -5,6 +5,7 @@ import {
   index,
   integer,
   numeric,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -12,10 +13,17 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { LOAD_RECOMMENDATIONS } from "@/features/workouts/load-recommendations";
+
 import { exerciseUnitEnum, exercises } from "./exercises";
 import { plans, planWorkouts } from "./plans";
 import { workoutTemplates } from "./workout-templates";
 import { users } from "./users";
+
+export const workoutLoadRecommendationEnum = pgEnum(
+  "workout_load_recommendation",
+  LOAD_RECOMMENDATIONS,
+);
 
 export const workoutSessions = pgTable(
   "workout_sessions",
@@ -91,6 +99,9 @@ export const workoutExerciseEntries = pgTable(
     exerciseNameSnapshot: text("exercise_name_snapshot").notNull(),
     exerciseCategorySnapshot: text("exercise_category_snapshot").notNull(),
     unitSnapshot: exerciseUnitEnum("unit_snapshot").notNull(),
+    nextLoadRecommendation: workoutLoadRecommendationEnum(
+      "next_load_recommendation",
+    ),
     sortOrder: integer("sort_order").notNull(),
     createdAt: timestamp("created_at", {
       withTimezone: true,
