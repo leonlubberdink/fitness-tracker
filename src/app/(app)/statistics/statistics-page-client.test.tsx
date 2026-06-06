@@ -106,12 +106,8 @@ describe("StatisticsPageClient", () => {
       />,
     );
 
+    expect(screen.getByText("Choose an exercise.")).toBeVisible();
     expect(screen.getByText("No exercise selected yet.")).toBeVisible();
-    expect(
-      screen.getByText(
-        "Search for one exercise above to load a progression chart and per-session detail list.",
-      ),
-    ).toBeVisible();
   });
 
   it("renders selected exercise details and chart data", () => {
