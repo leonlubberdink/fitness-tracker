@@ -1,11 +1,10 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { StatisticsPageClient } from "./statistics-page-client";
 
 const replaceMock = vi.fn();
-let searchParams = new URLSearchParams("range=30d");
+let searchParams = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/statistics",
@@ -16,6 +15,20 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@mui/x-charts", () => ({
+  BarChart: ({
+    series,
+  }: {
+    series: Array<{
+      data: number[];
+      label: string;
+    }>;
+  }) => (
+    <div
+      data-testid="bar-chart"
+      data-values={series[0]?.data.join(",") ?? ""}
+      data-label={series[0]?.label ?? ""}
+    />
+  ),
   LineChart: ({
     series,
   }: {
@@ -81,7 +94,7 @@ const selectedExercise = {
 describe("StatisticsPageClient", () => {
   beforeEach(() => {
     replaceMock.mockReset();
-    searchParams = new URLSearchParams("range=30d");
+    searchParams = new URLSearchParams();
   });
 
   it("shows the empty-state copy when no exercise is selected", () => {
@@ -89,7 +102,6 @@ describe("StatisticsPageClient", () => {
       <StatisticsPageClient
         exerciseOptions={exerciseOptions}
         selectedExercise={null}
-        selectedRange="30d"
         weeklyTrend={[]}
       />,
     );
@@ -102,31 +114,11 @@ describe("StatisticsPageClient", () => {
     ).toBeVisible();
   });
 
-  it("updates the range query param through the router", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <StatisticsPageClient
-        exerciseOptions={exerciseOptions}
-        selectedExercise={null}
-        selectedRange="30d"
-        weeklyTrend={[]}
-      />,
-    );
-
-    await user.click(screen.getByRole("button", { name: "12 weeks" }));
-
-    expect(replaceMock).toHaveBeenCalledWith("/statistics?range=12w", {
-      scroll: false,
-    });
-  });
-
   it("renders selected exercise details and chart data", () => {
     render(
       <StatisticsPageClient
         exerciseOptions={exerciseOptions}
         selectedExercise={selectedExercise}
-        selectedRange="30d"
         weeklyTrend={[
           {
             shortLabel: "W1",
@@ -143,6 +135,7 @@ describe("StatisticsPageClient", () => {
     expect(screen.getByText("Best ever:")).toBeVisible();
     expect(screen.getByText("85 kg")).toBeVisible();
     expect(screen.getByText("80 kg x 5")).toBeVisible();
-    expect(screen.getAllByTestId("line-chart")).toHaveLength(2);
+    expect(screen.getByTestId("bar-chart")).toBeVisible();
+    expect(screen.getByTestId("line-chart")).toBeVisible();
   });
 });

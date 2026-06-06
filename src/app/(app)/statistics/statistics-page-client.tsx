@@ -1,38 +1,26 @@
 "use client";
 
 import Autocomplete from "@mui/material/Autocomplete";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { alpha, useTheme } from "@mui/material/styles";
-import { LineChart } from "@mui/x-charts";
+import { BarChart, LineChart } from "@mui/x-charts";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
 import type {
   StatisticsExerciseOption,
   StatisticsExerciseProgression,
-  StatisticsRangeKey,
   StatisticsWeeklyTrendPoint,
 } from "@/features/statistics/queries";
 import { formatExerciseUnitShort } from "@/lib/exercise-units";
 
-const RANGE_OPTIONS: Array<{
-  key: StatisticsRangeKey;
-  label: string;
-}> = [
-  { key: "30d", label: "30 days" },
-  { key: "12w", label: "12 weeks" },
-  { key: "all", label: "All time" },
-];
-
 type StatisticsPageClientProps = {
   exerciseOptions: StatisticsExerciseOption[];
   selectedExercise: StatisticsExerciseProgression | null;
-  selectedRange: StatisticsRangeKey;
   weeklyTrend: StatisticsWeeklyTrendPoint[];
 };
 
@@ -90,7 +78,6 @@ function ChartCard({
 export function StatisticsPageClient({
   exerciseOptions,
   selectedExercise,
-  selectedRange,
   weeklyTrend,
 }: StatisticsPageClientProps) {
   const router = useRouter();
@@ -124,56 +111,21 @@ export function StatisticsPageClient({
 
   return (
     <Stack spacing={3}>
-      <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
-        <Stack spacing={2.25}>
-          <Stack spacing={0.75}>
-            <Typography variant="h3">Filters</Typography>
-            <Typography color="text.secondary">
-              Narrow the dashboard by time range before reviewing exercise
-              progression below.
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {RANGE_OPTIONS.map((option) => (
-              <Button
-                key={option.key}
-                variant={
-                  selectedRange === option.key ? "contained" : "outlined"
-                }
-                color={selectedRange === option.key ? "primary" : "inherit"}
-                disabled={isPending}
-                onClick={() =>
-                  updateSearchParams((params) => {
-                    params.set("range", option.key);
-                  })
-                }
-              >
-                {option.label}
-              </Button>
-            ))}
-          </Stack>
-        </Stack>
-      </Paper>
-
       {weeklyTrend.length > 0 ? (
         <ChartCard
           title="Overall volume over time"
-          description="Each point shows total kg volume across all exercises in that week. This is not cumulative."
+          description="Each column shows total kg volume across all exercises in that week. This is not cumulative."
         >
-          <LineChart
-            axisHighlight={{ x: "line" }}
+          <BarChart
             grid={{ horizontal: true }}
             height={260}
             hideLegend
-            margin={{ bottom: 28, left: 52, right: 12, top: 12 }}
+            margin={{ bottom: 28, left: 8, right: 8, top: 12 }}
             series={[
               {
                 color: theme.palette.success.main,
-                curve: "linear",
                 data: weeklyTrend.map((point) => point.volumeKg),
                 label: "Overall volume",
-                showMark: weeklyTrend.length <= 18,
                 valueFormatter: (value: number | null) =>
                   `${formatDecimalValue(value ?? 0)} kg`,
               },
@@ -182,12 +134,13 @@ export function StatisticsPageClient({
             xAxis={[
               {
                 data: weeklyTrend.map((point) => point.shortLabel),
-                scaleType: "point",
+                scaleType: "band",
               },
             ]}
             yAxis={[
               {
                 min: 0,
+                width: 44,
                 valueFormatter: (value: number) => formatDecimalValue(value),
               },
             ]}
@@ -227,7 +180,7 @@ export function StatisticsPageClient({
                 label="Exercise selection"
                 placeholder={
                   exerciseOptions.length === 0
-                    ? "No exercises in this range"
+                    ? "No exercises in the last 12 weeks"
                     : "Search exercise"
                 }
               />
