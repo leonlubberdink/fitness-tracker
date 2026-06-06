@@ -213,7 +213,7 @@ describe("statistics core", () => {
     expect(result.selectedExercise).toEqual({
       category: "Push",
       chartHelpText:
-        "Line shows the heaviest logged set in each completed workout. Use the list below to review reps and total work.",
+        "Line shows the heaviest logged set in each completed workout.",
       chartMetric: "load",
       chartMetricLabel: "Best load",
       details: [

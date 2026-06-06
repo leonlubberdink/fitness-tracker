@@ -46,7 +46,7 @@ test.describe("template management", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Start workout" }).click();
-    await expect(page).toHaveURL(/\/workouts\/.+/);
+    await expect(page).toHaveURL(/\/workouts\/(?!templates\/)[^/?#]+/);
     await expect(page.getByRole("heading", { name: "Current workout." })).toBeVisible();
     await expect(page.getByText(pushExercise, { exact: true }).first()).toBeVisible();
   });
@@ -74,7 +74,7 @@ test.describe("template management", () => {
     await addExerciseToTemplate(page, pushExercise);
     await page.getByRole("button", { name: "Start workout" }).click();
 
-    await expect(page).toHaveURL(/\/workouts\/.+/);
+    await expect(page).toHaveURL(/\/workouts\/(?!templates\/)[^/?#]+$/);
     const workoutUrl = page.url();
 
     await expect(page.getByText("Workout notes")).toBeVisible();
@@ -86,6 +86,7 @@ test.describe("template management", () => {
     await expect(page.getByText("Template details saved.")).toBeVisible();
 
     await page.goto(workoutUrl);
+    await expect(page).toHaveURL(workoutUrl);
     await expect(page.getByText("Workout notes")).toBeVisible();
     await expect(page.getByText(updatedNotes)).toBeVisible();
     await expect(page.getByText(initialNotes)).toHaveCount(0);

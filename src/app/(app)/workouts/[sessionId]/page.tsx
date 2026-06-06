@@ -563,6 +563,7 @@ export default async function WorkoutPage({
               )}
 
               <ExerciseCompletionActions
+                key={currentEntry.id}
                 sessionId={session.id}
                 canAdvance={Boolean(nextEntry)}
                 recommendationRequired={currentEntry.sets.length > 0}
