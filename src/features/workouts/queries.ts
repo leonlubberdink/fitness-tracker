@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { db } from "@/db/client";
 import {
+  workoutTemplates,
   workoutExerciseEntries,
   workoutSessions,
   workoutSets,
@@ -90,8 +91,13 @@ export async function getWorkoutSessionForLogging(
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
+      workoutTemplateDescription: workoutTemplates.description,
     })
     .from(workoutSessions)
+    .leftJoin(
+      workoutTemplates,
+      eq(workoutSessions.workoutTemplateId, workoutTemplates.id),
+    )
     .where(
       and(
         eq(workoutSessions.id, sessionId),

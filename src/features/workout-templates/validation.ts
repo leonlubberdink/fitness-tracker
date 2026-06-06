@@ -14,9 +14,15 @@ export const templateNameSchema = z.object({
     .max(80, "Template name must be 80 characters or less."),
 });
 
+export const templateDescriptionSchema = z.object({
+  description: z.string().trim(),
+});
+
 export const createTemplateSchema = templateNameSchema;
 
-export const renameTemplateSchema = templateIdSchema.merge(templateNameSchema);
+export const updateTemplateDetailsSchema = templateIdSchema
+  .merge(templateNameSchema)
+  .merge(templateDescriptionSchema);
 
 export const addTemplateExerciseSchema = templateIdSchema.extend({
   exerciseId: uuidField("Choose a valid exercise."),

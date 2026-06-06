@@ -16,8 +16,8 @@ import {
   deleteWorkoutTemplateAction,
   reorderTemplateExercisesAction,
   removeTemplateExerciseAction,
-  renameWorkoutTemplateAction,
   startWorkoutFromTemplateAction,
+  updateWorkoutTemplateDetailsAction,
 } from "@/features/workout-templates/actions";
 import { requireWorkoutTemplateForEditing } from "@/features/workout-templates/queries";
 
@@ -91,7 +91,7 @@ export default async function WorkoutTemplatePage({
         <Stack spacing={2}>
           <Typography variant="h3">Template details</Typography>
 
-          <form action={renameWorkoutTemplateAction}>
+          <form action={updateWorkoutTemplateDetailsAction}>
             <Stack spacing={1.5}>
               <input type="hidden" name="templateId" value={template.id} />
               <TextField
@@ -102,6 +102,15 @@ export default async function WorkoutTemplatePage({
                 required
                 fullWidth
               />
+              <TextField
+                label="Workout description"
+                name="description"
+                defaultValue={template.description ?? ""}
+                placeholder="Summarize the goal of this workout or add notes."
+                multiline
+                minRows={4}
+                fullWidth
+              />
               <FormStatusButton
                 type="submit"
                 variant="outlined"
@@ -109,7 +118,7 @@ export default async function WorkoutTemplatePage({
                 loadingLabel="Saving..."
                 fullWidth
               >
-                Save name
+                Save details
               </FormStatusButton>
             </Stack>
           </form>

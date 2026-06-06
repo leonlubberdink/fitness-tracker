@@ -40,16 +40,14 @@ import {
   getExerciseMetricLabel,
   type ExerciseUnit,
 } from "@/lib/exercise-units";
-import {
-  formatDateForDisplay,
-  formatInstantForDisplay,
-} from "@/lib/date";
+import { formatDateForDisplay, formatInstantForDisplay } from "@/lib/date";
 
 import { ExercisePickerForm } from "./exercise-picker-form";
 import { WorkoutFirstSetForm } from "./first-set-form";
 import { PlannedExerciseOrderList } from "./planned-exercise-order-list";
 import { ActiveExerciseScroll } from "./active-exercise-scroll";
 import { WorkoutSetEditorForm } from "./set-editor-form";
+import { Session } from "inspector/promises";
 
 type WorkoutSessionData = Awaited<
   ReturnType<typeof requireWorkoutSessionForLogging>
@@ -114,7 +112,8 @@ function formatPreviousSet(
 function getFirstSetDefaults(entry: WorkoutEntry) {
   return {
     reps: entry.previousSet?.reps ?? (entry.unitSnapshot === "time" ? 1 : 8),
-    weight: entry.previousSet?.weight ?? (entry.unitSnapshot === "time" ? 30 : 0),
+    weight:
+      entry.previousSet?.weight ?? (entry.unitSnapshot === "time" ? 30 : 0),
   };
 }
 
@@ -258,7 +257,9 @@ export default async function WorkoutPage({
     session.entries.at(-1) ??
     null;
   const upcomingEntries = currentEntry
-    ? session.entries.filter((entry) => entry.sortOrder > currentEntry.sortOrder)
+    ? session.entries.filter(
+        (entry) => entry.sortOrder > currentEntry.sortOrder,
+      )
     : [];
   const previousEntries = currentEntry
     ? session.entries
@@ -272,7 +273,6 @@ export default async function WorkoutPage({
     : null;
   const shouldScrollToCurrentExercise =
     resolvedSearchParams?.scrollTo === "current-exercise";
-
   return (
     <Stack spacing={3}>
       {errorMessage ? (
@@ -292,12 +292,12 @@ export default async function WorkoutPage({
           <Stack spacing={1}>
             <Typography variant="h1">Current workout.</Typography>
             <Typography color="text.secondary">
-              {formatWorkoutDate(session.performedOn, user.timeZone)} starting at{" "}
-              {formatWorkoutTime(session.startedAt, user.timeZone)}.
+              {formatWorkoutDate(session.performedOn, user.timeZone)} starting
+              at {formatWorkoutTime(session.startedAt, user.timeZone)}.
             </Typography>
           </Stack>
 
-          {currentEntry ? (
+          {session.workoutTemplateDescription ? (
             <Paper
               elevation={0}
               sx={{
@@ -309,31 +309,15 @@ export default async function WorkoutPage({
               }}
             >
               <Stack spacing={1}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="flex-start"
-                  spacing={1}
+                <Typography variant="overline" color="primary.light">
+                  Workout notes
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ whiteSpace: "pre-wrap" }}
                 >
-                  <Stack spacing={0.5} minWidth={0}>
-                    <Typography variant="overline" color="primary.light">
-                      Current exercise
-                    </Typography>
-                    <Typography variant="h3">
-                      {currentEntry.exerciseNameSnapshot}
-                    </Typography>
-                  </Stack>
-                  <Chip
-                    label={`${currentEntry.sets.length} logged`}
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                  />
-                </Stack>
-                <Typography variant="body2" color="text.secondary">
-                  {currentEntry.previousSet
-                    ? `Last completed: ${formatPreviousSet(currentEntry.previousSet, user.timeZone)}`
-                    : "No completed history for this exercise yet."}
+                  {session.workoutTemplateDescription}
                 </Typography>
               </Stack>
             </Paper>
@@ -442,7 +426,11 @@ export default async function WorkoutPage({
 
                   <form action={removeExerciseEntryAction}>
                     <input type="hidden" name="sessionId" value={session.id} />
-                    <input type="hidden" name="entryId" value={currentEntry.id} />
+                    <input
+                      type="hidden"
+                      name="entryId"
+                      value={currentEntry.id}
+                    />
                     <FormStatusButton
                       type="submit"
                       variant="text"
@@ -470,7 +458,10 @@ export default async function WorkoutPage({
                       Last completed set
                     </Typography>
                     <Typography variant="body2">
-                      {formatPreviousSet(currentEntry.previousSet, user.timeZone)}
+                      {formatPreviousSet(
+                        currentEntry.previousSet,
+                        user.timeZone,
+                      )}
                     </Typography>
                   </Stack>
                 </Paper>
@@ -482,8 +473,12 @@ export default async function WorkoutPage({
                   entryId={currentEntry.id}
                   initialReps={currentFirstSetDefaults.reps}
                   initialMetricValue={currentFirstSetDefaults.weight}
-                  metricLabel={getExerciseMetricLabel(currentEntry.unitSnapshot)}
-                  metricInputProps={getMetricInputProps(currentEntry.unitSnapshot)}
+                  metricLabel={getExerciseMetricLabel(
+                    currentEntry.unitSnapshot,
+                  )}
+                  metricInputProps={getMetricInputProps(
+                    currentEntry.unitSnapshot,
+                  )}
                   createSetAction={createSetAction}
                 />
               ) : (
@@ -496,7 +491,11 @@ export default async function WorkoutPage({
 
                   <form action={addSetAction}>
                     <input type="hidden" name="sessionId" value={session.id} />
-                    <input type="hidden" name="entryId" value={currentEntry.id} />
+                    <input
+                      type="hidden"
+                      name="entryId"
+                      value={currentEntry.id}
+                    />
                     <FormStatusButton
                       type="submit"
                       variant="outlined"
@@ -533,7 +532,7 @@ export default async function WorkoutPage({
       {upcomingEntries.length > 0 ? (
         <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
           <Stack spacing={1.75}>
-          <Stack spacing={0.5}>
+            <Stack spacing={0.5}>
               <Typography variant="h3">Upcoming</Typography>
               <Typography color="text.secondary">
                 Drag to change what comes next without logging sets early.
@@ -669,7 +668,10 @@ export default async function WorkoutPage({
                       variant="outlined"
                     />
                     <Chip
-                      label={formatPreviousSet(entry.previousSet, user.timeZone)}
+                      label={formatPreviousSet(
+                        entry.previousSet,
+                        user.timeZone,
+                      )}
                       size="small"
                       variant="outlined"
                     />
@@ -717,7 +719,11 @@ export default async function WorkoutPage({
 
                   {entry.sets.length > 0 ? (
                     <form action={addSetAction}>
-                      <input type="hidden" name="sessionId" value={session.id} />
+                      <input
+                        type="hidden"
+                        name="sessionId"
+                        value={session.id}
+                      />
                       <input type="hidden" name="entryId" value={entry.id} />
                       <FormStatusButton
                         type="submit"

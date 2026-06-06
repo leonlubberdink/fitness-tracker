@@ -20,6 +20,7 @@ export const workoutTemplates = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    description: text("description"),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
