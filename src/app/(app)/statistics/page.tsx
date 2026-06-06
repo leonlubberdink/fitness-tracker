@@ -32,10 +32,6 @@ export default async function StatisticsPage({
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.75, py: 3.25 }}>
         <Stack spacing={1}>
           <Typography variant="h1">Statistics</Typography>
-          <Typography color="text.secondary">
-            Review completed training over time, compare consistency week by
-            week, and drill into one exercise when you want a closer read.
-          </Typography>
         </Stack>
       </Paper>
 

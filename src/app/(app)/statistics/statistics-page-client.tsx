@@ -30,6 +30,20 @@ function formatDecimalValue(value: number) {
   }).format(value);
 }
 
+function formatIntegerValue(value: number) {
+  return new Intl.NumberFormat("en-GB", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatThousandsValue(value: number) {
+  if (Math.abs(value) >= 1000) {
+    return `${formatIntegerValue(value / 1000)}k`;
+  }
+
+  return formatIntegerValue(value);
+}
+
 function formatFullDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
@@ -114,22 +128,29 @@ export function StatisticsPageClient({
       {weeklyTrend.length > 0 ? (
         <ChartCard
           title="Overall volume over time"
-          description="Each column shows total kg volume across all exercises in that week. This is not cumulative."
+          description="Each column shows total kg volume across all exercises in that week."
         >
           <BarChart
             grid={{ horizontal: true }}
             height={260}
             hideLegend
-            margin={{ bottom: 28, left: 8, right: 8, top: 12 }}
+            margin={{ bottom: 10, left: 0, right: 10, top: 10 }}
             series={[
               {
                 color: theme.palette.success.main,
                 data: weeklyTrend.map((point) => point.volumeKg),
                 label: "Overall volume",
                 valueFormatter: (value: number | null) =>
-                  `${formatDecimalValue(value ?? 0)} kg`,
+                  `${formatIntegerValue(value ?? 0)} kg`,
               },
             ]}
+            slotProps={{
+              barLabel: {
+                style: {
+                  fontSize: 10,
+                },
+              },
+            }}
             sx={{ width: "100%" }}
             xAxis={[
               {
@@ -140,8 +161,8 @@ export function StatisticsPageClient({
             yAxis={[
               {
                 min: 0,
-                width: 44,
-                valueFormatter: (value: number) => formatDecimalValue(value),
+                valueFormatter: (value: number) => formatThousandsValue(value),
+                width: 36,
               },
             ]}
           />
@@ -152,10 +173,7 @@ export function StatisticsPageClient({
         <Stack spacing={2.25}>
           <Stack spacing={0.75}>
             <Typography variant="h3">Exercise progression</Typography>
-            <Typography color="text.secondary">
-              Choose one exercise above to compare completed sessions visually,
-              then use History when you want full set-by-set review.
-            </Typography>
+            <Typography color="text.secondary">Choose an exercise.</Typography>
           </Stack>
 
           <Autocomplete
@@ -235,7 +253,7 @@ export function StatisticsPageClient({
                   grid={{ horizontal: true }}
                   height={280}
                   hideLegend
-                  margin={{ bottom: 28, left: 42, right: 12, top: 12 }}
+                  margin={{ bottom: 10, left: 0, right: 10, top: 10 }}
                   series={[
                     {
                       color: theme.palette.secondary.main,
@@ -352,10 +370,6 @@ export function StatisticsPageClient({
               <Stack spacing={0.75}>
                 <Typography variant="h3" sx={{ fontSize: "1rem" }}>
                   No exercise selected yet.
-                </Typography>
-                <Typography color="text.secondary">
-                  Search for one exercise above to load a progression chart and
-                  per-session detail list.
                 </Typography>
               </Stack>
             </Paper>

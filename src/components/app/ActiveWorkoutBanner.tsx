@@ -49,9 +49,6 @@ export function ActiveWorkoutBanner({
           <Typography variant="overline" color="primary.light">
             Workout in progress
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Resume the current session from anywhere.
-          </Typography>
         </Stack>
 
         <Button

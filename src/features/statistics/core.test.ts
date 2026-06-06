@@ -254,8 +254,12 @@ describe("statistics core", () => {
       ],
       unit: "kg",
     });
-    expect(result.weeklyTrend.some((point) => point.volumeKg === 750)).toBe(true);
-    expect(result.weeklyTrend.some((point) => point.volumeKg === 570)).toBe(true);
+    expect(result.weeklyTrend.some((point) => point.volumeKg === 750)).toBe(
+      true,
+    );
+    expect(result.weeklyTrend.some((point) => point.volumeKg === 570)).toBe(
+      true,
+    );
   });
 
   it("builds progression for time and bodyweight exercises and supports snapshot keys", () => {
@@ -315,7 +319,10 @@ describe("statistics core", () => {
       ],
     });
     expect(
-      buildExerciseProgression(timeSessions, "55555555-5555-4555-8555-555555555555"),
+      buildExerciseProgression(
+        timeSessions,
+        "55555555-5555-4555-8555-555555555555",
+      ),
     )?.toMatchObject({
       chartMetric: "duration",
       chartMetricLabel: "Longest duration",
