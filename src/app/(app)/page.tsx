@@ -22,17 +22,21 @@ import {
   getOpenWorkoutSessionForUser,
   getWorkoutSessionForLogging,
 } from "@/features/workouts/queries";
+import {
+  formatDateForDisplay,
+  formatInstantForDisplay,
+} from "@/lib/date";
 
-function formatPerformedOn(performedOn: string) {
-  return new Intl.DateTimeFormat("en-GB", {
+function formatPerformedOn(performedOn: string, timeZone: string) {
+  return formatDateForDisplay(performedOn, timeZone, {
     dateStyle: "medium",
-  }).format(new Date(`${performedOn}T00:00:00`));
+  });
 }
 
-function formatTime(value: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
+function formatTime(value: Date, timeZone: string) {
+  return formatInstantForDisplay(value, timeZone, {
     timeStyle: "short",
-  }).format(value);
+  });
 }
 
 export default async function Home() {
@@ -192,7 +196,7 @@ export default async function Home() {
             <Stack spacing={1}>
               <Typography variant="h1">Continue workout.</Typography>
               <Typography color="text.secondary">
-                {`Open session from ${formatPerformedOn(workoutSession.performedOn)}.`}
+                {`Open session from ${formatPerformedOn(workoutSession.performedOn, user.timeZone)}.`}
               </Typography>
             </Stack>
           )}
@@ -240,7 +244,7 @@ export default async function Home() {
                         Started
                       </Typography>
                       <Typography variant="h3">
-                        {formatTime(workoutSession.startedAt)}
+                        {formatTime(workoutSession.startedAt, user.timeZone)}
                       </Typography>
                     </Stack>
                   </Paper>

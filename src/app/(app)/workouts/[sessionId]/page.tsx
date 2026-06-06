@@ -40,6 +40,10 @@ import {
   getExerciseMetricLabel,
   type ExerciseUnit,
 } from "@/lib/exercise-units";
+import {
+  formatDateForDisplay,
+  formatInstantForDisplay,
+} from "@/lib/date";
 
 import { ExercisePickerForm } from "./exercise-picker-form";
 import { WorkoutFirstSetForm } from "./first-set-form";
@@ -64,25 +68,25 @@ type WorkoutPageProps = {
   }>;
 };
 
-function formatWorkoutDate(performedOn: string) {
-  return new Intl.DateTimeFormat("en-GB", {
+function formatWorkoutDate(performedOn: string, timeZone: string) {
+  return formatDateForDisplay(performedOn, timeZone, {
     dateStyle: "full",
-  }).format(new Date(`${performedOn}T00:00:00`));
+  });
 }
 
-function formatWorkoutTemplateName(performedOn: string) {
-  const date = new Intl.DateTimeFormat("en-GB", {
+function formatWorkoutTemplateName(performedOn: string, timeZone: string) {
+  const date = formatDateForDisplay(performedOn, timeZone, {
     day: "numeric",
     month: "short",
-  }).format(new Date(`${performedOn}T00:00:00`));
+  });
 
   return `Workout ${date}`;
 }
 
-function formatWorkoutTime(startedAt: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
+function formatWorkoutTime(startedAt: Date, timeZone: string) {
+  return formatInstantForDisplay(startedAt, timeZone, {
     timeStyle: "short",
-  }).format(startedAt);
+  });
 }
 
 function formatPreviousSet(
@@ -93,15 +97,16 @@ function formatPreviousSet(
     weight: number;
     unit: ExerciseUnit;
   } | null,
+  timeZone: string,
 ) {
   if (!previousSet) {
     return "No completed history yet.";
   }
 
-  const date = new Intl.DateTimeFormat("en-GB", {
+  const date = formatDateForDisplay(previousSet.performedOn, timeZone, {
     day: "numeric",
     month: "short",
-  }).format(new Date(`${previousSet.performedOn}T00:00:00`));
+  });
 
   return `${date} · set ${previousSet.setNumber} · ${previousSet.reps} reps · ${formatExerciseMetricValue(previousSet.unit, previousSet.weight)}`;
 }
@@ -287,8 +292,8 @@ export default async function WorkoutPage({
           <Stack spacing={1}>
             <Typography variant="h1">Current workout.</Typography>
             <Typography color="text.secondary">
-              {formatWorkoutDate(session.performedOn)} starting at{" "}
-              {formatWorkoutTime(session.startedAt)}.
+              {formatWorkoutDate(session.performedOn, user.timeZone)} starting at{" "}
+              {formatWorkoutTime(session.startedAt, user.timeZone)}.
             </Typography>
           </Stack>
 
@@ -327,7 +332,7 @@ export default async function WorkoutPage({
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
                   {currentEntry.previousSet
-                    ? `Last completed: ${formatPreviousSet(currentEntry.previousSet)}`
+                    ? `Last completed: ${formatPreviousSet(currentEntry.previousSet, user.timeZone)}`
                     : "No completed history for this exercise yet."}
                 </Typography>
               </Stack>
@@ -383,7 +388,7 @@ export default async function WorkoutPage({
                     Started
                   </Typography>
                   <Typography variant="h3">
-                    {formatWorkoutTime(session.startedAt)}
+                    {formatWorkoutTime(session.startedAt, user.timeZone)}
                   </Typography>
                 </Stack>
               </Paper>
@@ -465,7 +470,7 @@ export default async function WorkoutPage({
                       Last completed set
                     </Typography>
                     <Typography variant="body2">
-                      {formatPreviousSet(currentEntry.previousSet)}
+                      {formatPreviousSet(currentEntry.previousSet, user.timeZone)}
                     </Typography>
                   </Stack>
                 </Paper>
@@ -600,7 +605,10 @@ export default async function WorkoutPage({
             <TextField
               label="Template name"
               name="name"
-              defaultValue={formatWorkoutTemplateName(session.performedOn)}
+              defaultValue={formatWorkoutTemplateName(
+                session.performedOn,
+                user.timeZone,
+              )}
               slotProps={{ htmlInput: { maxLength: 80 } }}
               required
               fullWidth
@@ -661,7 +669,7 @@ export default async function WorkoutPage({
                       variant="outlined"
                     />
                     <Chip
-                      label={formatPreviousSet(entry.previousSet)}
+                      label={formatPreviousSet(entry.previousSet, user.timeZone)}
                       size="small"
                       variant="outlined"
                     />
@@ -700,7 +708,7 @@ export default async function WorkoutPage({
                         Last completed set
                       </Typography>
                       <Typography variant="body2">
-                        {formatPreviousSet(entry.previousSet)}
+                        {formatPreviousSet(entry.previousSet, user.timeZone)}
                       </Typography>
                     </Stack>
                   </Paper>

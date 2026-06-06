@@ -21,23 +21,27 @@ import {
   formatExerciseUnitShort,
   type ExerciseUnit,
 } from "@/lib/exercise-units";
+import {
+  formatDateForDisplay,
+  formatInstantForDisplay,
+} from "@/lib/date";
 
 import { HistorySessionDeleteButton } from "./history-session-delete-button";
 
-function formatPerformedOn(performedOn: string) {
-  return new Intl.DateTimeFormat("en-GB", {
+function formatPerformedOn(performedOn: string, timeZone: string) {
+  return formatDateForDisplay(performedOn, timeZone, {
     dateStyle: "full",
-  }).format(new Date(`${performedOn}T00:00:00`));
+  });
 }
 
-function formatTime(value: Date | null) {
+function formatTime(value: Date | null, timeZone: string) {
   if (!value) {
     return "Unknown";
   }
 
-  return new Intl.DateTimeFormat("en-GB", {
+  return formatInstantForDisplay(value, timeZone, {
     timeStyle: "short",
-  }).format(value);
+  });
 }
 
 function formatSetWeight(unit: ExerciseUnit, weight: number) {
@@ -51,11 +55,11 @@ type HistoryPageProps = {
   }>;
 };
 
-function formatTemplateName(performedOn: string) {
-  const date = new Intl.DateTimeFormat("en-GB", {
+function formatTemplateName(performedOn: string, timeZone: string) {
+  const date = formatDateForDisplay(performedOn, timeZone, {
     day: "numeric",
     month: "short",
-  }).format(new Date(`${performedOn}T00:00:00`));
+  });
 
   return `Workout ${date}`;
 }
@@ -108,7 +112,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                 color="text.secondary"
                 sx={{ px: 0.5 }}
               >
-                {formatPerformedOn(group.performedOn)}
+                {formatPerformedOn(group.performedOn, user.timeZone)}
               </Typography>
 
               <Stack spacing={1.25}>
@@ -148,8 +152,8 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                             noWrap
                             sx={{ minWidth: 0 }}
                           >
-                            {formatTime(session.startedAt)} to{" "}
-                            {formatTime(session.completedAt)}
+                            {formatTime(session.startedAt, user.timeZone)} to{" "}
+                            {formatTime(session.completedAt, user.timeZone)}
                           </Typography>
                           <Stack
                             direction="row"
@@ -196,6 +200,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                                 name="name"
                                 defaultValue={formatTemplateName(
                                   session.performedOn,
+                                  user.timeZone,
                                 )}
                                 slotProps={{ htmlInput: { maxLength: 80 } }}
                                 required

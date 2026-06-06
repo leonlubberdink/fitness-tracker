@@ -22,6 +22,7 @@ import {
   startWorkoutFromTemplateAction,
 } from "@/features/workout-templates/actions";
 import { getWorkoutTemplatesForUser } from "@/features/workout-templates/queries";
+import { formatInstantForDisplay } from "@/lib/date";
 
 type WorkoutsPageProps = {
   searchParams?: Promise<{
@@ -30,10 +31,10 @@ type WorkoutsPageProps = {
   }>;
 };
 
-function formatTemplateUpdatedAt(updatedAt: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
+function formatTemplateUpdatedAt(updatedAt: Date, timeZone: string) {
+  return formatInstantForDisplay(updatedAt, timeZone, {
     dateStyle: "medium",
-  }).format(updatedAt);
+  });
 }
 
 export default async function WorkoutsPage({
@@ -160,7 +161,10 @@ export default async function WorkoutsPage({
                           </Stack>
                           <Typography variant="caption" color="text.secondary">
                             Updated{" "}
-                            {formatTemplateUpdatedAt(template.updatedAt)}
+                            {formatTemplateUpdatedAt(
+                              template.updatedAt,
+                              user.timeZone,
+                            )}
                           </Typography>
                         </Stack>
 
