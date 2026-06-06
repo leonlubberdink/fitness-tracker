@@ -39,8 +39,8 @@ test.describe("template management", () => {
     await addExerciseToTemplate(page, pullExercise);
 
     await page.getByLabel("Template name").fill(renamedTemplateName);
-    await page.getByRole("button", { name: "Save name" }).click();
-    await expect(page.getByText("Template renamed.")).toBeVisible();
+    await page.getByRole("button", { name: "Save details" }).click();
+    await expect(page.getByText("Template details saved.")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: renamedTemplateName }),
     ).toBeVisible();
@@ -49,5 +49,45 @@ test.describe("template management", () => {
     await expect(page).toHaveURL(/\/workouts\/.+/);
     await expect(page.getByRole("heading", { name: "Current workout." })).toBeVisible();
     await expect(page.getByText(pushExercise, { exact: true }).first()).toBeVisible();
+  });
+
+  test("shows live workout notes from the template on an active workout", async ({
+    page,
+  }) => {
+    const pushExercise = uniqueName("E2E Push");
+    const templateName = uniqueName("E2E Notes Template");
+    const initialNotes = "Keep rest short and stay smooth.";
+    const updatedNotes = "Use two minutes of rest and pause the last rep.";
+
+    await createExercise(page, {
+      name: pushExercise,
+      categories: "Chest, Push",
+    });
+
+    await createTemplate(page, templateName);
+    const templateUrl = page.url();
+
+    await page.getByLabel("Workout description").fill(initialNotes);
+    await page.getByRole("button", { name: "Save details" }).click();
+    await expect(page.getByText("Template details saved.")).toBeVisible();
+
+    await addExerciseToTemplate(page, pushExercise);
+    await page.getByRole("button", { name: "Start workout" }).click();
+
+    await expect(page).toHaveURL(/\/workouts\/.+/);
+    const workoutUrl = page.url();
+
+    await expect(page.getByText("Workout notes")).toBeVisible();
+    await expect(page.getByText(initialNotes)).toBeVisible();
+
+    await page.goto(templateUrl);
+    await page.getByLabel("Workout description").fill(updatedNotes);
+    await page.getByRole("button", { name: "Save details" }).click();
+    await expect(page.getByText("Template details saved.")).toBeVisible();
+
+    await page.goto(workoutUrl);
+    await expect(page.getByText("Workout notes")).toBeVisible();
+    await expect(page.getByText(updatedNotes)).toBeVisible();
+    await expect(page.getByText(initialNotes)).toHaveCount(0);
   });
 });
