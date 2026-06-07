@@ -20,7 +20,11 @@ import {
 import { requireUser } from "@/features/auth/session";
 import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import { hasIncompleteExercisePrescriptions } from "@/features/workout-prescriptions";
-import { coerceTimeZone, getTodayDateKey } from "@/lib/date";
+import {
+  coerceTimeZone,
+  getTodayDateKey,
+  parseDateInputToDateKey,
+} from "@/lib/date";
 
 import { syncPlanCompletionState } from "./core";
 import {
@@ -278,6 +282,15 @@ export async function updatePlanDetailsAction(formData: FormData) {
 
   if (!parsedInput.success) {
     redirectToPlansHub({ error: getValidationMessage(parsedInput.error) });
+  }
+
+  const startDate = parseDateInputToDateKey(parsedInput.data.startDate);
+
+  if (!startDate) {
+    redirectToPlan(parsedInput.data.planId, {
+      error: "Choose a valid start date.",
+      week: returnWeek,
+    });
   }
 
   const plan = await requirePlanRecord(user.id, parsedInput.data.planId);
@@ -784,7 +797,7 @@ export async function startPlanAction(formData: FormData) {
     });
   }
 
-  const cutoffWeekday = getWeekOneCutoffWeekday(parsedInput.data.startDate);
+  const cutoffWeekday = getWeekOneCutoffWeekday(startDate);
   const weekOneWorkoutIdsToDelete = workouts
     .filter(
       (workout) => workout.weekNumber === 1 && workout.weekday < cutoffWeekday,
@@ -810,7 +823,7 @@ export async function startPlanAction(formData: FormData) {
       .set({
         archivedAt: null,
         completedAt: null,
-        startDate: parsedInput.data.startDate,
+        startDate,
         startedAt: new Date(),
         status: "active",
         updatedAt: new Date(),

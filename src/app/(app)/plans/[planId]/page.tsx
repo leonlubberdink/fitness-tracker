@@ -39,7 +39,7 @@ import {
   PLAN_STATUS_LABELS,
   PLAN_WEEKDAY_OPTIONS,
 } from "@/features/plans/utils";
-import { getTodayDateKey } from "@/lib/date";
+import { formatDateForLocale, getTodayDateKey } from "@/lib/date";
 
 type PlanDetailPageProps = {
   params: Promise<{
@@ -144,7 +144,7 @@ export default async function PlanDetailPage({
     null;
   const previousWeek =
     selectedWeek && selectedWeek.weekNumber > 1
-      ? plan.weeks[selectedWeek.weekNumber - 2] ?? null
+      ? (plan.weeks[selectedWeek.weekNumber - 2] ?? null)
       : null;
   const selectedWeekHref = selectedWeek
     ? `/plans/${plan.id}?week=${selectedWeek.weekNumber}`
@@ -200,8 +200,8 @@ export default async function PlanDetailPage({
             </Stack>
           }
         >
-          Another workout is already open. Resume that session or leave this plan
-          day untouched for now.
+          Another workout is already open. Resume that session or leave this
+          plan day untouched for now.
         </Alert>
       ) : null}
 
@@ -265,7 +265,7 @@ export default async function PlanDetailPage({
                 </form>
               ) : null}
 
-              {(plan.status === "active" || plan.status === "completed") ? (
+              {plan.status === "active" || plan.status === "completed" ? (
                 <form action={archivePlanAction}>
                   <input type="hidden" name="planId" value={plan.id} />
                   <FormStatusButton
@@ -422,7 +422,10 @@ export default async function PlanDetailPage({
       {isPlanEditable ? (
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, lg: 7 }}>
-            <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
+            <Paper
+              elevation={0}
+              sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}
+            >
               <form action={updatePlanDetailsAction}>
                 <Stack spacing={1.75}>
                   <Typography variant="h3">Plan details</Typography>
@@ -500,8 +503,15 @@ export default async function PlanDetailPage({
                     <TextField
                       label="Start date"
                       name="startDate"
-                      type="date"
-                      defaultValue={todayDateKey}
+                      type="text"
+                      defaultValue={formatDateForLocale(todayDateKey, "de-DE", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })}
+                      placeholder="06.07.2026"
+                      helperText="Use dd.mm.yyyy"
+                      slotProps={{ htmlInput: { inputMode: "numeric" } }}
                       required
                       fullWidth
                     />
@@ -631,7 +641,8 @@ export default async function PlanDetailPage({
                           />
                         </Stack>
                         <Typography color="text.secondary">
-                          {selectedWeek.resolvedCount}/{selectedWeek.totalCount} resolved
+                          {selectedWeek.resolvedCount}/{selectedWeek.totalCount}{" "}
+                          resolved
                         </Typography>
                       </Stack>
                       {plan.status === "active" &&
@@ -659,15 +670,18 @@ export default async function PlanDetailPage({
                       >
                         <Stack spacing={0.45}>
                           <Stack spacing={0.45}>
-                            <Typography variant="overline" color="primary.light">
+                            <Typography
+                              variant="overline"
+                              color="primary.light"
+                            >
                               Week setup
                             </Typography>
                             <Typography variant="body1" fontWeight={700}>
                               Add workout to week {selectedWeek.weekNumber}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Build this week here, then review the scheduled slots
-                              below.
+                              Build this week here, then review the scheduled
+                              slots below.
                             </Typography>
                           </Stack>
                         </Stack>
@@ -683,7 +697,11 @@ export default async function PlanDetailPage({
                         >
                           <form action={upsertPlanWorkoutAction}>
                             <Stack spacing={1.25}>
-                              <input type="hidden" name="planId" value={plan.id} />
+                              <input
+                                type="hidden"
+                                name="planId"
+                                value={plan.id}
+                              />
                               <input
                                 type="hidden"
                                 name="returnWeek"
@@ -718,11 +736,16 @@ export default async function PlanDetailPage({
                                     select
                                     label="Template"
                                     name="workoutTemplateId"
-                                    defaultValue={plan.templateOptions[0]?.id ?? ""}
+                                    defaultValue={
+                                      plan.templateOptions[0]?.id ?? ""
+                                    }
                                     fullWidth
                                   >
                                     {plan.templateOptions.map((template) => (
-                                      <MenuItem key={template.id} value={template.id}>
+                                      <MenuItem
+                                        key={template.id}
+                                        value={template.id}
+                                      >
                                         {template.name}
                                         {!template.isReadyToStart
                                           ? " (needs setup)"
@@ -732,66 +755,80 @@ export default async function PlanDetailPage({
                                   </TextField>
                                 </Grid>
                               </Grid>
-                        <FormStatusButton
-                          type="submit"
-                          variant="contained"
-                          color="primary"
-                          loadingLabel="Adding..."
+                              <FormStatusButton
+                                type="submit"
+                                variant="contained"
+                                color="primary"
+                                loadingLabel="Adding..."
                                 fullWidth
-                        >
-                          Add planned workout
-                        </FormStatusButton>
-                      </Stack>
-                    </form>
-                  </Stack>
+                              >
+                                Add planned workout
+                              </FormStatusButton>
+                            </Stack>
+                          </form>
+                        </Stack>
 
-                  {previousWeek ? (
-                    <Stack
-                      spacing={1}
-                      sx={{
-                        borderTop: "1px solid rgba(139,194,172,0.12)",
-                        pt: 1.5,
-                      }}
-                    >
-                      <Stack spacing={0.35}>
-                        <Typography variant="caption" color="text.secondary">
-                          Reuse the same schedule from week {previousWeek.weekNumber}
-                          when the split repeats.
-                        </Typography>
-                        {copyPreviousWeekDisabledReason ? (
-                          <Typography variant="caption" color="text.secondary">
-                            {copyPreviousWeekDisabledReason}
-                          </Typography>
+                        {previousWeek ? (
+                          <Stack
+                            spacing={1}
+                            sx={{
+                              borderTop: "1px solid rgba(139,194,172,0.12)",
+                              pt: 1.5,
+                            }}
+                          >
+                            <Stack spacing={0.35}>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Reuse the same schedule from week{" "}
+                                {previousWeek.weekNumber}
+                                when the split repeats.
+                              </Typography>
+                              {copyPreviousWeekDisabledReason ? (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {copyPreviousWeekDisabledReason}
+                                </Typography>
+                              ) : null}
+                            </Stack>
+
+                            <form action={copyPreviousPlanWeekAction}>
+                              <input
+                                type="hidden"
+                                name="planId"
+                                value={plan.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="returnWeek"
+                                value={String(selectedWeek.weekNumber)}
+                              />
+                              <input
+                                type="hidden"
+                                name="targetWeekNumber"
+                                value={String(selectedWeek.weekNumber)}
+                              />
+                              <FormStatusButton
+                                type="submit"
+                                variant="outlined"
+                                startIcon={<FileCopyRounded />}
+                                loadingLabel="Copying..."
+                                disabled={Boolean(
+                                  copyPreviousWeekDisabledReason,
+                                )}
+                                fullWidth
+                              >
+                                Copy week {previousWeek.weekNumber} into this
+                                week
+                              </FormStatusButton>
+                            </form>
+                          </Stack>
                         ) : null}
                       </Stack>
-
-                      <form action={copyPreviousPlanWeekAction}>
-                        <input type="hidden" name="planId" value={plan.id} />
-                        <input
-                          type="hidden"
-                          name="returnWeek"
-                          value={String(selectedWeek.weekNumber)}
-                        />
-                        <input
-                          type="hidden"
-                          name="targetWeekNumber"
-                          value={String(selectedWeek.weekNumber)}
-                        />
-                        <FormStatusButton
-                          type="submit"
-                          variant="outlined"
-                          startIcon={<FileCopyRounded />}
-                          loadingLabel="Copying..."
-                          disabled={Boolean(copyPreviousWeekDisabledReason)}
-                          fullWidth
-                        >
-                          Copy week {previousWeek.weekNumber} into this week
-                        </FormStatusButton>
-                      </form>
-                    </Stack>
-                  ) : null}
-                </Stack>
-              ) : null}
+                    ) : null}
 
                     <Stack spacing={1.25}>
                       <Stack spacing={0.35}>
@@ -850,7 +887,10 @@ export default async function PlanDetailPage({
                                   <Typography variant="body1" fontWeight={700}>
                                     {workout.templateName}
                                   </Typography>
-                                  <Typography variant="body2" color="text.secondary">
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
                                     {workout.weekdayLabel}
                                     {workout.displayDateLabel
                                       ? ` · ${workout.displayDateLabel}`
@@ -886,11 +926,13 @@ export default async function PlanDetailPage({
                                 </Stack>
                               </Stack>
 
-                              {workout.canEdit && plan.templateOptions.length > 0 ? (
+                              {workout.canEdit &&
+                              plan.templateOptions.length > 0 ? (
                                 <Stack
                                   spacing={1.25}
                                   sx={{
-                                    borderTop: "1px solid rgba(255,255,255,0.06)",
+                                    borderTop:
+                                      "1px solid rgba(255,255,255,0.06)",
                                     pt: 1.5,
                                   }}
                                 >
@@ -929,7 +971,9 @@ export default async function PlanDetailPage({
                                             select
                                             label="Week"
                                             name="weekNumber"
-                                            defaultValue={String(workout.weekNumber)}
+                                            defaultValue={String(
+                                              workout.weekNumber,
+                                            )}
                                             fullWidth
                                           >
                                             {Array.from(
@@ -950,17 +994,21 @@ export default async function PlanDetailPage({
                                             select
                                             label="Day"
                                             name="weekday"
-                                            defaultValue={String(workout.weekday)}
+                                            defaultValue={String(
+                                              workout.weekday,
+                                            )}
                                             fullWidth
                                           >
-                                            {PLAN_WEEKDAY_OPTIONS.map((option) => (
-                                              <MenuItem
-                                                key={option.value}
-                                                value={String(option.value)}
-                                              >
-                                                {option.label}
-                                              </MenuItem>
-                                            ))}
+                                            {PLAN_WEEKDAY_OPTIONS.map(
+                                              (option) => (
+                                                <MenuItem
+                                                  key={option.value}
+                                                  value={String(option.value)}
+                                                >
+                                                  {option.label}
+                                                </MenuItem>
+                                              ),
+                                            )}
                                           </TextField>
                                         </Grid>
                                         <Grid size={{ xs: 12, md: 6 }}>
@@ -968,20 +1016,24 @@ export default async function PlanDetailPage({
                                             select
                                             label="Template"
                                             name="workoutTemplateId"
-                                            defaultValue={workout.workoutTemplateId}
+                                            defaultValue={
+                                              workout.workoutTemplateId
+                                            }
                                             fullWidth
                                           >
-                                            {plan.templateOptions.map((template) => (
-                                              <MenuItem
-                                                key={template.id}
-                                                value={template.id}
-                                              >
-                                                {template.name}
-                                                {!template.isReadyToStart
-                                                  ? " (needs setup)"
-                                                  : ""}
-                                              </MenuItem>
-                                            ))}
+                                            {plan.templateOptions.map(
+                                              (template) => (
+                                                <MenuItem
+                                                  key={template.id}
+                                                  value={template.id}
+                                                >
+                                                  {template.name}
+                                                  {!template.isReadyToStart
+                                                    ? " (needs setup)"
+                                                    : ""}
+                                                </MenuItem>
+                                              ),
+                                            )}
                                           </TextField>
                                         </Grid>
                                         <Grid size={{ xs: 12, sm: 6 }}>
@@ -1029,7 +1081,9 @@ export default async function PlanDetailPage({
                                         <input
                                           type="hidden"
                                           name="returnWeek"
-                                          value={String(selectedWeek.weekNumber)}
+                                          value={String(
+                                            selectedWeek.weekNumber,
+                                          )}
                                         />
                                         <input
                                           type="hidden"
@@ -1063,7 +1117,9 @@ export default async function PlanDetailPage({
                                         <input
                                           type="hidden"
                                           name="returnWeek"
-                                          value={String(selectedWeek.weekNumber)}
+                                          value={String(
+                                            selectedWeek.weekNumber,
+                                          )}
                                         />
                                         <input
                                           type="hidden"
@@ -1095,7 +1151,9 @@ export default async function PlanDetailPage({
                                         <input
                                           type="hidden"
                                           name="returnWeek"
-                                          value={String(selectedWeek.weekNumber)}
+                                          value={String(
+                                            selectedWeek.weekNumber,
+                                          )}
                                         />
                                         <input
                                           type="hidden"
@@ -1202,8 +1260,8 @@ export default async function PlanDetailPage({
           <Stack spacing={1.25}>
             <Typography variant="h3">No workout templates yet</Typography>
             <Typography color="text.secondary">
-              Plans are built from saved workout templates. Create one first, then
-              come back here to assign it to a day.
+              Plans are built from saved workout templates. Create one first,
+              then come back here to assign it to a day.
             </Typography>
             <Button
               component={NextLink}

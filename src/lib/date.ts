@@ -105,6 +105,14 @@ export function formatDateForDisplay(
   return formatInstantForDisplay(parseDateKey(dateKey), timeZone, options);
 }
 
+export function formatDateForLocale(
+  dateKey: string,
+  locale: string,
+  options?: Intl.DateTimeFormatOptions,
+) {
+  return new Intl.DateTimeFormat(locale, options).format(parseDateKey(dateKey));
+}
+
 export function formatInstantForDisplay(
   value: Date,
   timeZone: string = DEFAULT_TIME_ZONE,
@@ -114,4 +122,28 @@ export function formatInstantForDisplay(
     timeZone,
     ...options,
   }).format(value);
+}
+
+export function parseDateInputToDateKey(value: string) {
+  const trimmedValue = value.trim();
+
+  const isoMatch = trimmedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return trimmedValue;
+  }
+
+  const localizedMatch = trimmedValue.match(/^(\d{2})[./-](\d{2})[./-](\d{4})$/);
+  if (!localizedMatch) {
+    return null;
+  }
+
+  const [, day, month, year] = localizedMatch;
+  const candidate = `${year}-${month}-${day}`;
+  const parsed = parseDateKey(candidate);
+
+  if (formatDateKey(parsed) !== candidate) {
+    return null;
+  }
+
+  return candidate;
 }

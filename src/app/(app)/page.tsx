@@ -22,10 +22,7 @@ import {
   getOpenWorkoutSessionForUser,
   getWorkoutSessionForLogging,
 } from "@/features/workouts/queries";
-import {
-  formatDateForDisplay,
-  formatInstantForDisplay,
-} from "@/lib/date";
+import { formatDateForDisplay, formatInstantForDisplay } from "@/lib/date";
 
 function formatPerformedOn(performedOn: string, timeZone: string) {
   return formatDateForDisplay(performedOn, timeZone, {
@@ -331,7 +328,6 @@ export default async function Home() {
               </ListItemIcon>
               <ListItemText
                 primary="Exercises"
-                secondary="Build the reusable library that feeds the workout flow."
                 slotProps={{
                   secondary: {
                     variant: "caption",
@@ -352,7 +348,6 @@ export default async function Home() {
               </ListItemIcon>
               <ListItemText
                 primary="Plans"
-                secondary="Shape a multi-week block and keep the next workout in view."
                 slotProps={{
                   secondary: {
                     variant: "caption",
@@ -373,7 +368,6 @@ export default async function Home() {
               </ListItemIcon>
               <ListItemText
                 primary="History"
-                secondary="Review completed sessions and compare what you logged."
                 slotProps={{
                   secondary: {
                     variant: "caption",
