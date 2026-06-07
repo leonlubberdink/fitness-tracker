@@ -14,13 +14,17 @@ import {
   getExerciseCategoriesForUser,
   getExercisesForUser,
 } from "@/features/exercises/queries";
+import { hasIncompleteExercisePrescriptions } from "@/features/workout-prescriptions";
 import type { ExerciseUnit } from "@/lib/exercise-units";
 
 type TemplateExerciseRow = {
   id: string;
   workoutTemplateId: string;
   exerciseId: string;
+  notes: string | null;
+  restTime: string | null;
   sortOrder: number;
+  setsReps: string | null;
   exerciseName: string;
   exerciseCategory: string;
   defaultUnit: ExerciseUnit;
@@ -66,7 +70,10 @@ export async function getWorkoutTemplatesForUser(userId: string) {
       id: workoutTemplateExercises.id,
       workoutTemplateId: workoutTemplateExercises.workoutTemplateId,
       exerciseId: workoutTemplateExercises.exerciseId,
+      notes: workoutTemplateExercises.notes,
+      restTime: workoutTemplateExercises.restTime,
       sortOrder: workoutTemplateExercises.sortOrder,
+      setsReps: workoutTemplateExercises.setsReps,
       exerciseName: exercises.name,
       exerciseCategory: exercises.category,
       defaultUnit: exercises.defaultUnit,
@@ -92,11 +99,15 @@ export async function getWorkoutTemplatesForUser(userId: string) {
 
   return templateRows.map((template) => {
     const templateExercises = exerciseRowsByTemplateId.get(template.id) ?? [];
+    const isReadyToStart =
+      templateExercises.length > 0 &&
+      !hasIncompleteExercisePrescriptions(templateExercises);
 
     return {
       ...template,
       exerciseCount: templateExercises.length,
       exercises: templateExercises,
+      isReadyToStart,
     };
   });
 }
@@ -129,13 +140,16 @@ export async function getWorkoutTemplateForEditing(
   const [templateExercises, exerciseOptions, availableCategories] = await Promise.all([
     db
       .select({
-        id: workoutTemplateExercises.id,
-        workoutTemplateId: workoutTemplateExercises.workoutTemplateId,
-        exerciseId: workoutTemplateExercises.exerciseId,
-        sortOrder: workoutTemplateExercises.sortOrder,
-        exerciseName: exercises.name,
-        exerciseCategory: exercises.category,
-        defaultUnit: exercises.defaultUnit,
+      id: workoutTemplateExercises.id,
+      workoutTemplateId: workoutTemplateExercises.workoutTemplateId,
+      exerciseId: workoutTemplateExercises.exerciseId,
+      notes: workoutTemplateExercises.notes,
+      restTime: workoutTemplateExercises.restTime,
+      sortOrder: workoutTemplateExercises.sortOrder,
+      setsReps: workoutTemplateExercises.setsReps,
+      exerciseName: exercises.name,
+      exerciseCategory: exercises.category,
+      defaultUnit: exercises.defaultUnit,
       })
       .from(workoutTemplateExercises)
       .innerJoin(
@@ -152,6 +166,9 @@ export async function getWorkoutTemplateForEditing(
     ...template,
     availableCategories,
     exerciseOptions,
+    isReadyToStart:
+      templateExercises.length > 0 &&
+      !hasIncompleteExercisePrescriptions(templateExercises),
     exercises: templateExercises.map((exercise) => ({
       ...exercise,
       exerciseCategory: formatStoredExerciseCategories(exercise.exerciseCategory),

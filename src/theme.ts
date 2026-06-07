@@ -42,8 +42,7 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily:
-      'var(--font-roboto-flex), "Segoe UI", system-ui, -apple-system, sans-serif',
+    fontFamily: '"Segoe UI", system-ui, -apple-system, sans-serif',
     h1: {
       fontSize: "2.375rem",
       fontWeight: 650,

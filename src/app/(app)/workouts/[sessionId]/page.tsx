@@ -215,6 +215,56 @@ function EntryHeader({
   );
 }
 
+function PrescriptionPanel({ entry }: { entry: WorkoutEntry }) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: "8px",
+        px: 1.75,
+        py: 1.5,
+        bgcolor: "rgba(255,255,255,0.02)",
+      }}
+    >
+      <Stack spacing={1}>
+        <Typography variant="overline" color="text.secondary">
+          Prescription
+        </Typography>
+        <Stack spacing={0.75}>
+          <Stack spacing={0.25}>
+            <Typography variant="caption" color="text.secondary">
+              Sets x reps
+            </Typography>
+            <Typography variant="body2">
+              {entry.setsRepsSnapshot ?? "Not set"}
+            </Typography>
+          </Stack>
+          <Stack spacing={0.25}>
+            <Typography variant="caption" color="text.secondary">
+              Rest time
+            </Typography>
+            <Typography variant="body2">
+              {entry.restTimeSnapshot ?? "Not set"}
+            </Typography>
+          </Stack>
+          <Stack spacing={0.25}>
+            <Typography variant="caption" color="text.secondary">
+              Notes
+            </Typography>
+            <Typography
+              variant="body2"
+              color={entry.notesSnapshot ? "text.primary" : "text.secondary"}
+              sx={{ whiteSpace: "pre-wrap" }}
+            >
+              {entry.notesSnapshot ?? "No notes"}
+            </Typography>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Paper>
+  );
+}
+
 function SetEditor({
   sessionId,
   entry,
@@ -517,6 +567,8 @@ export default async function WorkoutPage({
                     </Stack>
                   </Stack>
                 </Paper>
+
+                <PrescriptionPanel entry={currentEntry} />
               </Stack>
 
               {currentEntry.sets.length === 0 && currentFirstSetDefaults ? (

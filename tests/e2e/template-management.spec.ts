@@ -51,13 +51,18 @@ test.describe("template management", () => {
     await expect(page.getByText(pushExercise, { exact: true }).first()).toBeVisible();
   });
 
-  test("shows live workout notes from the template on an active workout", async ({
+  test("shows live workout notes and prescription from the template on an active workout", async ({
     page,
   }) => {
     const pushExercise = uniqueName("E2E Push");
     const templateName = uniqueName("E2E Notes Template");
     const initialNotes = "Keep rest short and stay smooth.";
     const updatedNotes = "Use two minutes of rest and pause the last rep.";
+    const prescription = {
+      setsReps: "4 x 4-6",
+      restTime: "2-3 min",
+      notes: "Primary strength exercise",
+    };
 
     await createExercise(page, {
       name: pushExercise,
@@ -71,7 +76,7 @@ test.describe("template management", () => {
     await page.getByRole("button", { name: "Save details" }).click();
     await expect(page.getByText("Template details saved.")).toBeVisible();
 
-    await addExerciseToTemplate(page, pushExercise);
+    await addExerciseToTemplate(page, pushExercise, prescription);
     await page.getByRole("button", { name: "Start workout" }).click();
 
     await expect(page).toHaveURL(/\/workouts\/(?!templates\/)[^/?#]+$/);
@@ -79,6 +84,10 @@ test.describe("template management", () => {
 
     await expect(page.getByText("Workout notes")).toBeVisible();
     await expect(page.getByText(initialNotes)).toBeVisible();
+    await expect(page.getByText("Prescription")).toBeVisible();
+    await expect(page.getByText(prescription.setsReps, { exact: true })).toBeVisible();
+    await expect(page.getByText(prescription.restTime, { exact: true })).toBeVisible();
+    await expect(page.getByText(prescription.notes, { exact: true })).toBeVisible();
 
     await page.goto(templateUrl);
     await page.getByLabel("Workout description").fill(updatedNotes);

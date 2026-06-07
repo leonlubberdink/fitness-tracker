@@ -22,11 +22,16 @@ import {
   type ExerciseUnit,
 } from "@/lib/exercise-units";
 
+import { TemplateExercisePrescriptionEditor } from "./template-exercise-prescription-editor";
+
 type TemplateExerciseItem = {
   id: string;
+  notes: string | null;
   exerciseCategory: string;
   exerciseName: string;
   defaultUnit: ExerciseUnit;
+  restTime: string | null;
+  setsReps: string | null;
 };
 
 type TemplateExerciseOrderListProps = {
@@ -34,6 +39,9 @@ type TemplateExerciseOrderListProps = {
   exercises: TemplateExerciseItem[];
   reorderTemplateExercisesAction: (formData: FormData) => Promise<void>;
   removeTemplateExerciseAction: (formData: FormData) => Promise<void>;
+  updateTemplateExercisePrescriptionAction: (
+    formData: FormData,
+  ) => Promise<void>;
 };
 
 function reorderItems<T>(items: T[], startIndex: number, endIndex: number) {
@@ -50,6 +58,7 @@ export function TemplateExerciseOrderList({
   exercises,
   reorderTemplateExercisesAction,
   removeTemplateExerciseAction,
+  updateTemplateExercisePrescriptionAction,
 }: TemplateExerciseOrderListProps) {
   const [orderedExercises, setOrderedExercises] = useState(exercises);
   const [isSaving, startSavingTransition] = useTransition();
@@ -155,6 +164,35 @@ export function TemplateExerciseOrderList({
                           {exercise.exerciseCategory} ·{" "}
                           {formatExerciseUnitShort(exercise.defaultUnit)}
                         </Typography>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          flexWrap="wrap"
+                          useFlexGap
+                          pt={0.5}
+                        >
+                          <Chip
+                            label={exercise.setsReps ?? "Sets x reps missing"}
+                            size="small"
+                            color={exercise.setsReps ? "default" : "warning"}
+                            variant="outlined"
+                          />
+                          <Chip
+                            label={exercise.restTime ?? "Rest time missing"}
+                            size="small"
+                            color={exercise.restTime ? "default" : "warning"}
+                            variant="outlined"
+                          />
+                        </Stack>
+                        {exercise.notes ? (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ whiteSpace: "pre-wrap" }}
+                          >
+                            Notes: {exercise.notes}
+                          </Typography>
+                        ) : null}
                       </Stack>
 
                       <form action={removeTemplateExerciseAction}>
@@ -178,6 +216,17 @@ export function TemplateExerciseOrderList({
                         </FormStatusIconButton>
                       </form>
                     </Stack>
+
+                    <TemplateExercisePrescriptionEditor
+                      initialNotes={exercise.notes}
+                      initialRestTime={exercise.restTime}
+                      initialSetsReps={exercise.setsReps}
+                      templateExerciseId={exercise.id}
+                      templateId={templateId}
+                      updateTemplateExercisePrescriptionAction={
+                        updateTemplateExercisePrescriptionAction
+                      }
+                    />
                   </Paper>
                 )}
               </Draggable>

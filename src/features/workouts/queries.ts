@@ -19,7 +19,10 @@ type WorkoutEntryRow = {
   exerciseId: string | null;
   exerciseNameSnapshot: string;
   exerciseCategorySnapshot: string;
+  notesSnapshot: string | null;
+  restTimeSnapshot: string | null;
   unitSnapshot: ExerciseUnit;
+  setsRepsSnapshot: string | null;
   nextLoadRecommendation: LoadRecommendation | null;
   sortOrder: number;
   createdAt: Date;
@@ -123,7 +126,10 @@ export async function getWorkoutSessionForLogging(
         exerciseNameSnapshot: workoutExerciseEntries.exerciseNameSnapshot,
         exerciseCategorySnapshot:
           workoutExerciseEntries.exerciseCategorySnapshot,
+        notesSnapshot: workoutExerciseEntries.notesSnapshot,
+        restTimeSnapshot: workoutExerciseEntries.restTimeSnapshot,
         unitSnapshot: workoutExerciseEntries.unitSnapshot,
+        setsRepsSnapshot: workoutExerciseEntries.setsRepsSnapshot,
         nextLoadRecommendation: workoutExerciseEntries.nextLoadRecommendation,
         sortOrder: workoutExerciseEntries.sortOrder,
         createdAt: workoutExerciseEntries.createdAt,
@@ -280,7 +286,10 @@ export async function getCompletedWorkoutHistoryForUser(
         exerciseNameSnapshot: workoutExerciseEntries.exerciseNameSnapshot,
         exerciseCategorySnapshot:
           workoutExerciseEntries.exerciseCategorySnapshot,
+        notesSnapshot: workoutExerciseEntries.notesSnapshot,
+        restTimeSnapshot: workoutExerciseEntries.restTimeSnapshot,
         unitSnapshot: workoutExerciseEntries.unitSnapshot,
+        setsRepsSnapshot: workoutExerciseEntries.setsRepsSnapshot,
         nextLoadRecommendation: workoutExerciseEntries.nextLoadRecommendation,
         sortOrder: workoutExerciseEntries.sortOrder,
         createdAt: workoutExerciseEntries.createdAt,

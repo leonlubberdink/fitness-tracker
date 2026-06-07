@@ -39,9 +39,14 @@ test.describe("workout and history flow", () => {
     await addExerciseToTemplate(page, secondExercise);
     await page.getByRole("button", { name: "Start workout" }).click();
 
-    await page.getByLabel("Reps").fill("5");
-    await page.getByLabel("Weight (kg)").fill("100");
-    await page.getByRole("button", { name: "Log first set" }).click();
+    const firstSetForm = page.locator("form").filter({
+      has: page.getByRole("button", { name: "Log first set" }),
+    });
+
+    await expect(firstSetForm).toBeVisible();
+    await firstSetForm.getByLabel("Reps").fill("5");
+    await firstSetForm.getByLabel("Weight (kg)").fill("100");
+    await firstSetForm.getByRole("button", { name: "Log first set" }).click();
     await expect(page.getByText("Set 1")).toBeVisible();
 
     await page.getByRole("button", { name: "Log next set" }).click();
@@ -56,12 +61,15 @@ test.describe("workout and history flow", () => {
     await page.getByRole("button", { name: "Next exercise" }).click();
     await expect(page.getByRole("button", { name: "Next exercise" })).toHaveCount(0);
     await expect(page.getByText(secondExercise, { exact: true }).first()).toBeVisible();
-    const currentExerciseFirstSetForm = page.locator("form").filter({
+
+    const nextExerciseFirstSetForm = page.locator("form").filter({
       has: page.getByRole("button", { name: "Log first set" }),
     });
-    await currentExerciseFirstSetForm.getByLabel("Reps").fill("1");
-    await currentExerciseFirstSetForm.getByLabel("Time (sec)").fill("90");
-    await currentExerciseFirstSetForm
+
+    await expect(nextExerciseFirstSetForm).toBeVisible();
+    await nextExerciseFirstSetForm.getByLabel("Reps").fill("1");
+    await nextExerciseFirstSetForm.getByLabel("Time (sec)").fill("90");
+    await nextExerciseFirstSetForm
       .getByRole("button", { name: "Log first set" })
       .click();
 

@@ -724,6 +724,9 @@ export default async function PlanDetailPage({
                                     {plan.templateOptions.map((template) => (
                                       <MenuItem key={template.id} value={template.id}>
                                         {template.name}
+                                        {!template.isReadyToStart
+                                          ? " (needs setup)"
+                                          : ""}
                                       </MenuItem>
                                     ))}
                                   </TextField>
@@ -974,6 +977,9 @@ export default async function PlanDetailPage({
                                                 value={template.id}
                                               >
                                                 {template.name}
+                                                {!template.isReadyToStart
+                                                  ? " (needs setup)"
+                                                  : ""}
                                               </MenuItem>
                                             ))}
                                           </TextField>

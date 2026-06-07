@@ -17,6 +17,7 @@ import {
   reorderTemplateExercisesAction,
   removeTemplateExerciseAction,
   startWorkoutFromTemplateAction,
+  updateTemplateExercisePrescriptionAction,
   updateWorkoutTemplateDetailsAction,
 } from "@/features/workout-templates/actions";
 import { requireWorkoutTemplateForEditing } from "@/features/workout-templates/queries";
@@ -78,12 +79,18 @@ export default async function WorkoutTemplatePage({
               variant="contained"
               startIcon={<PlayArrowRounded />}
               loadingLabel="Starting workout..."
-              disabled={template.exercises.length === 0}
+              disabled={!template.isReadyToStart}
               fullWidth
             >
               Start workout
             </FormStatusButton>
           </form>
+          {template.exercises.length > 0 && !template.isReadyToStart ? (
+            <Alert severity="warning" variant="outlined">
+              Complete the sets x reps and rest time for every exercise before
+              starting this template.
+            </Alert>
+          ) : null}
         </Stack>
       </Paper>
 
@@ -175,6 +182,9 @@ export default async function WorkoutTemplatePage({
               exercises={template.exercises}
               reorderTemplateExercisesAction={reorderTemplateExercisesAction}
               removeTemplateExerciseAction={removeTemplateExerciseAction}
+              updateTemplateExercisePrescriptionAction={
+                updateTemplateExercisePrescriptionAction
+              }
             />
           )}
         </Stack>

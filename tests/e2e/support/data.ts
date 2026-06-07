@@ -29,6 +29,10 @@ export function uniqueName(prefix: string) {
   return `${prefix} ${Date.now()}`;
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function createExercise(
   page: Page,
   {
@@ -80,14 +84,36 @@ export async function createTemplate(page: Page, templateName: string) {
   await expect(page.getByRole("heading", { name: templateName })).toBeVisible();
 }
 
-export async function addExerciseToTemplate(page: Page, exerciseName: string) {
+export async function addExerciseToTemplate(
+  page: Page,
+  exerciseName: string,
+  prescription?: {
+    notes?: string;
+    restTime?: string;
+    setsReps?: string;
+  },
+) {
+  const setsReps = prescription?.setsReps ?? "4 x 4-6";
+  const restTime = prescription?.restTime ?? "2-3 min";
+  const notes = prescription?.notes ?? "Primary strength exercise";
+
   await page.getByRole("searchbox", { name: "Exercise" }).fill(exerciseName);
-  await page
-    .getByRole("button", {
-      name: `Add ${exerciseName} to template`,
-    })
-    .evaluate((button: HTMLButtonElement) => button.click());
-  await page.waitForLoadState("networkidle");
+  const exerciseButton = page.getByRole("button", {
+    name: new RegExp(`^${escapeRegExp(exerciseName)}`),
+  });
+
+  await expect(exerciseButton).toBeVisible();
+  await exerciseButton.click();
+  const addExerciseForm = page.locator("form").filter({
+    has: page.getByRole("button", { name: "Add to template" }),
+  });
+
+  await expect(addExerciseForm).toBeVisible();
+
+  await addExerciseForm.getByLabel("Sets x reps").fill(setsReps);
+  await addExerciseForm.getByLabel("Rest time").fill(restTime);
+  await addExerciseForm.getByLabel("Notes").fill(notes);
+  await addExerciseForm.getByRole("button", { name: "Add to template" }).click();
   await expect(
     page.getByRole("button", { name: `Remove ${exerciseName}` }),
   ).toBeVisible();

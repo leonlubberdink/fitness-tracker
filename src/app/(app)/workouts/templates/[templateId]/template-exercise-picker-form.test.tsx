@@ -114,13 +114,22 @@ describe("TemplateExercisePickerForm", () => {
       />,
     );
 
-    const submitButton = screen.getByRole("button", { name: "Add to template" });
-    expect(submitButton).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Add to template" }),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Bench Press.*kg.*Push/ }));
 
     expect(screen.getAllByText("Bench Press").length).toBeGreaterThan(0);
     expect(screen.getByText("kg")).toBeVisible();
-    expect(submitButton).toBeEnabled();
+    expect(screen.getByLabelText(/Sets x reps/i)).toBeVisible();
+    expect(screen.getByLabelText(/Rest time/i)).toBeVisible();
+    expect(screen.getByLabelText(/Notes/i)).toBeVisible();
+
+    await user.type(screen.getByLabelText(/Sets x reps/i), "4 x 4-6");
+    await user.type(screen.getByLabelText(/Rest time/i), "2-3 min");
+    await user.type(screen.getByLabelText(/Notes/i), "Primary strength exercise");
+
+    expect(screen.getByRole("button", { name: "Add to template" })).toBeEnabled();
   });
 });
