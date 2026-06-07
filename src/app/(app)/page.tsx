@@ -6,12 +6,12 @@ import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import Grid from "@mui/material/Grid";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import Divider from "@mui/material/Divider";
-import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -58,6 +58,7 @@ export default async function Home() {
       (count, entry) => count + entry.sets.length,
       0,
     ) ?? 0;
+  const showEmptyState = !workoutSession && !activePlan;
 
   return (
     <Stack spacing={3}>
@@ -343,6 +344,65 @@ export default async function Home() {
             >
               Open active plan
             </Button>
+          </Stack>
+        </Paper>
+      ) : null}
+
+      {showEmptyState ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "12px",
+            px: 2.75,
+            py: 3.25,
+          }}
+        >
+          <Stack spacing={2}>
+            <Stack spacing={1}>
+              <Typography variant="h1">Welcome back.</Typography>
+              <Typography color="text.secondary">
+                Start by creating exercises, building a workout template, or
+                planning your next block.
+              </Typography>
+            </Stack>
+
+            <List
+              disablePadding
+              sx={{ borderRadius: "10px", overflow: "hidden" }}
+            >
+              <ListItemButton component={NextLink} href="/exercises">
+                <ListItemIcon>
+                  <FitnessCenterRounded color="primary" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Exercises"
+                  secondary="Create your exercise library first."
+                />
+                <ChevronRightRounded color="action" />
+              </ListItemButton>
+              <Divider />
+              <ListItemButton component={NextLink} href="/workouts">
+                <ListItemIcon>
+                  <LibraryBooksRounded color="primary" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Workout templates"
+                  secondary="Build a reusable workout and start training."
+                />
+                <ChevronRightRounded color="action" />
+              </ListItemButton>
+              <Divider />
+              <ListItemButton component={NextLink} href="/plans">
+                <ListItemIcon>
+                  <EventNoteRounded color="secondary" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Plans"
+                  secondary="Schedule a multi-week block around your templates."
+                />
+                <ChevronRightRounded color="action" />
+              </ListItemButton>
+            </List>
           </Stack>
         </Paper>
       ) : null}

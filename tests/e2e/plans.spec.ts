@@ -54,7 +54,7 @@ test("creates, starts, and launches a scheduled plan workout", async ({ page }) 
   await page.getByRole("button", { name: "Add planned workout" }).click();
   await expect(page.getByText(templateName)).toBeVisible();
 
-  await page.getByLabel("Start date").fill(getTodayDateKey());
+  await page.locator('input[name="startDate"]').fill(getTodayDateKey());
   await page.getByRole("button", { name: "Start plan" }).click();
   await expect(page.getByText("Plan started.")).toBeVisible();
   await expect(page.getByText(/· Today$/)).toBeVisible();
