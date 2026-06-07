@@ -30,6 +30,10 @@ import {
 } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
 import { formatStoredExerciseCategories } from "@/features/exercises/categories";
+import {
+  hasIncompleteExercisePrescriptions,
+  normalizeOptionalTextValue,
+} from "@/features/workout-prescriptions";
 import { logInfo } from "@/lib/logger";
 
 import {
@@ -40,14 +44,30 @@ import {
   saveWorkoutAsTemplateSchema,
   startTemplateSchema,
   templateExerciseMutationSchema,
+  updateTemplateExercisePrescriptionSchema,
   updateTemplateDetailsSchema,
   templateIdSchema,
 } from "./validation";
 
 type WorkoutTemplateExerciseSource = {
   exerciseId: string | null;
+  notes: string | null;
+  restTime: string | null;
   sortOrder: number;
+  setsReps: string | null;
 };
+
+type CreateTemplateFromExerciseSourcesResult =
+  | {
+      error: string;
+      requiresCompletion: false;
+      templateId: null;
+    }
+  | {
+      error: null;
+      requiresCompletion: boolean;
+      templateId: string;
+    };
 
 function getTodayDateString() {
   const now = new Date();
@@ -248,12 +268,13 @@ async function createTemplateFromExerciseSources({
   name: string;
   description?: string | null;
   exerciseSources: WorkoutTemplateExerciseSource[];
-}) {
+}): Promise<CreateTemplateFromExerciseSourcesResult> {
   const sourceError = validateTemplateExerciseSources(exerciseSources);
 
   if (sourceError) {
     return {
       error: sourceError,
+      requiresCompletion: false,
       templateId: null,
     };
   }
@@ -263,6 +284,7 @@ async function createTemplateFromExerciseSources({
   if (existingTemplate) {
     return {
       error: "A workout template with that name already exists.",
+      requiresCompletion: false,
       templateId: null,
     };
   }
@@ -270,6 +292,13 @@ async function createTemplateFromExerciseSources({
   const templateId = randomUUID();
   const sortedSources = [...exerciseSources].sort(
     (left, right) => left.sortOrder - right.sortOrder,
+  );
+  const requiresCompletion = hasIncompleteExercisePrescriptions(
+    sortedSources.map((source) => ({
+      notes: source.notes,
+      restTime: source.restTime,
+      setsReps: source.setsReps,
+    })),
   );
 
   await db.transaction(async (tx) => {
@@ -285,13 +314,17 @@ async function createTemplateFromExerciseSources({
         id: randomUUID(),
         workoutTemplateId: templateId,
         exerciseId: source.exerciseId as string,
+        notes: source.notes,
+        restTime: source.restTime,
         sortOrder: index + 1,
+        setsReps: source.setsReps,
       })),
     );
   });
 
   return {
     error: null,
+    requiresCompletion,
     templateId,
   };
 }
@@ -420,12 +453,22 @@ export async function deleteWorkoutTemplateAction(formData: FormData) {
 
 export async function addTemplateExerciseAction(formData: FormData) {
   const user = await requireUser();
+  const templateIdValue = getStringValue(formData, "templateId");
   const parsedInput = addTemplateExerciseSchema.safeParse({
-    templateId: getStringValue(formData, "templateId"),
+    notes: getStringValue(formData, "notes"),
+    templateId: templateIdValue,
     exerciseId: getStringValue(formData, "exerciseId"),
+    restTime: getStringValue(formData, "restTime"),
+    setsReps: getStringValue(formData, "setsReps"),
   });
 
   if (!parsedInput.success) {
+    if (templateIdValue) {
+      redirectToTemplateEditor(templateIdValue, {
+        error: getValidationMessage(parsedInput.error),
+      });
+    }
+
     redirectToWorkoutHub({ error: getValidationMessage(parsedInput.error) });
   }
 
@@ -484,7 +527,10 @@ export async function addTemplateExerciseAction(formData: FormData) {
       id: randomUUID(),
       workoutTemplateId: templateId,
       exerciseId: exercise.id,
+      notes: normalizeOptionalTextValue(parsedInput.data.notes),
+      restTime: parsedInput.data.restTime,
       sortOrder: (lastTemplateExercise?.sortOrder ?? 0) + 1,
+      setsReps: parsedInput.data.setsReps,
     });
 
     await tx
@@ -496,6 +542,77 @@ export async function addTemplateExerciseAction(formData: FormData) {
   revalidatePath("/workouts");
   revalidatePath(`/workouts/templates/${templateId}`);
   redirectToTemplateEditor(templateId);
+}
+
+export async function updateTemplateExercisePrescriptionAction(formData: FormData) {
+  const user = await requireUser();
+  const templateIdValue = getStringValue(formData, "templateId");
+  const parsedInput = updateTemplateExercisePrescriptionSchema.safeParse({
+    notes: getStringValue(formData, "notes"),
+    restTime: getStringValue(formData, "restTime"),
+    setsReps: getStringValue(formData, "setsReps"),
+    templateExerciseId: getStringValue(formData, "templateExerciseId"),
+    templateId: templateIdValue,
+  });
+
+  if (!parsedInput.success) {
+    if (templateIdValue) {
+      redirectToTemplateEditor(templateIdValue, {
+        error: getValidationMessage(parsedInput.error),
+      });
+    }
+
+    redirectToWorkoutHub({ error: getValidationMessage(parsedInput.error) });
+  }
+
+  const { notes, restTime, setsReps, templateExerciseId, templateId } =
+    parsedInput.data;
+  const template = await requireTemplateForUser(user.id, templateId);
+
+  if (!template) {
+    redirectToWorkoutHub({ error: "Workout template no longer exists." });
+  }
+
+  const [templateExercise] = await db
+    .select({
+      id: workoutTemplateExercises.id,
+    })
+    .from(workoutTemplateExercises)
+    .where(
+      and(
+        eq(workoutTemplateExercises.id, templateExerciseId),
+        eq(workoutTemplateExercises.workoutTemplateId, templateId),
+      ),
+    )
+    .limit(1);
+
+  if (!templateExercise) {
+    redirectToTemplateEditor(templateId, {
+      error: "Template exercise no longer exists.",
+    });
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(workoutTemplateExercises)
+      .set({
+        notes: normalizeOptionalTextValue(notes),
+        restTime,
+        setsReps,
+      })
+      .where(eq(workoutTemplateExercises.id, templateExerciseId));
+
+    await tx
+      .update(workoutTemplates)
+      .set({ updatedAt: new Date() })
+      .where(eq(workoutTemplates.id, templateId));
+  });
+
+  revalidatePath("/workouts");
+  revalidatePath(`/workouts/templates/${templateId}`);
+  redirectToTemplateEditor(templateId, {
+    success: "Prescription saved.",
+  });
 }
 
 export async function removeTemplateExerciseAction(formData: FormData) {
@@ -770,7 +887,10 @@ export async function startWorkoutFromTemplateAction(formData: FormData) {
       exerciseName: exercises.name,
       exerciseCategory: exercises.category,
       defaultUnit: exercises.defaultUnit,
+      notes: workoutTemplateExercises.notes,
+      restTime: workoutTemplateExercises.restTime,
       sortOrder: workoutTemplateExercises.sortOrder,
+      setsReps: workoutTemplateExercises.setsReps,
     })
     .from(workoutTemplateExercises)
     .innerJoin(
@@ -783,6 +903,13 @@ export async function startWorkoutFromTemplateAction(formData: FormData) {
   if (templateExercises.length === 0) {
     redirectToTemplateEditor(templateId, {
       error: "Add at least one exercise before starting this workout.",
+    });
+  }
+
+  if (hasIncompleteExercisePrescriptions(templateExercises)) {
+    redirectToTemplateEditor(templateId, {
+      error:
+        "Complete sets x reps and rest time for every exercise before starting this workout.",
     });
   }
 
@@ -806,7 +933,10 @@ export async function startWorkoutFromTemplateAction(formData: FormData) {
         exerciseCategorySnapshot: formatStoredExerciseCategories(
           templateExercise.exerciseCategory,
         ),
+        notesSnapshot: normalizeOptionalTextValue(templateExercise.notes ?? ""),
+        restTimeSnapshot: templateExercise.restTime,
         unitSnapshot: templateExercise.defaultUnit,
+        setsRepsSnapshot: templateExercise.setsReps,
         sortOrder: templateExercise.sortOrder,
       })),
     );
@@ -855,7 +985,10 @@ async function getSessionExerciseSourcesForTemplate({
   const entries = await db
     .select({
       exerciseId: workoutExerciseEntries.exerciseId,
+      notes: workoutExerciseEntries.notesSnapshot,
+      restTime: workoutExerciseEntries.restTimeSnapshot,
       sortOrder: workoutExerciseEntries.sortOrder,
+      setsReps: workoutExerciseEntries.setsRepsSnapshot,
     })
     .from(workoutExerciseEntries)
     .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
@@ -904,6 +1037,15 @@ export async function saveActiveWorkoutAsTemplateAction(formData: FormData) {
 
   if (result.error) {
     redirectToWorkoutSession(sessionId, { error: result.error });
+  }
+
+  if (result.requiresCompletion) {
+    revalidatePath("/workouts");
+    revalidatePath(`/workouts/templates/${result.templateId}`);
+    redirectToTemplateEditor(result.templateId, {
+      success:
+        "Template created. Complete the missing prescription fields before starting it.",
+    });
   }
 
   revalidatePath("/workouts");
@@ -976,6 +1118,15 @@ export async function saveCompletedWorkoutAsTemplateAction(formData: FormData) {
 
   if (result.error) {
     redirectToHistory({ error: result.error });
+  }
+
+  if (result.requiresCompletion) {
+    revalidatePath("/workouts");
+    revalidatePath(`/workouts/templates/${result.templateId}`);
+    redirectToTemplateEditor(result.templateId, {
+      success:
+        "Template created. Complete the missing prescription fields before starting it.",
+    });
   }
 
   revalidatePath("/workouts");

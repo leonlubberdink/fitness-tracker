@@ -1,31 +1,29 @@
 import EventNoteRounded from "@mui/icons-material/EventNoteRounded";
 import EastRounded from "@mui/icons-material/EastRounded";
 import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
-import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
+import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import Grid from "@mui/material/Grid";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import Divider from "@mui/material/Divider";
-import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
+import { startPlannedWorkoutAction } from "@/features/plans/actions";
 import { getPlansPageData } from "@/features/plans/queries";
 import {
   getOpenWorkoutSessionForUser,
   getWorkoutSessionForLogging,
 } from "@/features/workouts/queries";
-import {
-  formatDateForDisplay,
-  formatInstantForDisplay,
-} from "@/lib/date";
+import { formatDateForDisplay, formatInstantForDisplay } from "@/lib/date";
 
 function formatPerformedOn(performedOn: string, timeZone: string) {
   return formatDateForDisplay(performedOn, timeZone, {
@@ -59,9 +57,155 @@ export default async function Home() {
       (count, entry) => count + entry.sets.length,
       0,
     ) ?? 0;
+  const showEmptyState = !workoutSession && !activePlan;
 
   return (
     <Stack spacing={3}>
+      {workoutSession ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "12px",
+            px: 2.75,
+            py: 3.25,
+          }}
+        >
+          <Stack className="workoutSession" spacing={2.75}>
+            <Stack spacing={1}>
+              <Typography variant="h1">Continue workout.</Typography>
+              <Typography color="text.secondary">
+                {`Open session from ${formatPerformedOn(workoutSession.performedOn, user.timeZone)}.`}
+              </Typography>
+            </Stack>
+
+            <Stack spacing={2.25}>
+              {currentEntry ? (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    px: 2,
+                    py: 2,
+                    borderRadius: "8px",
+                    bgcolor: "rgba(139,194,172,0.06)",
+                    borderColor: "rgba(139,194,172,0.14)",
+                  }}
+                >
+                  <Stack spacing={0.5}>
+                    <Typography variant="overline" color="primary.light">
+                      Current exercise
+                    </Typography>
+                    <Typography variant="h3">
+                      {currentEntry.exerciseNameSnapshot}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {currentEntry.exerciseCategorySnapshot} ·{" "}
+                      {currentEntry.sets.length} logged sets
+                    </Typography>
+                  </Stack>
+                </Paper>
+              ) : null}
+
+              <Grid container spacing={1.25}>
+                <Grid size={4}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: "8px",
+                      bgcolor: "rgba(255,255,255,0.02)",
+                    }}
+                  >
+                    <Stack spacing={0.35}>
+                      <Typography variant="overline" color="text.secondary">
+                        Started
+                      </Typography>
+                      <Typography variant="h3">
+                        {formatTime(workoutSession.startedAt, user.timeZone)}
+                      </Typography>
+                    </Stack>
+                  </Paper>
+                </Grid>
+                <Grid size={4}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: "8px",
+                      bgcolor: "rgba(255,255,255,0.02)",
+                    }}
+                  >
+                    <Stack spacing={0.35}>
+                      <Typography variant="overline" color="text.secondary">
+                        Exercises
+                      </Typography>
+                      <Typography variant="h3">
+                        {workoutSession.entries.length}
+                      </Typography>
+                    </Stack>
+                  </Paper>
+                </Grid>
+                <Grid size={4}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: "8px",
+                      bgcolor: "rgba(255,255,255,0.02)",
+                    }}
+                  >
+                    <Stack spacing={0.35}>
+                      <Typography variant="overline" color="text.secondary">
+                        Sets
+                      </Typography>
+                      <Typography variant="h3">{totalSets}</Typography>
+                    </Stack>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Button
+                component={NextLink}
+                href={`/workouts/${workoutSession.id}`}
+                variant="contained"
+                endIcon={<EastRounded />}
+                fullWidth
+              >
+                Continue workout
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
+      ) : null}
+
+      {!workoutSession &&
+      !activePlan?.todayWorkout?.canStart &&
+      activePlan?.nextWorkout ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "12px",
+            px: 2.75,
+            py: 2.75,
+            bgcolor: "rgba(152, 168, 216, 0.06)",
+            borderColor: "rgba(152, 168, 216, 0.16)",
+          }}
+        >
+          <Stack spacing={1.5}>
+            <Typography variant="overline" color="secondary.light">
+              Up next
+            </Typography>
+            <Typography variant="h3">
+              {activePlan.nextWorkout.templateName}
+            </Typography>
+            <Typography color="text.secondary">
+              {activePlan.nextWorkout.displayDateLabel
+                ? `${activePlan.nextWorkout.weekdayLabel} · ${activePlan.nextWorkout.displayDateLabel}`
+                : activePlan.nextWorkout.weekdayLabel}
+            </Typography>
+          </Stack>
+        </Paper>
+      ) : null}
+
       {activePlan ? (
         <Paper
           elevation={0}
@@ -161,7 +305,7 @@ export default async function Home() {
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {activePlan.todayWorkout
-                    ? "Today is scheduled. Open the plan to start or manage it."
+                    ? ""
                     : activePlan.nextWorkout?.displayDateLabel
                       ? `Next scheduled day: ${activePlan.nextWorkout.displayDateLabel}.`
                       : "This plan has no remaining scheduled workouts."}
@@ -169,9 +313,29 @@ export default async function Home() {
               </Stack>
             </Paper>
 
+            {activePlan.todayWorkout?.canStart && !workoutSession ? (
+              <form action={startPlannedWorkoutAction}>
+                <input type="hidden" name="planId" value={activePlan.id} />
+                <input
+                  type="hidden"
+                  name="planWorkoutId"
+                  value={activePlan.todayWorkout.id}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<PlayArrowRounded />}
+                  fullWidth
+                >
+                  Start today&apos;s workout
+                </Button>
+              </form>
+            ) : null}
+
             <Button
               component={NextLink}
-              href="/plans"
+              href={`/plans/${activePlan.id}`}
               variant="contained"
               color="secondary"
               startIcon={<EventNoteRounded />}
@@ -183,209 +347,64 @@ export default async function Home() {
         </Paper>
       ) : null}
 
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: "12px",
-          px: 2.75,
-          py: 3.25,
-        }}
-      >
-        <Stack spacing={2.75}>
-          {workoutSession && (
+      {showEmptyState ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "12px",
+            px: 2.75,
+            py: 3.25,
+          }}
+        >
+          <Stack spacing={2}>
             <Stack spacing={1}>
-              <Typography variant="h1">Continue workout.</Typography>
+              <Typography variant="h1">Welcome back.</Typography>
               <Typography color="text.secondary">
-                {`Open session from ${formatPerformedOn(workoutSession.performedOn, user.timeZone)}.`}
+                Start by creating exercises, building a workout template, or
+                planning your next block.
               </Typography>
             </Stack>
-          )}
 
-          {workoutSession ? (
-            <Stack spacing={2.25}>
-              {currentEntry ? (
-                <Paper
-                  elevation={0}
-                  sx={{
-                    px: 2,
-                    py: 2,
-                    borderRadius: "8px",
-                    bgcolor: "rgba(139,194,172,0.06)",
-                    borderColor: "rgba(139,194,172,0.14)",
-                  }}
-                >
-                  <Stack spacing={0.5}>
-                    <Typography variant="overline" color="primary.light">
-                      Current exercise
-                    </Typography>
-                    <Typography variant="h3">
-                      {currentEntry.exerciseNameSnapshot}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {currentEntry.exerciseCategorySnapshot} ·{" "}
-                      {currentEntry.sets.length} logged sets
-                    </Typography>
-                  </Stack>
-                </Paper>
-              ) : null}
-
-              <Grid container spacing={1.25}>
-                <Grid size={4}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: "8px",
-                      bgcolor: "rgba(255,255,255,0.02)",
-                    }}
-                  >
-                    <Stack spacing={0.35}>
-                      <Typography variant="overline" color="text.secondary">
-                        Started
-                      </Typography>
-                      <Typography variant="h3">
-                        {formatTime(workoutSession.startedAt, user.timeZone)}
-                      </Typography>
-                    </Stack>
-                  </Paper>
-                </Grid>
-                <Grid size={4}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: "8px",
-                      bgcolor: "rgba(255,255,255,0.02)",
-                    }}
-                  >
-                    <Stack spacing={0.35}>
-                      <Typography variant="overline" color="text.secondary">
-                        Exercises
-                      </Typography>
-                      <Typography variant="h3">
-                        {workoutSession.entries.length}
-                      </Typography>
-                    </Stack>
-                  </Paper>
-                </Grid>
-                <Grid size={4}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: "8px",
-                      bgcolor: "rgba(255,255,255,0.02)",
-                    }}
-                  >
-                    <Stack spacing={0.35}>
-                      <Typography variant="overline" color="text.secondary">
-                        Sets
-                      </Typography>
-                      <Typography variant="h3">{totalSets}</Typography>
-                    </Stack>
-                  </Paper>
-                </Grid>
-              </Grid>
-
-              <Button
-                component={NextLink}
-                href={`/workouts/${workoutSession.id}`}
-                variant="contained"
-                endIcon={<EastRounded />}
-                fullWidth
-              >
-                Continue workout
-              </Button>
-            </Stack>
-          ) : (
-            <Button
-              component={NextLink}
-              href="/workouts"
-              variant="contained"
-              endIcon={<FitnessCenterRounded />}
-              fullWidth
+            <List
+              disablePadding
+              sx={{ borderRadius: "10px", overflow: "hidden" }}
             >
-              Open workouts
-            </Button>
-          )}
-        </Stack>
-      </Paper>
-
-      <Paper elevation={0} sx={{ borderRadius: "10px", px: 1, py: 1 }}>
-        <Stack spacing={0.75}>
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            sx={{ px: 1.25, pt: 0.75 }}
-          >
-            Quick routes
-          </Typography>
-          <List disablePadding>
-            <ListItemButton
-              component={NextLink}
-              href="/exercises"
-              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
-                <LibraryBooksRounded />
-              </ListItemIcon>
-              <ListItemText
-                primary="Exercises"
-                secondary="Build the reusable library that feeds the workout flow."
-                slotProps={{
-                  secondary: {
-                    variant: "caption",
-                    color: "text.secondary",
-                  },
-                }}
-              />
-              <ChevronRightRounded color="action" />
-            </ListItemButton>
-            <Divider sx={{ mx: 1.5 }} />
-            <ListItemButton
-              component={NextLink}
-              href="/plans"
-              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
-                <EventNoteRounded />
-              </ListItemIcon>
-              <ListItemText
-                primary="Plans"
-                secondary="Shape a multi-week block and keep the next workout in view."
-                slotProps={{
-                  secondary: {
-                    variant: "caption",
-                    color: "text.secondary",
-                  },
-                }}
-              />
-              <ChevronRightRounded color="action" />
-            </ListItemButton>
-            <Divider sx={{ mx: 1.5 }} />
-            <ListItemButton
-              component={NextLink}
-              href="/history"
-              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
-                <HistoryRounded />
-              </ListItemIcon>
-              <ListItemText
-                primary="History"
-                secondary="Review completed sessions and compare what you logged."
-                slotProps={{
-                  secondary: {
-                    variant: "caption",
-                    color: "text.secondary",
-                  },
-                }}
-              />
-              <ChevronRightRounded color="action" />
-            </ListItemButton>
-          </List>
-        </Stack>
-      </Paper>
+              <ListItemButton component={NextLink} href="/exercises">
+                <ListItemIcon>
+                  <FitnessCenterRounded color="primary" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Exercises"
+                  secondary="Create your exercise library first."
+                />
+                <ChevronRightRounded color="action" />
+              </ListItemButton>
+              <Divider />
+              <ListItemButton component={NextLink} href="/workouts">
+                <ListItemIcon>
+                  <LibraryBooksRounded color="primary" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Workout templates"
+                  secondary="Build a reusable workout and start training."
+                />
+                <ChevronRightRounded color="action" />
+              </ListItemButton>
+              <Divider />
+              <ListItemButton component={NextLink} href="/plans">
+                <ListItemIcon>
+                  <EventNoteRounded color="secondary" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Plans"
+                  secondary="Schedule a multi-week block around your templates."
+                />
+                <ChevronRightRounded color="action" />
+              </ListItemButton>
+            </List>
+          </Stack>
+        </Paper>
+      ) : null}
     </Stack>
   );
 }

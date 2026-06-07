@@ -19,6 +19,7 @@ import {
 } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
 import { formatStoredExerciseCategories } from "@/features/exercises/categories";
+import { hasIncompleteExercisePrescriptions } from "@/features/workout-prescriptions";
 import { coerceTimeZone, getTodayDateKey } from "@/lib/date";
 
 import { syncPlanCompletionState } from "./core";
@@ -1062,7 +1063,10 @@ export async function startPlannedWorkoutAction(formData: FormData) {
       exerciseId: exercises.id,
       exerciseName: exercises.name,
       defaultUnit: exercises.defaultUnit,
+      notes: workoutTemplateExercises.notes,
+      restTime: workoutTemplateExercises.restTime,
       sortOrder: workoutTemplateExercises.sortOrder,
+      setsReps: workoutTemplateExercises.setsReps,
     })
     .from(workoutTemplateExercises)
     .innerJoin(
@@ -1075,6 +1079,14 @@ export async function startPlannedWorkoutAction(formData: FormData) {
   if (templateExercises.length === 0) {
     redirectToPlan(plan.id, {
       error: "This template no longer has any exercises.",
+      week: returnWeek ?? planWorkout.weekNumber,
+    });
+  }
+
+  if (hasIncompleteExercisePrescriptions(templateExercises)) {
+    redirectToPlan(plan.id, {
+      error:
+        "Complete sets x reps and rest time for every exercise before starting this workout.",
       week: returnWeek ?? planWorkout.weekNumber,
     });
   }
@@ -1100,7 +1112,10 @@ export async function startPlannedWorkoutAction(formData: FormData) {
         exerciseId: exercise.exerciseId,
         exerciseNameSnapshot: exercise.exerciseName,
         id: randomUUID(),
+        notesSnapshot: exercise.notes,
+        restTimeSnapshot: exercise.restTime,
         sortOrder: exercise.sortOrder,
+        setsRepsSnapshot: exercise.setsReps,
         unitSnapshot: exercise.defaultUnit,
         workoutSessionId: sessionId,
       })),

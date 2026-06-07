@@ -5,6 +5,7 @@ import {
   moveTemplateExerciseSchema,
   reorderTemplateExercisesSchema,
   saveWorkoutAsTemplateSchema,
+  updateTemplateExercisePrescriptionSchema,
   updateTemplateDetailsSchema,
 } from "@/features/workout-templates/validation";
 
@@ -23,7 +24,18 @@ describe("workout template validation", () => {
     const addExerciseResult = addTemplateExerciseSchema.safeParse({
       templateId,
       exerciseId,
+      notes: "Primary strength exercise",
+      restTime: "2-3 min",
+      setsReps: "4 x 4-6",
     });
+    const updatePrescriptionResult =
+      updateTemplateExercisePrescriptionSchema.safeParse({
+        templateId,
+        templateExerciseId,
+        notes: "Primary strength exercise",
+        restTime: "2-3 min",
+        setsReps: "4 x 4-6",
+      });
     const reorderResult = reorderTemplateExercisesSchema.safeParse({
       templateId,
       templateExerciseIds: [templateExerciseId],
@@ -35,11 +47,13 @@ describe("workout template validation", () => {
 
     expect(updateDetailsResult.success).toBe(true);
     expect(addExerciseResult.success).toBe(true);
+    expect(updatePrescriptionResult.success).toBe(true);
     expect(reorderResult.success).toBe(true);
     expect(saveResult.success).toBe(true);
     if (
       !updateDetailsResult.success ||
       !addExerciseResult.success ||
+      !updatePrescriptionResult.success ||
       !reorderResult.success ||
       !saveResult.success
     ) {
@@ -48,6 +62,9 @@ describe("workout template validation", () => {
 
     expect(updateDetailsResult.data.name).toBe("Pull day");
     expect(updateDetailsResult.data.description).toBe("Focus on heavy rows.");
+    expect(addExerciseResult.data.setsReps).toBe("4 x 4-6");
+    expect(addExerciseResult.data.restTime).toBe("2-3 min");
+    expect(addExerciseResult.data.notes).toBe("Primary strength exercise");
     expect(saveResult.data.name).toBe("Upper split");
   });
 
@@ -66,10 +83,19 @@ describe("workout template validation", () => {
       name: "",
       description: "",
     });
+    const updatePrescriptionResult =
+      updateTemplateExercisePrescriptionSchema.safeParse({
+        templateId,
+        templateExerciseId,
+        notes: "",
+        restTime: "",
+        setsReps: "",
+      });
 
     expect(moveResult.success).toBe(false);
     expect(reorderResult.success).toBe(false);
     expect(updateDetailsResult.success).toBe(false);
+    expect(updatePrescriptionResult.success).toBe(false);
 
     if (!moveResult.success) {
       expect(moveResult.error.flatten().fieldErrors.direction).toContain(
@@ -87,6 +113,12 @@ describe("workout template validation", () => {
       const issues = updateDetailsResult.error.flatten().fieldErrors;
       expect(issues.templateId).toContain("Invalid workout template.");
       expect(issues.name).toContain("Template name is required.");
+    }
+
+    if (!updatePrescriptionResult.success) {
+      const issues = updatePrescriptionResult.error.flatten().fieldErrors;
+      expect(issues.setsReps).toContain("Sets x reps is required.");
+      expect(issues.restTime).toContain("Rest time is required.");
     }
   });
 });

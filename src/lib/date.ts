@@ -105,6 +105,14 @@ export function formatDateForDisplay(
   return formatInstantForDisplay(parseDateKey(dateKey), timeZone, options);
 }
 
+export function formatDateForLocale(
+  dateKey: string,
+  locale: string,
+  options?: Intl.DateTimeFormatOptions,
+) {
+  return new Intl.DateTimeFormat(locale, options).format(parseDateKey(dateKey));
+}
+
 export function formatInstantForDisplay(
   value: Date,
   timeZone: string = DEFAULT_TIME_ZONE,

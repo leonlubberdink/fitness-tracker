@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Roboto_Flex } from "next/font/google";
 
 import CssBaseline from "@mui/material/CssBaseline";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
@@ -8,12 +7,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import "./globals.css";
 
 import theme from "@/theme";
-
-const robotoFlex = Roboto_Flex({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-roboto-flex",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -35,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={robotoFlex.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body>
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>

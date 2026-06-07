@@ -53,6 +53,9 @@ export const workoutTemplateExercises = pgTable(
     exerciseId: uuid("exercise_id")
       .notNull()
       .references(() => exercises.id, { onDelete: "restrict" }),
+    setsReps: text("sets_reps"),
+    restTime: text("rest_time"),
+    notes: text("notes"),
     sortOrder: integer("sort_order").notNull(),
     createdAt: timestamp("created_at", {
       withTimezone: true,

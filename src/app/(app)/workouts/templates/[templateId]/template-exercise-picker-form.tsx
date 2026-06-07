@@ -7,6 +7,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
@@ -17,7 +18,6 @@ import Typography from "@mui/material/Typography";
 
 import {
   FormStatusButton,
-  FormStatusIconButton,
 } from "@/components/app/FormStatusButtons";
 import {
   formatExerciseUnitShort,
@@ -55,6 +55,9 @@ export function TemplateExercisePickerForm({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedExercise, setSelectedExercise] =
     useState<ExerciseOption | null>(null);
+  const [setsReps, setSetsReps] = useState("");
+  const [restTime, setRestTime] = useState("");
+  const [notes, setNotes] = useState("");
   const [results, setResults] = useState<ExerciseOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -128,6 +131,9 @@ export function TemplateExercisePickerForm({
     await addTemplateExerciseAction(formData);
     setSearchQuery("");
     setSelectedExercise(null);
+    setSetsReps("");
+    setRestTime("");
+    setNotes("");
     setResults([]);
     setErrorMessage("");
   }
@@ -135,6 +141,9 @@ export function TemplateExercisePickerForm({
   function handleSearchChange(value: string) {
     setSearchQuery(value);
     setSelectedExercise(null);
+    setSetsReps("");
+    setRestTime("");
+    setNotes("");
     setErrorMessage("");
 
     if (value.trim().length === 0) {
@@ -146,6 +155,9 @@ export function TemplateExercisePickerForm({
   function handleExerciseSelect(exercise: ExerciseOption) {
     setSelectedExercise(exercise);
     setSearchQuery(exercise.name);
+    setSetsReps("");
+    setRestTime("");
+    setNotes("");
     setResults(initialExercises);
     setErrorMessage("");
   }
@@ -190,28 +202,78 @@ export function TemplateExercisePickerForm({
         ) : null}
 
         {selectedExercise ? (
-          <Stack
-            spacing={1}
-            sx={{
-              p: 2,
-              borderRadius: "8px",
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: "rgba(255,255,255,0.02)",
-            }}
-          >
-            <Typography variant="body1" fontWeight={700}>
-              {selectedExercise.name}
-            </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              <Chip label={selectedExercise.category} variant="outlined" />
-              <Chip
-                label={formatExerciseUnitShort(selectedExercise.defaultUnit)}
-                color="primary"
-                variant="outlined"
+          <Box component="form" action={formAction}>
+            <Stack
+              spacing={1.5}
+              sx={{
+                p: 2,
+                borderRadius: "8px",
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "rgba(255,255,255,0.02)",
+              }}
+            >
+              <input type="hidden" name="templateId" value={templateId} />
+              <input
+                type="hidden"
+                name="exerciseId"
+                value={selectedExercise.id}
               />
+              <Stack spacing={0.75}>
+                <Typography variant="body1" fontWeight={700}>
+                  {selectedExercise.name}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip label={selectedExercise.category} variant="outlined" />
+                  <Chip
+                    label={formatExerciseUnitShort(selectedExercise.defaultUnit)}
+                    color="primary"
+                    variant="outlined"
+                  />
+                </Stack>
+              </Stack>
+
+              <TextField
+                label="Sets x reps"
+                name="setsReps"
+                value={setsReps}
+                onChange={(event) => setSetsReps(event.target.value)}
+                placeholder="4 x 4-6"
+                required
+                fullWidth
+              />
+              <TextField
+                label="Rest time"
+                name="restTime"
+                value={restTime}
+                onChange={(event) => setRestTime(event.target.value)}
+                placeholder="2-3 min"
+                required
+                fullWidth
+              />
+              <TextField
+                label="Notes"
+                name="notes"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Primary strength exercise"
+                multiline
+                minRows={2}
+                fullWidth
+              />
+              <FormStatusButton
+                type="submit"
+                variant="contained"
+                loadingLabel="Adding exercise..."
+                disabled={
+                  setsReps.trim().length === 0 || restTime.trim().length === 0
+                }
+                fullWidth
+              >
+                Add to template
+              </FormStatusButton>
             </Stack>
-          </Stack>
+          </Box>
         ) : (
           <Stack
             spacing={1.25}
@@ -304,18 +366,16 @@ export function TemplateExercisePickerForm({
                       />
                     </ListItemButton>
 
-                    <Box component="form" action={formAction} sx={{ pr: 1.25 }}>
-                      <input type="hidden" name="templateId" value={templateId} />
-                      <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <FormStatusIconButton
-                        type="submit"
+                    <Box sx={{ pr: 1.25 }}>
+                      <IconButton
+                        type="button"
                         color="primary"
-                        aria-label={`Add ${exercise.name} to template`}
-                        pendingMatch={{ name: "exerciseId", value: exercise.id }}
+                        aria-label={`Open add form for ${exercise.name}`}
+                        onClick={() => handleExerciseSelect(exercise)}
                         sx={{ alignSelf: "center" }}
                       >
                         <AddRounded />
-                      </FormStatusIconButton>
+                      </IconButton>
                     </Box>
                   </ListItem>
                 ))}
@@ -323,26 +383,6 @@ export function TemplateExercisePickerForm({
             )}
           </Stack>
         )}
-
-        <Box component="form" action={formAction}>
-          <input type="hidden" name="templateId" value={templateId} />
-          <input
-            type="hidden"
-            name="exerciseId"
-            value={selectedExercise?.id ?? ""}
-            required
-          />
-          <FormStatusButton
-            type="submit"
-            variant="contained"
-            disabled={!selectedExercise}
-            startIcon={<AddRounded />}
-            loadingLabel="Adding exercise..."
-            fullWidth
-          >
-            Add to template
-          </FormStatusButton>
-        </Box>
       </Stack>
     </Box>
   );

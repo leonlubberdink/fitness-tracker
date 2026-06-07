@@ -324,8 +324,11 @@ export async function addExerciseEntryAction(formData: FormData) {
       exerciseId: exercise.id,
       exerciseNameSnapshot: exercise.name,
       exerciseCategorySnapshot: formatStoredExerciseCategories(exercise.category),
+      notesSnapshot: null,
+      restTimeSnapshot: null,
       unitSnapshot: exercise.defaultUnit,
       sortOrder: nextSortOrder,
+      setsRepsSnapshot: null,
     });
 
     await tx

@@ -359,6 +359,7 @@ export async function getPlanByIdForUser(
     templateOptions: templateOptions.map((template) => ({
       exerciseCount: template.exerciseCount,
       id: template.id,
+      isReadyToStart: template.isReadyToStart,
       name: template.name,
     })),
   };

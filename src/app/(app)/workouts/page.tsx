@@ -196,6 +196,13 @@ export default async function WorkoutsPage({
                           </Typography>
                         )}
 
+                        {template.exerciseCount > 0 && !template.isReadyToStart ? (
+                          <Typography variant="caption" color="warning.main">
+                            Complete the prescription fields in the template editor
+                            before starting.
+                          </Typography>
+                        ) : null}
+
                         <Stack
                           direction="row"
                           spacing={1}
@@ -217,7 +224,7 @@ export default async function WorkoutsPage({
                               variant="contained"
                               startIcon={<PlayArrowRounded />}
                               loadingLabel="Starting..."
-                              disabled={template.exerciseCount === 0}
+                              disabled={!template.isReadyToStart}
                               fullWidth
                             >
                               Start

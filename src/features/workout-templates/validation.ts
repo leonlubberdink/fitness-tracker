@@ -18,19 +18,38 @@ export const templateDescriptionSchema = z.object({
   description: z.string().trim(),
 });
 
+export const templateExercisePrescriptionSchema = z.object({
+  notes: z.string().trim().max(240, "Notes must be 240 characters or less."),
+  restTime: z
+    .string()
+    .trim()
+    .min(1, "Rest time is required.")
+    .max(40, "Rest time must be 40 characters or less."),
+  setsReps: z
+    .string()
+    .trim()
+    .min(1, "Sets x reps is required.")
+    .max(80, "Sets x reps must be 80 characters or less."),
+});
+
 export const createTemplateSchema = templateNameSchema;
 
 export const updateTemplateDetailsSchema = templateIdSchema
   .merge(templateNameSchema)
   .merge(templateDescriptionSchema);
 
-export const addTemplateExerciseSchema = templateIdSchema.extend({
-  exerciseId: uuidField("Choose a valid exercise."),
-});
+export const addTemplateExerciseSchema = templateIdSchema
+  .extend({
+    exerciseId: uuidField("Choose a valid exercise."),
+  })
+  .merge(templateExercisePrescriptionSchema);
 
 export const templateExerciseMutationSchema = templateIdSchema.extend({
   templateExerciseId: uuidField("Invalid template exercise."),
 });
+
+export const updateTemplateExercisePrescriptionSchema =
+  templateExerciseMutationSchema.merge(templateExercisePrescriptionSchema);
 
 export const moveTemplateExerciseSchema =
   templateExerciseMutationSchema.extend({

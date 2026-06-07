@@ -99,6 +99,9 @@ export const workoutExerciseEntries = pgTable(
     exerciseNameSnapshot: text("exercise_name_snapshot").notNull(),
     exerciseCategorySnapshot: text("exercise_category_snapshot").notNull(),
     unitSnapshot: exerciseUnitEnum("unit_snapshot").notNull(),
+    setsRepsSnapshot: text("sets_reps_snapshot"),
+    restTimeSnapshot: text("rest_time_snapshot"),
+    notesSnapshot: text("notes_snapshot"),
     nextLoadRecommendation: workoutLoadRecommendationEnum(
       "next_load_recommendation",
     ),
