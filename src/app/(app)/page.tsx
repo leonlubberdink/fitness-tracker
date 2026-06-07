@@ -61,25 +61,23 @@ export default async function Home() {
 
   return (
     <Stack spacing={3}>
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: "12px",
-          px: 2.75,
-          py: 3.25,
-        }}
-      >
-        <Stack spacing={2.75}>
-          {workoutSession && (
+      {workoutSession ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "12px",
+            px: 2.75,
+            py: 3.25,
+          }}
+        >
+          <Stack className="workoutSession" spacing={2.75}>
             <Stack spacing={1}>
               <Typography variant="h1">Continue workout.</Typography>
               <Typography color="text.secondary">
                 {`Open session from ${formatPerformedOn(workoutSession.performedOn, user.timeZone)}.`}
               </Typography>
             </Stack>
-          )}
 
-          {workoutSession ? (
             <Stack spacing={2.25}>
               {currentEntry ? (
                 <Paper
@@ -175,19 +173,38 @@ export default async function Home() {
                 Continue workout
               </Button>
             </Stack>
-          ) : (
-            <Button
-              component={NextLink}
-              href="/workouts"
-              variant="contained"
-              endIcon={<FitnessCenterRounded />}
-              fullWidth
-            >
-              Open workouts
-            </Button>
-          )}
-        </Stack>
-      </Paper>
+          </Stack>
+        </Paper>
+      ) : null}
+
+      {!workoutSession &&
+      !activePlan?.todayWorkout?.canStart &&
+      activePlan?.nextWorkout ? (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "12px",
+            px: 2.75,
+            py: 2.75,
+            bgcolor: "rgba(152, 168, 216, 0.06)",
+            borderColor: "rgba(152, 168, 216, 0.16)",
+          }}
+        >
+          <Stack spacing={1.5}>
+            <Typography variant="overline" color="secondary.light">
+              Up next
+            </Typography>
+            <Typography variant="h3">
+              {activePlan.nextWorkout.templateName}
+            </Typography>
+            <Typography color="text.secondary">
+              {activePlan.nextWorkout.displayDateLabel
+                ? `${activePlan.nextWorkout.weekdayLabel} · ${activePlan.nextWorkout.displayDateLabel}`
+                : activePlan.nextWorkout.weekdayLabel}
+            </Typography>
+          </Stack>
+        </Paper>
+      ) : null}
 
       {activePlan ? (
         <Paper
@@ -329,79 +346,6 @@ export default async function Home() {
           </Stack>
         </Paper>
       ) : null}
-
-      <Paper elevation={0} sx={{ borderRadius: "10px", px: 1, py: 1 }}>
-        <Stack spacing={0.75}>
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            sx={{ px: 1.25, pt: 0.75 }}
-          >
-            Quick routes
-          </Typography>
-          <List disablePadding>
-            <ListItemButton
-              component={NextLink}
-              href="/exercises"
-              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
-                <LibraryBooksRounded />
-              </ListItemIcon>
-              <ListItemText
-                primary="Exercises"
-                slotProps={{
-                  secondary: {
-                    variant: "caption",
-                    color: "text.secondary",
-                  },
-                }}
-              />
-              <ChevronRightRounded color="action" />
-            </ListItemButton>
-            <Divider sx={{ mx: 1.5 }} />
-            <ListItemButton
-              component={NextLink}
-              href="/plans"
-              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
-                <EventNoteRounded />
-              </ListItemIcon>
-              <ListItemText
-                primary="Plans"
-                slotProps={{
-                  secondary: {
-                    variant: "caption",
-                    color: "text.secondary",
-                  },
-                }}
-              />
-              <ChevronRightRounded color="action" />
-            </ListItemButton>
-            <Divider sx={{ mx: 1.5 }} />
-            <ListItemButton
-              component={NextLink}
-              href="/history"
-              sx={{ borderRadius: "8px", px: 1.5, py: 1.25 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
-                <HistoryRounded />
-              </ListItemIcon>
-              <ListItemText
-                primary="History"
-                slotProps={{
-                  secondary: {
-                    variant: "caption",
-                    color: "text.secondary",
-                  },
-                }}
-              />
-              <ChevronRightRounded color="action" />
-            </ListItemButton>
-          </List>
-        </Stack>
-      </Paper>
     </Stack>
   );
 }
