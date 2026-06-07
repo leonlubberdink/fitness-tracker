@@ -1,7 +1,6 @@
 import EventNoteRounded from "@mui/icons-material/EventNoteRounded";
 import EastRounded from "@mui/icons-material/EastRounded";
 import FitnessCenterRounded from "@mui/icons-material/FitnessCenterRounded";
-import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import LibraryBooksRounded from "@mui/icons-material/LibraryBooksRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
