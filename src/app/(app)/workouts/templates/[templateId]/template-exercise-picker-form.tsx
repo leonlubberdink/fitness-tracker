@@ -7,6 +7,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
@@ -17,7 +18,6 @@ import Typography from "@mui/material/Typography";
 
 import {
   FormStatusButton,
-  FormStatusIconButton,
 } from "@/components/app/FormStatusButtons";
 import {
   formatExerciseUnitShort,
@@ -366,18 +366,16 @@ export function TemplateExercisePickerForm({
                       />
                     </ListItemButton>
 
-                    <Box component="form" action={formAction} sx={{ pr: 1.25 }}>
-                      <input type="hidden" name="templateId" value={templateId} />
-                      <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <FormStatusIconButton
-                        type="submit"
+                    <Box sx={{ pr: 1.25 }}>
+                      <IconButton
+                        type="button"
                         color="primary"
-                        aria-label={`Add ${exercise.name} to template`}
-                        pendingMatch={{ name: "exerciseId", value: exercise.id }}
+                        aria-label={`Open add form for ${exercise.name}`}
+                        onClick={() => handleExerciseSelect(exercise)}
                         sx={{ alignSelf: "center" }}
                       >
                         <AddRounded />
-                      </FormStatusIconButton>
+                      </IconButton>
                     </Box>
                   </ListItem>
                 ))}

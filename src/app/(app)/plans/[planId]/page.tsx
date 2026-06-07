@@ -19,6 +19,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { FormStatusButton } from "@/components/app/FormStatusButtons";
+import { LocalizedDatePickerField } from "@/components/app/LocalizedDatePickerField";
 import NextLink from "@/components/app/NextLink";
 import { requireUser } from "@/features/auth/session";
 import {
@@ -39,7 +40,7 @@ import {
   PLAN_STATUS_LABELS,
   PLAN_WEEKDAY_OPTIONS,
 } from "@/features/plans/utils";
-import { formatDateForLocale, getTodayDateKey } from "@/lib/date";
+import { getTodayDateKey } from "@/lib/date";
 
 type PlanDetailPageProps = {
   params: Promise<{
@@ -500,20 +501,12 @@ export default async function PlanDetailPage({
                       name="returnWeek"
                       value={String(selectedWeekNumber)}
                     />
-                    <TextField
+                    <LocalizedDatePickerField
                       label="Start date"
                       name="startDate"
-                      type="text"
-                      defaultValue={formatDateForLocale(todayDateKey, "de-DE", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                      })}
-                      placeholder="06.07.2026"
+                      defaultValue={todayDateKey}
                       helperText="Use dd.mm.yyyy"
-                      slotProps={{ htmlInput: { inputMode: "numeric" } }}
                       required
-                      fullWidth
                     />
                     <FormStatusButton
                       type="submit"

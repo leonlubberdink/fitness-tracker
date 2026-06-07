@@ -117,116 +117,168 @@ export function TemplateExerciseOrderList({
                     {...draggableProvided.draggableProps}
                     elevation={0}
                     sx={{
-                      borderRadius: "8px",
-                      px: 1.5,
+                      borderRadius: 2,
+                      px: 1.75,
                       py: 1.5,
                       border: "1px solid",
                       borderColor: draggableSnapshot.isDragging
-                        ? "rgba(139,194,172,0.22)"
-                        : "transparent",
+                        ? "rgba(139,194,172,0.28)"
+                        : "rgba(255,255,255,0.08)",
                       bgcolor: draggableSnapshot.isDragging
-                        ? "rgba(139,194,172,0.08)"
+                        ? "rgba(139,194,172,0.09)"
                         : "rgba(255,255,255,0.02)",
+                      boxShadow: draggableSnapshot.isDragging
+                        ? "0 12px 32px rgba(0,0,0,0.18)"
+                        : "none",
+                      transition:
+                        "border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease",
+                      overflow: "hidden",
                     }}
-                    style={draggableProvided.draggableProps.style}
+                    style={{
+                      ...draggableProvided.draggableProps.style,
+                      transform: draggableSnapshot.isDragging
+                        ? `${draggableProvided.draggableProps.style?.transform ?? ""} scale(1.01)`
+                        : draggableProvided.draggableProps.style?.transform,
+                    }}
                   >
-                    <Stack
-                      direction="row"
-                      spacing={1.25}
-                      alignItems="center"
-                      minWidth={0}
-                    >
-                      <IconButton
-                        {...draggableProvided.dragHandleProps}
-                        aria-label={`Reorder ${exercise.exerciseName}`}
-                        size="small"
-                        disabled={!canReorder}
-                        sx={{
-                          color: "text.secondary",
-                          cursor: canReorder ? "grab" : "default",
-                          touchAction: "none",
-                        }}
+                    <Stack spacing={1.5}>
+                      <Stack
+                        direction="row"
+                        spacing={1.25}
+                        alignItems="flex-start"
+                        minWidth={0}
                       >
-                        <DragIndicatorRounded fontSize="small" />
-                      </IconButton>
-
-                      <Chip
-                        label={index + 1}
-                        color="primary"
-                        variant="outlined"
-                      />
-
-                      <Stack spacing={0.25} flex={1} minWidth={0}>
-                        <Typography variant="body1" fontWeight={700} noWrap>
-                          {exercise.exerciseName}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {exercise.exerciseCategory} ·{" "}
-                          {formatExerciseUnitShort(exercise.defaultUnit)}
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={0.75}
-                          flexWrap="wrap"
-                          useFlexGap
-                          pt={0.5}
-                        >
-                          <Chip
-                            label={exercise.setsReps ?? "Sets x reps missing"}
-                            size="small"
-                            color={exercise.setsReps ? "default" : "warning"}
-                            variant="outlined"
-                          />
-                          <Chip
-                            label={exercise.restTime ?? "Rest time missing"}
-                            size="small"
-                            color={exercise.restTime ? "default" : "warning"}
-                            variant="outlined"
-                          />
-                        </Stack>
-                        {exercise.notes ? (
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ whiteSpace: "pre-wrap" }}
-                          >
-                            Notes: {exercise.notes}
-                          </Typography>
-                        ) : null}
-                      </Stack>
-
-                      <form action={removeTemplateExerciseAction}>
-                        <input type="hidden" name="templateId" value={templateId} />
-                        <input
-                          type="hidden"
-                          name="templateExerciseId"
-                          value={exercise.id}
-                        />
-                        <FormStatusIconButton
-                          type="submit"
-                          aria-label={`Remove ${exercise.exerciseName}`}
+                        <IconButton
+                          {...draggableProvided.dragHandleProps}
+                          aria-label={`Reorder ${exercise.exerciseName}`}
                           size="small"
-                          sx={{ color: "text.secondary" }}
-                          pendingMatch={{
-                            name: "templateExerciseId",
-                            value: exercise.id,
+                          disabled={!canReorder}
+                          sx={{
+                            mt: -0.25,
+                            color: "text.secondary",
+                            bgcolor: "rgba(255,255,255,0.02)",
+                            border: "1px solid rgba(255,255,255,0.06)",
+                            cursor: canReorder ? "grab" : "default",
+                            touchAction: "none",
+                            flexShrink: 0,
+                            "&:hover": {
+                              bgcolor: "rgba(255,255,255,0.05)",
+                            },
                           }}
                         >
-                          <DeleteOutlineRounded fontSize="small" />
-                        </FormStatusIconButton>
-                      </form>
-                    </Stack>
+                          <DragIndicatorRounded fontSize="small" />
+                        </IconButton>
 
-                    <TemplateExercisePrescriptionEditor
-                      initialNotes={exercise.notes}
-                      initialRestTime={exercise.restTime}
-                      initialSetsReps={exercise.setsReps}
-                      templateExerciseId={exercise.id}
-                      templateId={templateId}
-                      updateTemplateExercisePrescriptionAction={
-                        updateTemplateExercisePrescriptionAction
-                      }
-                    />
+                        <Stack spacing={0.75} flex={1} minWidth={0}>
+                          <Stack direction="row" spacing={1} minWidth={0}>
+                            <Stack spacing={0.3} minWidth={0} flex={1}>
+                              <Typography variant="body1" fontWeight={700} noWrap>
+                                {exercise.exerciseName}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                noWrap
+                              >
+                                {exercise.exerciseCategory} ·{" "}
+                                {formatExerciseUnitShort(exercise.defaultUnit)}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+
+                          <Stack
+                            direction="row"
+                            spacing={0.75}
+                            flexWrap="wrap"
+                            useFlexGap
+                          >
+                            <Chip
+                              label={`Reps: ${exercise.setsReps ?? "missing"}`}
+                              size="small"
+                              color={exercise.setsReps ? "default" : "warning"}
+                              variant="outlined"
+                            />
+                            <Chip
+                              label={`Rest: ${exercise.restTime ?? "missing"}`}
+                              size="small"
+                              color={exercise.restTime ? "default" : "warning"}
+                              variant="outlined"
+                            />
+                          </Stack>
+                        </Stack>
+
+                        <form action={removeTemplateExerciseAction}>
+                          <input
+                            type="hidden"
+                            name="templateId"
+                            value={templateId}
+                          />
+                          <input
+                            type="hidden"
+                            name="templateExerciseId"
+                            value={exercise.id}
+                          />
+                          <FormStatusIconButton
+                            type="submit"
+                            aria-label={`Remove ${exercise.exerciseName}`}
+                            size="small"
+                            sx={{
+                              color: "text.secondary",
+                              flexShrink: 0,
+                              mt: -0.25,
+                            }}
+                            pendingMatch={{
+                              name: "templateExerciseId",
+                              value: exercise.id,
+                            }}
+                          >
+                            <DeleteOutlineRounded fontSize="small" />
+                          </FormStatusIconButton>
+                        </form>
+                      </Stack>
+
+                      {exercise.notes ? (
+                        <Stack
+                          spacing={0.5}
+                          sx={{
+                            borderRadius: 1.5,
+                            px: 1.25,
+                            py: 1,
+                            bgcolor: "rgba(255,255,255,0.03)",
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Notes
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}
+                          >
+                            {exercise.notes}
+                          </Typography>
+                        </Stack>
+                      ) : null}
+
+                      <Stack
+                        spacing={1}
+                        sx={{
+                          pt: 1.25,
+                          borderTop: "1px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        <TemplateExercisePrescriptionEditor
+                          initialNotes={exercise.notes}
+                          initialRestTime={exercise.restTime}
+                          initialSetsReps={exercise.setsReps}
+                          templateExerciseId={exercise.id}
+                          templateId={templateId}
+                          updateTemplateExercisePrescriptionAction={
+                            updateTemplateExercisePrescriptionAction
+                          }
+                        />
+                      </Stack>
+                    </Stack>
                   </Paper>
                 )}
               </Draggable>

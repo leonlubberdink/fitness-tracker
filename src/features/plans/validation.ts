@@ -18,7 +18,10 @@ const weekdayField = z
   .refine((value) => /^[1-7]$/.test(value), "Choose a valid weekday.")
   .transform((value) => Number.parseInt(value, 10));
 
-const dateField = z.string().trim().min(1, "Choose a valid start date.");
+const dateField = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a valid start date.");
 
 export const planIdSchema = z.object({
   planId: uuidField("Invalid plan."),
