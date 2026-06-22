@@ -1,6 +1,5 @@
 import AddRounded from "@mui/icons-material/AddRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
-import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -15,6 +14,7 @@ import {
   FormStatusButton,
 } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
+import { StartWorkoutDialogButton } from "@/components/app/StartWorkoutDialogButton";
 import { requireUser } from "@/features/auth/session";
 import {
   createWorkoutTemplateAction,
@@ -209,26 +209,20 @@ export default async function WorkoutsPage({
                           alignItems="center"
                           sx={{ position: "relative", zIndex: 2 }}
                         >
-                          <Box
-                            component="form"
-                            action={startWorkoutFromTemplateAction}
-                            sx={{ flex: 1 }}
-                          >
-                            <input
-                              type="hidden"
-                              name="templateId"
-                              value={template.id}
-                            />
-                            <FormStatusButton
-                              type="submit"
-                              variant="contained"
-                              startIcon={<PlayArrowRounded />}
-                              loadingLabel="Starting..."
+                          <Box sx={{ flex: 1 }}>
+                            <StartWorkoutDialogButton
+                              action={startWorkoutFromTemplateAction}
+                              buttonLabel="Start"
+                              color="primary"
+                              currentBodyweightKg={user.currentBodyweightKg}
                               disabled={!template.isReadyToStart}
+                              dialogDescription={`Start ${template.name} with an optional bodyweight snapshot.`}
+                              dialogTitle={`Start ${template.name}`}
                               fullWidth
-                            >
-                              Start
-                            </FormStatusButton>
+                              hiddenFields={{ templateId: template.id }}
+                              submitLabel="Start workout"
+                              variant="contained"
+                            />
                           </Box>
 
                           <Box component="form" action={deleteWorkoutTemplateAction}>

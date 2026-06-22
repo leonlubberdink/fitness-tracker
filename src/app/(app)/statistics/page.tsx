@@ -54,6 +54,7 @@ export default async function StatisticsPage({
             No completed workouts were found in the last 12 weeks.
           </Alert>
           <StatisticsPageClient
+            bodyweightTrend={statistics.bodyweightTrend}
             exerciseOptions={statistics.exerciseOptions}
             selectedExercise={statistics.selectedExercise}
             weeklyTrend={statistics.weeklyTrend}
@@ -61,6 +62,7 @@ export default async function StatisticsPage({
         </>
       ) : (
         <StatisticsPageClient
+          bodyweightTrend={statistics.bodyweightTrend}
           exerciseOptions={statistics.exerciseOptions}
           selectedExercise={statistics.selectedExercise}
           weeklyTrend={statistics.weeklyTrend}

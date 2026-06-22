@@ -32,6 +32,7 @@ import {
   reorderWorkoutEntriesAction,
   removeExerciseEntryAction,
   removeSetAction,
+  updateWorkoutSessionBodyweightAction,
   updateSetAction,
 } from "@/features/workouts/actions";
 import {
@@ -39,6 +40,7 @@ import {
   type LoadRecommendation,
 } from "@/features/workouts/load-recommendations";
 import { requireWorkoutSessionForLogging } from "@/features/workouts/queries";
+import { formatBodyweightExerciseLoadWithReps } from "@/features/workouts/bodyweight";
 import {
   formatExerciseMetricValue,
   formatExerciseUnitShort,
@@ -52,6 +54,7 @@ import { ExerciseCompletionActions } from "./exercise-completion-actions";
 import { ExercisePickerForm } from "./exercise-picker-form";
 import { WorkoutFirstSetForm } from "./first-set-form";
 import { PlannedExerciseOrderList } from "./planned-exercise-order-list";
+import { SessionBodyweightEditor } from "./session-bodyweight-editor";
 import { WorkoutSetEditorForm } from "./set-editor-form";
 
 type WorkoutSessionData = Awaited<
@@ -99,6 +102,7 @@ function formatPreviousSet(
     reps: number;
     setNumber: number;
     weight: number;
+    sessionBodyweightKg: number | null;
     unit: ExerciseUnit;
     nextLoadRecommendation: LoadRecommendation | null;
   } | null,
@@ -113,7 +117,16 @@ function formatPreviousSet(
     month: "short",
   });
 
-  return `${date} · set ${previousSet.setNumber} · ${previousSet.reps} reps · ${formatExerciseMetricValue(previousSet.unit, previousSet.weight)}`;
+  const setLoad =
+    previousSet.unit === "bodyweight" && previousSet.sessionBodyweightKg !== null
+      ? formatBodyweightExerciseLoadWithReps(
+          previousSet.sessionBodyweightKg,
+          previousSet.weight,
+          previousSet.reps,
+        )
+      : `${previousSet.reps} reps · ${formatExerciseMetricValue(previousSet.unit, previousSet.weight)}`;
+
+  return `${date} · set ${previousSet.setNumber} · ${setLoad}`;
 }
 
 function LoadRecommendationChip({
@@ -268,16 +281,23 @@ function PrescriptionPanel({ entry }: { entry: WorkoutEntry }) {
 function SetEditor({
   sessionId,
   entry,
+  sessionBodyweightKg,
   set,
   autoFocus = false,
   emphasize = false,
 }: {
   sessionId: string;
   entry: WorkoutEntry;
+  sessionBodyweightKg: number | null;
   set: WorkoutSet;
   autoFocus?: boolean;
   emphasize?: boolean;
 }) {
+  const metricHelperText =
+    entry.unitSnapshot === "bodyweight" && sessionBodyweightKg !== null
+      ? `Session bodyweight: ${sessionBodyweightKg} kg. Effective load is shown in history and statistics.`
+      : undefined;
+
   return (
     <WorkoutSetEditorForm
       sessionId={sessionId}
@@ -285,6 +305,7 @@ function SetEditor({
       setNumber={set.setNumber}
       initialReps={set.reps}
       initialMetricValue={set.weight}
+      metricHelperText={metricHelperText}
       metricLabel={getExerciseMetricLabel(entry.unitSnapshot)}
       metricInputProps={getMetricInputProps(entry.unitSnapshot)}
       canDelete={entry.sets.length > 1}
@@ -299,11 +320,13 @@ function SetEditor({
 function LoggedSets({
   sessionId,
   entry,
+  sessionBodyweightKg,
   currentSetId,
   focusSetId,
 }: {
   sessionId: string;
   entry: WorkoutEntry;
+  sessionBodyweightKg: number | null;
   currentSetId?: string;
   focusSetId?: string;
 }) {
@@ -330,6 +353,7 @@ function LoggedSets({
           key={set.id}
           sessionId={sessionId}
           entry={entry}
+          sessionBodyweightKg={sessionBodyweightKg}
           set={set}
           autoFocus={set.id === focusSetId}
           emphasize={set.id === currentSetId}
@@ -379,6 +403,9 @@ export default async function WorkoutPage({
   const focusSetId = resolvedSearchParams?.focusSet?.trim();
   const shouldScrollToCurrentExercise =
     resolvedSearchParams?.scrollTo === "current-exercise";
+  const currentEntryNeedsSessionBodyweight =
+    currentEntry?.unitSnapshot === "bodyweight" &&
+    session.bodyweightKg === null;
   return (
     <Stack spacing={3}>
       {errorMessage ? (
@@ -485,6 +512,22 @@ export default async function WorkoutPage({
             </Grid>
           </Grid>
 
+          <SessionBodyweightEditor
+            key={`${session.id}:${session.bodyweightKg ?? "none"}:${user.currentBodyweightKg ?? "none"}`}
+            currentBodyweightKg={user.currentBodyweightKg}
+            sessionBodyweightKg={session.bodyweightKg}
+            sessionId={session.id}
+            updateWorkoutSessionBodyweightAction={
+              updateWorkoutSessionBodyweightAction
+            }
+          />
+
+          {currentEntryNeedsSessionBodyweight ? (
+            <Alert severity="warning" variant="outlined">
+              Record bodyweight before logging this exercise.
+            </Alert>
+          ) : null}
+
         </Stack>
       </Paper>
 
@@ -571,12 +614,22 @@ export default async function WorkoutPage({
                 <PrescriptionPanel entry={currentEntry} />
               </Stack>
 
-              {currentEntry.sets.length === 0 && currentFirstSetDefaults ? (
+              {currentEntryNeedsSessionBodyweight ? (
+                <Alert severity="warning" variant="outlined">
+                  Record bodyweight above before logging this exercise.
+                </Alert>
+              ) : currentEntry.sets.length === 0 && currentFirstSetDefaults ? (
                 <WorkoutFirstSetForm
                   sessionId={session.id}
                   entryId={currentEntry.id}
                   initialReps={currentFirstSetDefaults.reps}
                   initialMetricValue={currentFirstSetDefaults.weight}
+                  metricHelperText={
+                    currentEntry.unitSnapshot === "bodyweight" &&
+                    session.bodyweightKg !== null
+                      ? `Session bodyweight: ${session.bodyweightKg} kg. Effective load is shown in history and statistics.`
+                      : undefined
+                  }
                   metricLabel={getExerciseMetricLabel(
                     currentEntry.unitSnapshot,
                   )}
@@ -590,6 +643,7 @@ export default async function WorkoutPage({
                   <LoggedSets
                     sessionId={session.id}
                     entry={currentEntry}
+                    sessionBodyweightKg={session.bodyweightKg}
                     currentSetId={currentSetId}
                     focusSetId={focusSetId}
                   />
@@ -829,7 +883,11 @@ export default async function WorkoutPage({
                     </Stack>
                   </Paper>
 
-                  <LoggedSets sessionId={session.id} entry={entry} />
+                  <LoggedSets
+                    sessionId={session.id}
+                    entry={entry}
+                    sessionBodyweightKg={session.bodyweightKg}
+                  />
 
                   {entry.sets.length > 0 ? (
                     <form action={addSetAction}>

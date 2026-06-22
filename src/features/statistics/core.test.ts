@@ -22,6 +22,7 @@ function createRecord(
     reps,
     setId,
     setNumber,
+    sessionBodyweightKg = null,
     unitSnapshot,
     weight,
   }: {
@@ -33,6 +34,7 @@ function createRecord(
     reps: number;
     setId: string;
     setNumber: number;
+    sessionBodyweightKg?: number | null;
     unitSnapshot: "bodyweight" | "kg" | "time";
     weight: number;
   },
@@ -49,6 +51,7 @@ function createRecord(
     setId,
     setNumber,
     sortOrder: 1,
+    sessionBodyweightKg,
     startedAt: new Date(`${performedOn}T09:00:00.000Z`),
     unitSnapshot,
     weight,
@@ -59,8 +62,10 @@ function createSession(
   sessionId: string,
   performedOn: string,
   records: StatisticsSession["records"],
+  bodyweightKg: number | null = null,
 ): StatisticsSession {
   return {
+    bodyweightKg,
     completedAt: new Date(`${performedOn}T10:00:00.000Z`),
     performedOn,
     records,
@@ -170,10 +175,11 @@ describe("statistics core", () => {
           reps: 10,
           setId: "set-5",
           setNumber: 1,
+          sessionBodyweightKg: 80,
           unitSnapshot: "bodyweight",
-          weight: 0,
+          weight: 5,
         }),
-      ]),
+      ], 80),
     ];
 
     const result = getStatisticsPageDataFromSessions(sessions, {
@@ -193,7 +199,7 @@ describe("statistics core", () => {
       value: 2,
     });
     expect(result.summary.sets.value).toBe(4);
-    expect(result.summary.volumeKg.value).toBe(1320);
+    expect(result.summary.volumeKg.value).toBe(2170);
     expect(result.exerciseOptions).toEqual([
       {
         category: "Push",
@@ -254,30 +260,44 @@ describe("statistics core", () => {
       ],
       unit: "kg",
     });
+    expect(result.bodyweightTrend).toEqual([
+      {
+        bodyweightKg: 80,
+        performedOn: "2025-03-01",
+        sessionId: "session-current-2",
+        shortLabel: "1 Mar",
+      },
+    ]);
     expect(result.weeklyTrend.some((point) => point.volumeKg === 750)).toBe(
       true,
     );
-    expect(result.weeklyTrend.some((point) => point.volumeKg === 570)).toBe(
+    expect(result.weeklyTrend.some((point) => point.volumeKg === 1420)).toBe(
       true,
     );
   });
 
   it("builds progression for time and bodyweight exercises and supports snapshot keys", () => {
     const bodyweightSessions = [
-      createSession("session-bw", "2025-03-10", [
-        createRecord("session-bw", {
-          entryId: "entry-bw",
-          exerciseId: null,
-          exerciseNameSnapshot: " Pull Up ",
-          exerciseCategorySnapshot: "Pull",
-          performedOn: "2025-03-10",
-          reps: 12,
-          setId: "set-bw",
-          setNumber: 1,
-          unitSnapshot: "bodyweight",
-          weight: 5,
-        }),
-      ]),
+      createSession(
+        "session-bw",
+        "2025-03-10",
+        [
+          createRecord("session-bw", {
+            entryId: "entry-bw",
+            exerciseId: null,
+            exerciseNameSnapshot: " Pull Up ",
+            exerciseCategorySnapshot: "Pull",
+            performedOn: "2025-03-10",
+            reps: 12,
+            setId: "set-bw",
+            setNumber: 1,
+            sessionBodyweightKg: 80,
+            unitSnapshot: "bodyweight",
+            weight: 5,
+          }),
+        ],
+        80,
+      ),
     ];
     const timeSessions = [
       createSession("session-time", "2025-03-12", [
@@ -307,14 +327,14 @@ describe("statistics core", () => {
     ]);
     expect(
       buildExerciseProgression(bodyweightSessions, "snapshot:pull up"),
-    )?.toMatchObject({
-      chartMetric: "reps",
-      chartMetricLabel: "Best reps",
+    ).toMatchObject({
+      chartMetric: "load",
+      chartMetricLabel: "Best effective load",
       details: [
         {
-          bestSetLabel: "12 reps · +5 BW",
-          chartValue: 12,
-          volumeKg: null,
+          bestSetLabel: "85 kg total (+5 BW) · 12 reps",
+          chartValue: 85,
+          volumeKg: 1020,
         },
       ],
     });
@@ -323,7 +343,7 @@ describe("statistics core", () => {
         timeSessions,
         "55555555-5555-4555-8555-555555555555",
       ),
-    )?.toMatchObject({
+    ).toMatchObject({
       chartMetric: "duration",
       chartMetricLabel: "Longest duration",
       details: [
@@ -343,6 +363,7 @@ describe("statistics core", () => {
         range: "all",
       }),
     ).toEqual({
+      bodyweightTrend: [],
       exerciseOptions: [],
       hasCompletedWorkouts: false,
       selectedExercise: null,
@@ -387,5 +408,32 @@ describe("statistics core", () => {
         },
       ).selectedExercise,
     ).toBeNull();
+  });
+
+  it("keeps legacy bodyweight sessions out of new load metrics", () => {
+    const legacyBodyweightSession = createSession("session-legacy", "2025-03-10", [
+      createRecord("session-legacy", {
+        entryId: "entry-legacy",
+        exerciseId: null,
+        exerciseNameSnapshot: "Pull Up",
+        exerciseCategorySnapshot: "Pull",
+        performedOn: "2025-03-10",
+        reps: 10,
+        setId: "set-legacy",
+        setNumber: 1,
+        unitSnapshot: "bodyweight",
+        weight: 5,
+      }),
+    ]);
+
+    const result = getStatisticsPageDataFromSessions([legacyBodyweightSession], {
+      exerciseKey: null,
+      range: "all",
+    });
+
+    expect(result.hasCompletedWorkouts).toBe(true);
+    expect(result.summary.volumeKg.value).toBe(0);
+    expect(result.exerciseOptions).toEqual([]);
+    expect(result.bodyweightTrend).toEqual([]);
   });
 });

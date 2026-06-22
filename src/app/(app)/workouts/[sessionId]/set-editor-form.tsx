@@ -22,6 +22,7 @@ type WorkoutSetEditorFormProps = {
   setNumber: number;
   initialReps: number;
   initialMetricValue: number;
+  metricHelperText?: string;
   metricLabel: string;
   metricInputProps: WorkoutNumericInputProps;
   canDelete: boolean;
@@ -46,6 +47,7 @@ export function WorkoutSetEditorForm({
   setNumber,
   initialReps,
   initialMetricValue,
+  metricHelperText,
   metricLabel,
   metricInputProps,
   canDelete,
@@ -145,6 +147,7 @@ export function WorkoutSetEditorForm({
                   value={weight}
                   onChange={(event) => setWeight(event.target.value)}
                   onFocus={selectWorkoutInputValueOnFocus}
+                  helperText={metricHelperText}
                   required
                 />
               </Grid>

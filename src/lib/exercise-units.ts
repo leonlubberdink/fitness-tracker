@@ -56,7 +56,7 @@ export function getExerciseMetricLabel(unit: ExerciseUnit) {
     case "kg":
       return "Weight (kg)";
     case "bodyweight":
-      return "Load";
+      return "Modifier (kg)";
     case "time":
       return "Time (sec)";
   }

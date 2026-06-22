@@ -21,6 +21,7 @@ import Typography from "@mui/material/Typography";
 import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import { LocalizedDatePickerField } from "@/components/app/LocalizedDatePickerField";
 import NextLink from "@/components/app/NextLink";
+import { StartWorkoutDialogButton } from "@/components/app/StartWorkoutDialogButton";
 import { requireUser } from "@/features/auth/session";
 import {
   archivePlanAction,
@@ -391,28 +392,21 @@ export default async function PlanDetailPage({
                 </Stack>
 
                 {plan.todayWorkout.canStart ? (
-                  <form action={startPlannedWorkoutAction}>
-                    <input type="hidden" name="planId" value={plan.id} />
-                    <input
-                      type="hidden"
-                      name="returnWeek"
-                      value={String(selectedWeekNumber)}
-                    />
-                    <input
-                      type="hidden"
-                      name="planWorkoutId"
-                      value={plan.todayWorkout.id}
-                    />
-                    <FormStatusButton
-                      type="submit"
-                      variant="contained"
-                      color="secondary"
-                      startIcon={<PlayArrowRounded />}
-                      loadingLabel="Starting..."
-                    >
-                      Start today&apos;s workout
-                    </FormStatusButton>
-                  </form>
+                  <StartWorkoutDialogButton
+                    action={startPlannedWorkoutAction}
+                    buttonLabel="Start today&apos;s workout"
+                    color="secondary"
+                    currentBodyweightKg={user.currentBodyweightKg}
+                    dialogDescription={`Start ${plan.todayWorkout.templateName} with an optional bodyweight snapshot.`}
+                    dialogTitle="Start today's workout"
+                    hiddenFields={{
+                      planId: plan.id,
+                      planWorkoutId: plan.todayWorkout.id,
+                      returnWeek: String(selectedWeekNumber),
+                    }}
+                    submitLabel="Start workout"
+                    variant="contained"
+                  />
                 ) : null}
               </Stack>
             </Paper>
@@ -1132,38 +1126,26 @@ export default async function PlanDetailPage({
                                     ) : null}
 
                                     {workout.canStart ? (
-                                      <form
+                                      <StartWorkoutDialogButton
                                         action={startPlannedWorkoutAction}
-                                        style={{ flex: 1 }}
-                                      >
-                                        <input
-                                          type="hidden"
-                                          name="planId"
-                                          value={plan.id}
-                                        />
-                                        <input
-                                          type="hidden"
-                                          name="returnWeek"
-                                          value={String(
+                                        buttonLabel="Start"
+                                        color="secondary"
+                                        currentBodyweightKg={
+                                          user.currentBodyweightKg
+                                        }
+                                        dialogDescription={`Start ${workout.templateName} with an optional bodyweight snapshot.`}
+                                        dialogTitle="Start workout"
+                                        fullWidth
+                                        hiddenFields={{
+                                          planId: plan.id,
+                                          planWorkoutId: workout.id,
+                                          returnWeek: String(
                                             selectedWeek.weekNumber,
-                                          )}
-                                        />
-                                        <input
-                                          type="hidden"
-                                          name="planWorkoutId"
-                                          value={workout.id}
-                                        />
-                                        <FormStatusButton
-                                          type="submit"
-                                          variant="contained"
-                                          color="secondary"
-                                          startIcon={<PlayArrowRounded />}
-                                          loadingLabel="Starting..."
-                                          fullWidth
-                                        >
-                                          Start
-                                        </FormStatusButton>
-                                      </form>
+                                          ),
+                                        }}
+                                        submitLabel="Start workout"
+                                        variant="contained"
+                                      />
                                     ) : null}
                                   </Stack>
                                 </Stack>
@@ -1174,33 +1156,26 @@ export default async function PlanDetailPage({
                                   alignItems={{ xs: "stretch", sm: "center" }}
                                 >
                                   {workout.canStart ? (
-                                    <form action={startPlannedWorkoutAction}>
-                                      <input
-                                        type="hidden"
-                                        name="planId"
-                                        value={plan.id}
-                                      />
-                                      <input
-                                        type="hidden"
-                                        name="returnWeek"
-                                        value={String(selectedWeek.weekNumber)}
-                                      />
-                                      <input
-                                        type="hidden"
-                                        name="planWorkoutId"
-                                        value={workout.id}
-                                      />
-                                      <FormStatusButton
-                                        type="submit"
-                                        variant="contained"
-                                        color="secondary"
-                                        startIcon={<PlayArrowRounded />}
-                                        loadingLabel="Starting..."
-                                        fullWidth
-                                      >
-                                        Start scheduled workout
-                                      </FormStatusButton>
-                                    </form>
+                                    <StartWorkoutDialogButton
+                                      action={startPlannedWorkoutAction}
+                                      buttonLabel="Start scheduled workout"
+                                      color="secondary"
+                                      currentBodyweightKg={
+                                        user.currentBodyweightKg
+                                      }
+                                      dialogDescription={`Start ${workout.templateName} with an optional bodyweight snapshot.`}
+                                      dialogTitle="Start workout"
+                                      fullWidth
+                                      hiddenFields={{
+                                        planId: plan.id,
+                                        planWorkoutId: workout.id,
+                                        returnWeek: String(
+                                          selectedWeek.weekNumber,
+                                        ),
+                                      }}
+                                      submitLabel="Start workout"
+                                      variant="contained"
+                                    />
                                   ) : null}
 
                                   {plan.status === "active" &&

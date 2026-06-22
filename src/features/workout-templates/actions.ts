@@ -34,6 +34,12 @@ import {
   hasIncompleteExercisePrescriptions,
   normalizeOptionalTextValue,
 } from "@/features/workout-prescriptions";
+import {
+  parseOptionalBodyweightKg,
+} from "@/features/workouts/bodyweight";
+import {
+  createWorkoutSessionWithEntries,
+} from "@/features/workouts/session-creation";
 import { logInfo } from "@/lib/logger";
 
 import {
@@ -913,44 +919,48 @@ export async function startWorkoutFromTemplateAction(formData: FormData) {
     });
   }
 
-  const sessionId = randomUUID();
+  const bodyweightInput = parseOptionalBodyweightKg(
+    getStringValue(formData, "bodyweightKg"),
+  );
 
-  await db.transaction(async (tx) => {
-    await tx.insert(workoutSessions).values({
-      id: sessionId,
-      userId: user.id,
-      performedOn: getTodayDateString(),
-      activeEntrySortOrder: templateExercises[0].sortOrder,
-      workoutTemplateId: templateId,
+  if (!bodyweightInput.success) {
+    redirectToTemplateEditor(templateId, {
+      error: getValidationMessage(bodyweightInput.error),
     });
+  }
 
-    await tx.insert(workoutExerciseEntries).values(
-      templateExercises.map((templateExercise) => ({
-        id: randomUUID(),
-        workoutSessionId: sessionId,
-        exerciseId: templateExercise.exerciseId,
-        exerciseNameSnapshot: templateExercise.exerciseName,
-        exerciseCategorySnapshot: formatStoredExerciseCategories(
-          templateExercise.exerciseCategory,
-        ),
-        notesSnapshot: normalizeOptionalTextValue(templateExercise.notes ?? ""),
-        restTimeSnapshot: templateExercise.restTime,
-        unitSnapshot: templateExercise.defaultUnit,
-        setsRepsSnapshot: templateExercise.setsReps,
-        sortOrder: templateExercise.sortOrder,
-      })),
-    );
+  const bodyweightKg = bodyweightInput.data ?? user.currentBodyweightKg;
+
+  const session = await createWorkoutSessionWithEntries({
+    bodyweightKg,
+    entries: templateExercises.map((templateExercise) => ({
+      exerciseCategorySnapshot: formatStoredExerciseCategories(
+        templateExercise.exerciseCategory,
+      ),
+      exerciseId: templateExercise.exerciseId,
+      exerciseNameSnapshot: templateExercise.exerciseName,
+      notesSnapshot: normalizeOptionalTextValue(templateExercise.notes ?? ""),
+      restTimeSnapshot: templateExercise.restTime,
+      sortOrder: templateExercise.sortOrder,
+      setsRepsSnapshot: templateExercise.setsReps,
+      unitSnapshot: templateExercise.defaultUnit,
+    })),
+    performedOn: getTodayDateString(),
+    planId: null,
+    planWorkoutId: null,
+    userId: user.id,
+    workoutTemplateId: templateId,
   });
 
   logInfo("workout.session.started_from_template", {
     userId: user.id,
     templateId,
-    sessionId,
+    sessionId: session.sessionId,
   });
 
   revalidatePath("/");
   revalidatePath("/workouts");
-  redirect(`/workouts/${sessionId}`);
+  redirect(`/workouts/${session.sessionId}`);
 }
 
 async function getSessionExerciseSourcesForTemplate({

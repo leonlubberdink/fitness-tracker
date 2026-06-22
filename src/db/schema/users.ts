@@ -1,5 +1,6 @@
 import {
   boolean,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -16,6 +17,11 @@ export const users = pgTable(
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
     timeZone: text("time_zone").notNull().default("UTC"),
+    currentBodyweightKg: numeric("current_bodyweight_kg", {
+      precision: 6,
+      scale: 2,
+      mode: "number",
+    }),
     isActive: boolean("is_active").notNull().default(true),
     lastLoginAt: timestamp("last_login_at", {
       withTimezone: true,

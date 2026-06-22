@@ -11,6 +11,7 @@ import {
   exercises,
   planWorkouts,
   plans,
+  users,
   workoutExerciseEntries,
   workoutSessions,
   workoutSets,
@@ -19,6 +20,10 @@ import { requireUser } from "@/features/auth/session";
 import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import { syncPlanCompletionState } from "@/features/plans/core";
 import { logInfo } from "@/lib/logger";
+import {
+  isBodyweightExerciseLoadInvalid,
+  parseRequiredBodyweightKg,
+} from "./bodyweight";
 
 import { getOpenWorkoutSessionForUser } from "./queries";
 import {
@@ -47,6 +52,21 @@ function getStringListValue(formData: FormData, key: string) {
 
 function getValidationMessage(error: { issues?: Array<{ message: string }> }) {
   return error.issues?.[0]?.message ?? "Invalid input.";
+}
+
+function getBodyweightSetError(
+  sessionBodyweightKg: number | null,
+  modifierKg: number,
+) {
+  if (sessionBodyweightKg === null) {
+    return "Record bodyweight before logging this exercise.";
+  }
+
+  if (isBodyweightExerciseLoadInvalid(sessionBodyweightKg, modifierKg)) {
+    return "Bodyweight load cannot be below zero.";
+  }
+
+  return null;
 }
 
 function redirectToWorkoutSession(
@@ -93,6 +113,7 @@ async function requireOpenSession(userId: string, sessionId: string) {
   const [session] = await db
     .select({
       id: workoutSessions.id,
+      bodyweightKg: workoutSessions.bodyweightKg,
       userId: workoutSessions.userId,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
       planId: workoutSessions.planId,
@@ -194,6 +215,7 @@ async function requireEntryForOpenSession(userId: string, entryId: string) {
     .select({
       entryId: workoutExerciseEntries.id,
       sessionId: workoutSessions.id,
+      sessionBodyweightKg: workoutSessions.bodyweightKg,
       unit: workoutExerciseEntries.unitSnapshot,
       sortOrder: workoutExerciseEntries.sortOrder,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
@@ -221,6 +243,7 @@ async function requireSetForOpenSession(userId: string, setId: string) {
       setId: workoutSets.id,
       entryId: workoutExerciseEntries.id,
       sessionId: workoutSessions.id,
+      sessionBodyweightKg: workoutSessions.bodyweightKg,
       unit: workoutExerciseEntries.unitSnapshot,
       setNumber: workoutSets.setNumber,
     })
@@ -344,6 +367,67 @@ export async function addExerciseEntryAction(formData: FormData) {
   redirectToWorkoutSession(sessionId);
 }
 
+export async function updateWorkoutSessionBodyweightAction(formData: FormData) {
+  const user = await requireUser();
+  const parsedInput = workoutSessionIdSchema.safeParse({
+    sessionId: getStringValue(formData, "sessionId"),
+  });
+
+  if (!parsedInput.success) {
+    const sessionId = getStringValue(formData, "sessionId");
+
+    if (sessionId) {
+      redirectToWorkoutSession(sessionId, {
+        error: getValidationMessage(parsedInput.error),
+      });
+    }
+
+    redirect("/");
+  }
+
+  const { sessionId } = parsedInput.data;
+  const session = await requireOpenSession(user.id, sessionId);
+
+  if (!session) {
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout session no longer exists or is already completed.",
+    });
+  }
+
+  const bodyweightInput = parseRequiredBodyweightKg(
+    getStringValue(formData, "bodyweightKg"),
+  );
+
+  if (!bodyweightInput.success) {
+    redirectToWorkoutSession(sessionId, {
+      error: getValidationMessage(bodyweightInput.error),
+    });
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(workoutSessions)
+      .set({
+        bodyweightKg: bodyweightInput.data,
+        updatedAt: new Date(),
+      })
+      .where(eq(workoutSessions.id, sessionId));
+
+    await tx
+      .update(users)
+      .set({
+        currentBodyweightKg: bodyweightInput.data,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, user.id));
+  });
+
+  revalidatePath(`/workouts/${sessionId}`);
+  redirectToWorkoutSession(sessionId, {
+    success: "Bodyweight saved.",
+  });
+}
+
 export async function createSetAction(formData: FormData) {
   const user = await requireUser();
   const parsedInput = workoutEntrySchema.safeParse({
@@ -384,6 +468,18 @@ export async function createSetAction(formData: FormData) {
   }
 
   const { reps, weight } = metricInput.data;
+
+  const bodyweightError =
+    entry.unit === "bodyweight"
+      ? getBodyweightSetError(entry.sessionBodyweightKg, weight)
+      : null;
+
+  if (bodyweightError) {
+    redirectToWorkoutSession(sessionId, {
+      error: bodyweightError,
+      scrollTo: "current-exercise",
+    });
+  }
 
   const [lastSet] = await db
     .select({
@@ -463,6 +559,18 @@ export async function addSetAction(formData: FormData) {
   if (!lastSet) {
     redirectToWorkoutSession(entry.sessionId, {
       error: "Log the first set before adding another one.",
+    });
+  }
+
+  const bodyweightError =
+    entry.unit === "bodyweight"
+      ? getBodyweightSetError(entry.sessionBodyweightKg, lastSet.weight)
+      : null;
+
+  if (bodyweightError) {
+    redirectToWorkoutSession(entry.sessionId, {
+      error: bodyweightError,
+      scrollTo: "current-exercise",
     });
   }
 
@@ -706,6 +814,18 @@ export async function updateSetAction(formData: FormData) {
   }
 
   const { reps, weight } = metricInput.data;
+
+  const bodyweightError =
+    setRecord.unit === "bodyweight"
+      ? getBodyweightSetError(setRecord.sessionBodyweightKg, weight)
+      : null;
+
+  if (bodyweightError) {
+    redirectToWorkoutSession(sessionId, {
+      error: bodyweightError,
+      scrollTo: "current-exercise",
+    });
+  }
 
   await db
     .update(workoutSets)

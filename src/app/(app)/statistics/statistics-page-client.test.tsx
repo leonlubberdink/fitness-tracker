@@ -100,6 +100,7 @@ describe("StatisticsPageClient", () => {
   it("shows the empty-state copy when no exercise is selected", () => {
     render(
       <StatisticsPageClient
+        bodyweightTrend={[]}
         exerciseOptions={exerciseOptions}
         selectedExercise={null}
         weeklyTrend={[]}
@@ -113,6 +114,20 @@ describe("StatisticsPageClient", () => {
   it("renders selected exercise details and chart data", () => {
     render(
       <StatisticsPageClient
+        bodyweightTrend={[
+          {
+            bodyweightKg: 80,
+            performedOn: "2025-01-06",
+            sessionId: "session-bw-1",
+            shortLabel: "W1",
+          },
+          {
+            bodyweightKg: 81.5,
+            performedOn: "2025-01-13",
+            sessionId: "session-bw-2",
+            shortLabel: "W2",
+          },
+        ]}
         exerciseOptions={exerciseOptions}
         selectedExercise={selectedExercise}
         weeklyTrend={[
@@ -132,6 +147,10 @@ describe("StatisticsPageClient", () => {
     expect(screen.getByText("85 kg")).toBeVisible();
     expect(screen.getByText("80 kg x 5")).toBeVisible();
     expect(screen.getByTestId("bar-chart")).toBeVisible();
-    expect(screen.getByTestId("line-chart")).toBeVisible();
+    const lineCharts = screen.getAllByTestId("line-chart");
+    expect(lineCharts).toHaveLength(2);
+    expect(
+      lineCharts.some((chart) => chart.getAttribute("data-label") === "Bodyweight"),
+    ).toBe(true);
   });
 });

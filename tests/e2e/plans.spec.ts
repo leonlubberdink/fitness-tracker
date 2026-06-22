@@ -63,6 +63,11 @@ test("creates, starts, and launches a scheduled plan workout", async ({ page }) 
   ).toBeVisible();
 
   await page.getByRole("button", { name: /Start (today's|scheduled) workout/i }).click();
+  const startWorkoutDialog = page.getByRole("dialog", {
+    name: "Start today's workout",
+  });
+  await expect(startWorkoutDialog).toBeVisible();
+  await startWorkoutDialog.getByRole("button", { name: "Start workout" }).click();
   await expect(page).toHaveURL(/\/workouts\/.+/);
   await expect(page.getByRole("heading", { name: "Current workout." })).toBeVisible();
   await expect(page.getByText(exerciseName, { exact: true }).first()).toBeVisible();

@@ -12,6 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
 import type {
+  StatisticsBodyweightTrendPoint,
   StatisticsExerciseOption,
   StatisticsExerciseProgression,
   StatisticsWeeklyTrendPoint,
@@ -19,6 +20,7 @@ import type {
 import { formatExerciseUnitShort } from "@/lib/exercise-units";
 
 type StatisticsPageClientProps = {
+  bodyweightTrend: StatisticsBodyweightTrendPoint[];
   exerciseOptions: StatisticsExerciseOption[];
   selectedExercise: StatisticsExerciseProgression | null;
   weeklyTrend: StatisticsWeeklyTrendPoint[];
@@ -90,6 +92,7 @@ function ChartCard({
 }
 
 export function StatisticsPageClient({
+  bodyweightTrend,
   exerciseOptions,
   selectedExercise,
   weeklyTrend,
@@ -163,6 +166,46 @@ export function StatisticsPageClient({
                 min: 0,
                 valueFormatter: (value: number) => formatThousandsValue(value),
                 width: 36,
+              },
+            ]}
+          />
+          </ChartCard>
+      ) : null}
+
+      {bodyweightTrend.length > 0 ? (
+        <ChartCard
+          title="Bodyweight over time"
+          description="Each point shows the bodyweight recorded for a completed workout."
+        >
+          <LineChart
+            axisHighlight={{ x: "line" }}
+            grid={{ horizontal: true }}
+            height={260}
+            hideLegend
+            margin={{ bottom: 10, left: 0, right: 10, top: 10 }}
+            series={[
+              {
+                color: theme.palette.primary.main,
+                curve: "linear",
+                data: bodyweightTrend.map((point) => point.bodyweightKg),
+                label: "Bodyweight",
+                showMark: true,
+                valueFormatter: (value: number | null) =>
+                  `${formatDecimalValue(value ?? 0)} kg`,
+              },
+            ]}
+            sx={{ width: "100%" }}
+            xAxis={[
+              {
+                data: bodyweightTrend.map((point) => point.shortLabel),
+                scaleType: "point",
+              },
+            ]}
+            yAxis={[
+              {
+                min: 0,
+                valueFormatter: (value: number) =>
+                  `${formatDecimalValue(value)} kg`,
               },
             ]}
           />

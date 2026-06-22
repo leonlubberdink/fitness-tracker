@@ -23,6 +23,7 @@ describe("WorkoutSetEditorForm", () => {
         setNumber={2}
         initialReps={6}
         initialMetricValue={-20}
+        metricHelperText="Session bodyweight: 82.4 kg."
         metricLabel="Load"
         metricInputProps={{ inputMode: "decimal", step: 0.5 }}
         canDelete
@@ -36,6 +37,7 @@ describe("WorkoutSetEditorForm", () => {
 
     expect(repsInput).toHaveAttribute("inputmode", "numeric");
     expect(loadInput).toHaveAttribute("inputmode", "text");
+    expect(screen.getByText("Session bodyweight: 82.4 kg.")).toBeVisible();
 
     await user.click(loadInput);
     await user.click(repsInput);
