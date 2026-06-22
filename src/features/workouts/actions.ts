@@ -215,6 +215,7 @@ async function requireEntryForOpenSession(userId: string, entryId: string) {
     .select({
       entryId: workoutExerciseEntries.id,
       sessionId: workoutSessions.id,
+      sessionBodyweightKg: workoutSessions.bodyweightKg,
       unit: workoutExerciseEntries.unitSnapshot,
       sortOrder: workoutExerciseEntries.sortOrder,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
