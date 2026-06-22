@@ -179,7 +179,7 @@ describe("statistics core", () => {
           unitSnapshot: "bodyweight",
           weight: 5,
         }),
-      ]),
+      ], 80),
     ];
 
     const result = getStatisticsPageDataFromSessions(sessions, {
@@ -332,7 +332,7 @@ describe("statistics core", () => {
       chartMetricLabel: "Best effective load",
       details: [
         {
-          bestSetLabel: "12 reps · 85 kg total (+5 BW)",
+          bestSetLabel: "85 kg total (+5 BW) · 12 reps",
           chartValue: 85,
           volumeKg: 1020,
         },

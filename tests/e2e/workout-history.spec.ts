@@ -38,6 +38,11 @@ test.describe("workout and history flow", () => {
     await addExerciseToTemplate(page, firstExercise);
     await addExerciseToTemplate(page, secondExercise);
     await page.getByRole("button", { name: "Start workout" }).click();
+    const startWorkoutDialog = page.getByRole("dialog", {
+      name: "Start workout",
+    });
+    await expect(startWorkoutDialog).toBeVisible();
+    await startWorkoutDialog.getByRole("button", { name: "Start workout" }).click();
 
     const firstSetForm = page.locator("form").filter({
       has: page.getByRole("button", { name: "Log first set" }),

@@ -22,9 +22,7 @@ describe("SessionBodyweightEditor", () => {
     );
 
     expect(
-      screen.getByText(
-        "Add your bodyweight before logging any bodyweight exercises.",
-      ),
+      screen.getByText("Prefilled with 82.4 kg. Replace it if needed."),
     ).toBeVisible();
     expect(
       screen.getByRole("textbox", { name: /bodyweight \(kg\)/i }),

@@ -12,7 +12,6 @@ import {
   planWorkouts,
   plans,
   users,
-  workoutExerciseEntries,
   workoutSessions,
   workoutTemplateExercises,
   workoutTemplates,

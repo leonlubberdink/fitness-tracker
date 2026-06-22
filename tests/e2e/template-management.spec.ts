@@ -46,6 +46,11 @@ test.describe("template management", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Start workout" }).click();
+    const startWorkoutDialog = page.getByRole("dialog", {
+      name: "Start workout",
+    });
+    await expect(startWorkoutDialog).toBeVisible();
+    await startWorkoutDialog.getByRole("button", { name: "Start workout" }).click();
     await expect(page).toHaveURL(/\/workouts\/(?!templates\/)[^/?#]+/);
     await expect(page.getByRole("heading", { name: "Current workout." })).toBeVisible();
     await expect(page.getByText(pushExercise, { exact: true }).first()).toBeVisible();
@@ -78,6 +83,11 @@ test.describe("template management", () => {
 
     await addExerciseToTemplate(page, pushExercise, prescription);
     await page.getByRole("button", { name: "Start workout" }).click();
+    const startWorkoutDialog = page.getByRole("dialog", {
+      name: "Start workout",
+    });
+    await expect(startWorkoutDialog).toBeVisible();
+    await startWorkoutDialog.getByRole("button", { name: "Start workout" }).click();
 
     await expect(page).toHaveURL(/\/workouts\/(?!templates\/)[^/?#]+$/);
     const workoutUrl = page.url();
