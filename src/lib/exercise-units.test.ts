@@ -40,7 +40,7 @@ describe("exercise units", () => {
 
   it("provides the correct form labels for each unit", () => {
     expect(getExerciseMetricLabel("kg")).toBe("Weight (kg)");
-    expect(getExerciseMetricLabel("bodyweight")).toBe("Load");
+    expect(getExerciseMetricLabel("bodyweight")).toBe("Modifier (kg)");
     expect(getExerciseMetricLabel("time")).toBe("Time (sec)");
   });
 });

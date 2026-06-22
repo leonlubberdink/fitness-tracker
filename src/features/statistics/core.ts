@@ -2,6 +2,10 @@ import {
   formatExerciseMetricValue,
   type ExerciseUnit,
 } from "@/lib/exercise-units";
+import {
+  formatBodyweightExerciseLoad,
+  getBodyweightExerciseTotalLoadKg,
+} from "@/features/workouts/bodyweight";
 
 export const STATISTICS_RANGE_KEYS = ["30d", "12w", "all"] as const;
 
@@ -12,6 +16,7 @@ export type StatisticsRow = {
   performedOn: string;
   startedAt: Date;
   completedAt: Date;
+  sessionBodyweightKg: number | null;
   entryId: string;
   exerciseId: string | null;
   exerciseNameSnapshot: string;
@@ -25,6 +30,7 @@ export type StatisticsRow = {
 };
 
 export type StatisticsSession = {
+  bodyweightKg: number | null;
   sessionId: string;
   performedOn: string;
   startedAt: Date;
@@ -65,6 +71,13 @@ export type StatisticsWeeklyTrendPoint = {
   workoutCount: number;
 };
 
+export type StatisticsBodyweightTrendPoint = {
+  bodyweightKg: number;
+  performedOn: string;
+  sessionId: string;
+  shortLabel: string;
+};
+
 export type StatisticsExerciseOption = {
   category: string;
   key: string;
@@ -101,6 +114,7 @@ export type StatisticsExerciseProgression = {
 };
 
 export type StatisticsPageData = {
+  bodyweightTrend: StatisticsBodyweightTrendPoint[];
   exerciseOptions: StatisticsExerciseOption[];
   hasCompletedWorkouts: boolean;
   selectedExercise: StatisticsExerciseProgression | null;
@@ -214,9 +228,18 @@ function getExerciseSelectionKey(
   );
 }
 
-function formatBestSetLabel(unit: ExerciseUnit, weight: number, reps: number) {
-  if (unit === "time" || unit === "bodyweight") {
+function formatBestSetLabel(
+  unit: ExerciseUnit,
+  weight: number,
+  reps: number,
+  sessionBodyweightKg: number | null,
+) {
+  if (unit === "time") {
     return `${reps} reps · ${formatExerciseMetricValue(unit, weight)}`;
+  }
+
+  if (unit === "bodyweight" && sessionBodyweightKg !== null) {
+    return `${formatBodyweightExerciseLoad(sessionBodyweightKg, weight)} · ${reps} reps`;
   }
 
   return `${formatExerciseMetricValue(unit, weight)} · ${reps} reps`;
@@ -224,12 +247,39 @@ function formatBestSetLabel(unit: ExerciseUnit, weight: number, reps: number) {
 
 function getSessionVolumeKg(session: StatisticsSession) {
   return session.records.reduce((total, record) => {
-    if (record.unitSnapshot !== "kg") {
-      return total;
+    if (record.unitSnapshot === "kg") {
+      return total + record.reps * record.weight;
     }
 
-    return total + record.reps * record.weight;
+    if (
+      record.unitSnapshot === "bodyweight" &&
+      record.sessionBodyweightKg !== null
+    ) {
+      return (
+        total +
+        record.reps *
+          getBodyweightExerciseTotalLoadKg(
+            record.sessionBodyweightKg,
+            record.weight,
+          )
+      );
+    }
+
+    return total;
   }, 0);
+}
+
+function buildBodyweightTrendPoint(session: StatisticsSession) {
+  if (session.bodyweightKg === null) {
+    return null;
+  }
+
+  return {
+    bodyweightKg: session.bodyweightKg,
+    performedOn: session.performedOn,
+    sessionId: session.sessionId,
+    shortLabel: formatExercisePointLabel(session.performedOn),
+  };
 }
 
 function createMetric(
@@ -353,6 +403,10 @@ export function buildExerciseOptions(currentSessions: StatisticsSession[]) {
     const seenKeys = new Set<string>();
 
     for (const record of session.records) {
+      if (record.unitSnapshot === "bodyweight" && session.bodyweightKg === null) {
+        continue;
+      }
+
       const selectionKey = getExerciseSelectionKey(record);
       const existing =
         optionMap.get(selectionKey) ??
@@ -410,9 +464,13 @@ export function buildExerciseProgression(
 
   const matchingSessions = currentSessions
     .map((session) => {
-      const matchingRecords = session.records.filter(
-        (record) => getExerciseSelectionKey(record) === exerciseKey,
-      );
+      const matchingRecords = session.records.filter((record) => {
+        if (record.unitSnapshot === "bodyweight" && session.bodyweightKg === null) {
+          return false;
+        }
+
+        return getExerciseSelectionKey(record) === exerciseKey;
+      });
 
       if (matchingRecords.length === 0) {
         return null;
@@ -439,10 +497,20 @@ export function buildExerciseProgression(
           ? bestSet.weight
           : unit === "time"
             ? bestSet.weight
-            : bestSet.reps;
+            : session.bodyweightKg !== null
+              ? getBodyweightExerciseTotalLoadKg(
+                  session.bodyweightKg,
+                  bestSet.weight,
+                )
+              : bestSet.reps;
 
       return {
-        bestSetLabel: formatBestSetLabel(unit, bestSet.weight, bestSet.reps),
+        bestSetLabel: formatBestSetLabel(
+          unit,
+          bestSet.weight,
+          bestSet.reps,
+          session.bodyweightKg,
+        ),
         category: latestRecord.exerciseCategorySnapshot,
         chartValue,
         exerciseLabel: latestRecord.exerciseNameSnapshot,
@@ -456,6 +524,17 @@ export function buildExerciseProgression(
                 (total, record) => total + record.reps * record.weight,
                 0,
               )
+            : unit === "bodyweight" && session.bodyweightKg !== null
+              ? matchingRecords.reduce(
+                  (total, record) =>
+                    total +
+                    record.reps *
+                      getBodyweightExerciseTotalLoadKg(
+                        session.bodyweightKg as number,
+                        record.weight,
+                      ),
+                  0,
+                )
             : null,
       };
     })
@@ -485,7 +564,7 @@ export function buildExerciseProgression(
       ? "load"
       : latestSession.unit === "time"
         ? "duration"
-        : "reps";
+        : "load";
 
   return {
     category: latestSession.category,
@@ -494,14 +573,14 @@ export function buildExerciseProgression(
         ? "Line shows the heaviest logged set in each completed workout."
         : latestSession.unit === "time"
           ? "Line shows the longest logged set in each completed workout."
-          : "Line shows reps from the best logged set in each completed workout.",
+          : "Line shows the highest effective load in each completed workout.",
     chartMetric,
     chartMetricLabel:
       latestSession.unit === "kg"
         ? "Best load"
         : latestSession.unit === "time"
           ? "Longest duration"
-          : "Best reps",
+          : "Best effective load",
     details: [...matchingSessions]
       .reverse()
       .map(
@@ -536,6 +615,16 @@ export function buildExerciseProgression(
   };
 }
 
+export function buildBodyweightTrend(
+  currentSessions: StatisticsSession[],
+): StatisticsBodyweightTrendPoint[] {
+  return currentSessions
+    .map((session) => buildBodyweightTrendPoint(session))
+    .filter(
+      (point): point is StatisticsBodyweightTrendPoint => point !== null,
+    );
+}
+
 export function getStatisticsPageDataFromSessions(
   sessions: StatisticsSession[],
   {
@@ -568,6 +657,7 @@ export function getStatisticsPageDataFromSessions(
     : null;
 
   return {
+    bodyweightTrend: buildBodyweightTrend(currentSessions),
     exerciseOptions,
     hasCompletedWorkouts: sessions.length > 0,
     selectedExercise: buildExerciseProgression(

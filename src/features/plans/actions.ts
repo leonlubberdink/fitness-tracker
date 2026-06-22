@@ -21,6 +21,8 @@ import { requireUser } from "@/features/auth/session";
 import { formatStoredExerciseCategories } from "@/features/exercises/categories";
 import { hasIncompleteExercisePrescriptions } from "@/features/workout-prescriptions";
 import { coerceTimeZone, getTodayDateKey } from "@/lib/date";
+import { parseOptionalBodyweightKg } from "@/features/workouts/bodyweight";
+import { createWorkoutSessionWithEntries } from "@/features/workouts/session-creation";
 
 import { syncPlanCompletionState } from "./core";
 import {
@@ -1091,39 +1093,42 @@ export async function startPlannedWorkoutAction(formData: FormData) {
     });
   }
 
-  const sessionId = randomUUID();
+  const bodyweightInput = parseOptionalBodyweightKg(
+    getStringValue(formData, "bodyweightKg"),
+  );
 
-  await db.transaction(async (tx) => {
-    await tx.insert(workoutSessions).values({
-      activeEntrySortOrder: templateExercises[0].sortOrder,
-      id: sessionId,
-      performedOn: todayDateKey,
-      planId: plan.id,
-      planWorkoutId: planWorkout.id,
-      userId: user.id,
-      workoutTemplateId: planWorkout.workoutTemplateId,
+  if (!bodyweightInput.success) {
+    redirectToPlan(plan.id, {
+      error: getValidationMessage(bodyweightInput.error),
+      week: returnWeek ?? planWorkout.weekNumber,
     });
+  }
 
-    await tx.insert(workoutExerciseEntries).values(
-      templateExercises.map((exercise) => ({
-        exerciseCategorySnapshot: formatStoredExerciseCategories(
-          exercise.exerciseCategory,
-        ),
-        exerciseId: exercise.exerciseId,
-        exerciseNameSnapshot: exercise.exerciseName,
-        id: randomUUID(),
-        notesSnapshot: exercise.notes,
-        restTimeSnapshot: exercise.restTime,
-        sortOrder: exercise.sortOrder,
-        setsRepsSnapshot: exercise.setsReps,
-        unitSnapshot: exercise.defaultUnit,
-        workoutSessionId: sessionId,
-      })),
-    );
+  const bodyweightKg = bodyweightInput.data ?? user.currentBodyweightKg;
+
+  const session = await createWorkoutSessionWithEntries({
+    bodyweightKg,
+    entries: templateExercises.map((exercise) => ({
+      exerciseCategorySnapshot: formatStoredExerciseCategories(
+        exercise.exerciseCategory,
+      ),
+      exerciseId: exercise.exerciseId,
+      exerciseNameSnapshot: exercise.exerciseName,
+      notesSnapshot: exercise.notes,
+      restTimeSnapshot: exercise.restTime,
+      sortOrder: exercise.sortOrder,
+      setsRepsSnapshot: exercise.setsReps,
+      unitSnapshot: exercise.defaultUnit,
+    })),
+    performedOn: todayDateKey,
+    planId: plan.id,
+    planWorkoutId: planWorkout.id,
+    userId: user.id,
+    workoutTemplateId: planWorkout.workoutTemplateId,
   });
 
   revalidatePath("/");
   revalidatePath("/plans");
   revalidatePath(`/plans/${plan.id}`);
-  redirect(`/workouts/${sessionId}`);
+  redirect(`/workouts/${session.sessionId}`);
 }

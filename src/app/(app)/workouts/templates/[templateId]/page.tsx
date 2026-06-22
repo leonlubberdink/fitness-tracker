@@ -1,5 +1,4 @@
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
-import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import SaveRounded from "@mui/icons-material/SaveRounded";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -10,6 +9,7 @@ import Typography from "@mui/material/Typography";
 
 import { FormStatusButton } from "@/components/app/FormStatusButtons";
 import NextLink from "@/components/app/NextLink";
+import { StartWorkoutDialogButton } from "@/components/app/StartWorkoutDialogButton";
 import { requireUser } from "@/features/auth/session";
 import {
   addTemplateExerciseAction,
@@ -72,19 +72,19 @@ export default async function WorkoutTemplatePage({
             </Typography>
           </Stack>
 
-          <form action={startWorkoutFromTemplateAction}>
-            <input type="hidden" name="templateId" value={template.id} />
-            <FormStatusButton
-              type="submit"
-              variant="contained"
-              startIcon={<PlayArrowRounded />}
-              loadingLabel="Starting workout..."
-              disabled={!template.isReadyToStart}
-              fullWidth
-            >
-              Start workout
-            </FormStatusButton>
-          </form>
+          <StartWorkoutDialogButton
+            action={startWorkoutFromTemplateAction}
+            buttonLabel="Start workout"
+            color="primary"
+            currentBodyweightKg={user.currentBodyweightKg}
+            disabled={!template.isReadyToStart}
+            dialogDescription="Record bodyweight first if you want bodyweight exercises to use effective load."
+            dialogTitle="Start workout"
+            fullWidth
+            hiddenFields={{ templateId: template.id }}
+            submitLabel="Start workout"
+            variant="contained"
+          />
           {template.exercises.length > 0 && !template.isReadyToStart ? (
             <Alert severity="warning" variant="outlined">
               Complete the sets x reps and rest time for every exercise before

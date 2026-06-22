@@ -21,6 +21,7 @@ import {
   formatExerciseUnitShort,
   type ExerciseUnit,
 } from "@/lib/exercise-units";
+import { formatBodyweightExerciseLoad } from "@/features/workouts/bodyweight";
 import {
   formatDateForDisplay,
   formatInstantForDisplay,
@@ -44,7 +45,15 @@ function formatTime(value: Date | null, timeZone: string) {
   });
 }
 
-function formatSetWeight(unit: ExerciseUnit, weight: number) {
+function formatSetWeight(
+  unit: ExerciseUnit,
+  weight: number,
+  sessionBodyweightKg: number | null,
+) {
+  if (unit === "bodyweight" && sessionBodyweightKg !== null) {
+    return formatBodyweightExerciseLoad(sessionBodyweightKg, weight);
+  }
+
   return formatExerciseMetricValue(unit, weight);
 }
 
@@ -281,6 +290,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                                         {formatSetWeight(
                                           entry.unitSnapshot,
                                           set.weight,
+                                          session.bodyweightKg,
                                         )}
                                       </Typography>
                                     </Stack>

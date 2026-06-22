@@ -14,6 +14,7 @@ const SESSION_TTL_MS = SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
 type SessionUser = {
   id: string;
   email: string;
+  currentBodyweightKg: number | null;
   isActive: boolean;
   timeZone: string;
 };
@@ -86,6 +87,7 @@ export const getCurrentSession = cache(async (): Promise<CurrentSession> => {
     .select({
       sessionId: sessions.id,
       userId: users.id,
+      currentBodyweightKg: users.currentBodyweightKg,
       email: users.email,
       isActive: users.isActive,
       timeZone: users.timeZone,
@@ -110,6 +112,7 @@ export const getCurrentSession = cache(async (): Promise<CurrentSession> => {
     user: {
       id: result.userId,
       email: result.email,
+      currentBodyweightKg: result.currentBodyweightKg,
       isActive: result.isActive,
       timeZone: result.timeZone,
     },

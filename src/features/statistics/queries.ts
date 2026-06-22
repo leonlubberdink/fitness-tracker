@@ -25,6 +25,7 @@ async function getCompletedStatisticsSessionsForUser(userId: string) {
       performedOn: workoutSessions.performedOn,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      sessionBodyweightKg: workoutSessions.bodyweightKg,
       entryId: workoutExerciseEntries.id,
       exerciseId: workoutExerciseEntries.exerciseId,
       exerciseNameSnapshot: workoutExerciseEntries.exerciseNameSnapshot,
@@ -77,6 +78,7 @@ async function getCompletedStatisticsSessionsForUser(userId: string) {
     const session =
       sessions.get(statisticsRow.sessionId) ??
       ({
+        bodyweightKg: statisticsRow.sessionBodyweightKg,
         completedAt: statisticsRow.completedAt,
         performedOn: statisticsRow.performedOn,
         records: [],

@@ -22,6 +22,7 @@ type WorkoutFirstSetFormProps = {
   entryId: string;
   initialReps: number;
   initialMetricValue: number;
+  metricHelperText?: string;
   metricLabel: string;
   metricInputProps: WorkoutNumericInputProps;
   createSetAction: (formData: FormData) => Promise<void>;
@@ -32,6 +33,7 @@ export function WorkoutFirstSetForm({
   entryId,
   initialReps,
   initialMetricValue,
+  metricHelperText,
   metricLabel,
   metricInputProps,
   createSetAction,
@@ -108,6 +110,7 @@ export function WorkoutFirstSetForm({
                   value={weight}
                   onChange={(event) => setWeight(event.target.value)}
                   onFocus={selectWorkoutInputValueOnFocus}
+                  helperText={metricHelperText}
                   required
                 />
               </Grid>

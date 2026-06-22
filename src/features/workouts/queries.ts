@@ -42,6 +42,7 @@ type PreviousExerciseSet = {
   reps: number;
   setNumber: number;
   weight: number;
+  sessionBodyweightKg: number | null;
   unit: ExerciseUnit;
   nextLoadRecommendation: LoadRecommendation | null;
 };
@@ -68,6 +69,7 @@ export async function getOpenWorkoutSessionForUser(userId: string) {
     .select({
       id: workoutSessions.id,
       performedOn: workoutSessions.performedOn,
+      bodyweightKg: workoutSessions.bodyweightKg,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
@@ -94,6 +96,7 @@ export async function getWorkoutSessionForLogging(
     .select({
       id: workoutSessions.id,
       performedOn: workoutSessions.performedOn,
+      bodyweightKg: workoutSessions.bodyweightKg,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
@@ -170,6 +173,7 @@ export async function getWorkoutSessionForLogging(
       .select({
         exerciseId: workoutExerciseEntries.exerciseId,
         performedOn: workoutSessions.performedOn,
+        sessionBodyweightKg: workoutSessions.bodyweightKg,
         unit: workoutExerciseEntries.unitSnapshot,
         nextLoadRecommendation: workoutExerciseEntries.nextLoadRecommendation,
         reps: workoutSets.reps,
@@ -234,6 +238,7 @@ export async function requireWorkoutSessionForLogging(
 type CompletedWorkoutSessionRow = {
   id: string;
   performedOn: string;
+  bodyweightKg: number | null;
   startedAt: Date;
   completedAt: Date | null;
 };
@@ -254,6 +259,7 @@ export async function getCompletedWorkoutHistoryForUser(
     .select({
       id: workoutSessions.id,
       performedOn: workoutSessions.performedOn,
+      bodyweightKg: workoutSessions.bodyweightKg,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
     })

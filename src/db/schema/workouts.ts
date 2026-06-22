@@ -45,6 +45,11 @@ export const workoutSessions = pgTable(
       },
     ),
     performedOn: date("performed_on", { mode: "string" }).notNull(),
+    bodyweightKg: numeric("bodyweight_kg", {
+      precision: 6,
+      scale: 2,
+      mode: "number",
+    }),
     startedAt: timestamp("started_at", {
       withTimezone: true,
       mode: "date",

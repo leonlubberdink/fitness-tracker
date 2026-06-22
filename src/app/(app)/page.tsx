@@ -16,6 +16,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import NextLink from "@/components/app/NextLink";
+import { StartWorkoutDialogButton } from "@/components/app/StartWorkoutDialogButton";
 import { requireUser } from "@/features/auth/session";
 import { startPlannedWorkoutAction } from "@/features/plans/actions";
 import { getPlansPageData } from "@/features/plans/queries";
@@ -314,23 +315,21 @@ export default async function Home() {
             </Paper>
 
             {activePlan.todayWorkout?.canStart && !workoutSession ? (
-              <form action={startPlannedWorkoutAction}>
-                <input type="hidden" name="planId" value={activePlan.id} />
-                <input
-                  type="hidden"
-                  name="planWorkoutId"
-                  value={activePlan.todayWorkout.id}
-                />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="secondary"
-                  startIcon={<PlayArrowRounded />}
-                  fullWidth
-                >
-                  Start today&apos;s workout
-                </Button>
-              </form>
+              <StartWorkoutDialogButton
+                action={startPlannedWorkoutAction}
+                buttonLabel="Start today&apos;s workout"
+                color="secondary"
+                currentBodyweightKg={user.currentBodyweightKg}
+                dialogDescription={`Start ${activePlan.todayWorkout.templateName} with an optional bodyweight snapshot.`}
+                dialogTitle="Start today's workout"
+                fullWidth
+                hiddenFields={{
+                  planId: activePlan.id,
+                  planWorkoutId: activePlan.todayWorkout.id,
+                }}
+                submitLabel="Start workout"
+                variant="contained"
+              />
             ) : null}
 
             <Button
