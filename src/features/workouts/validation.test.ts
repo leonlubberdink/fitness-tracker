@@ -139,6 +139,22 @@ describe("workout validation", () => {
     );
   });
 
+  it("rejects an empty reorder list", () => {
+    const result = reorderWorkoutEntriesSchema.safeParse({
+      entryIds: [],
+      sessionId,
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) {
+      return;
+    }
+
+    expect(result.error.flatten().fieldErrors.entryIds).toContain(
+      "Add at least one exercise before reordering.",
+    );
+  });
+
   it("parses valid next-time load recommendations", () => {
     const result = parseLoadRecommendation("increase");
 

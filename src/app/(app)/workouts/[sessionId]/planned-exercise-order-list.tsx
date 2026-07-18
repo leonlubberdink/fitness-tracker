@@ -159,9 +159,9 @@ export function PlannedExerciseOrderList({
                       </Stack>
 
                       <Chip
-                        label={`Next ${index + 1}`}
+                        label={index === 0 ? "Current" : `Next ${index}`}
                         size="small"
-                        color="primary"
+                        color={index === 0 ? "primary" : "default"}
                         variant="outlined"
                       />
                     </Stack>

@@ -58,7 +58,7 @@ export const workoutEntrySchema = workoutSessionIdSchema.extend({
 export const reorderWorkoutEntriesSchema = workoutSessionIdSchema.extend({
   entryIds: z
     .array(uuidField("Invalid workout exercise entry."))
-    .min(1, "Add at least one planned exercise before reordering.")
+    .min(1, "Add at least one exercise before reordering.")
     .refine(
       (entryIds) => new Set(entryIds).size === entryIds.length,
       "Provide a valid exercise order.",

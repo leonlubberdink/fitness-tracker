@@ -390,6 +390,9 @@ export default async function WorkoutPage({
         (entry) => entry.sortOrder > currentEntry.sortOrder,
       )
     : [];
+  const currentAndUpcomingEntries = currentEntry
+    ? [currentEntry, ...upcomingEntries]
+    : [];
   const previousEntries = currentEntry
     ? session.entries
         .filter((entry) => entry.sortOrder < currentEntry.sortOrder)
@@ -682,20 +685,20 @@ export default async function WorkoutPage({
         </>
       ) : null}
 
-      {upcomingEntries.length > 0 ? (
+      {currentAndUpcomingEntries.length > 1 ? (
         <Paper elevation={0} sx={{ borderRadius: "10px", px: 2.25, py: 2.5 }}>
           <Stack spacing={1.75}>
             <Stack spacing={0.5}>
-              <Typography variant="h3">Upcoming</Typography>
+              <Typography variant="h3">Exercise order</Typography>
               <Typography color="text.secondary">
-                Drag to change what comes next without logging sets early.
+                Drag to change the current and upcoming exercise order.
               </Typography>
             </Stack>
 
             <PlannedExerciseOrderList
-              key={upcomingEntries.map((entry) => entry.id).join(":")}
+              key={currentAndUpcomingEntries.map((entry) => entry.id).join(":")}
               sessionId={session.id}
-              entries={upcomingEntries}
+              entries={currentAndUpcomingEntries}
               reorderWorkoutEntriesAction={reorderWorkoutEntriesAction}
             />
           </Stack>
