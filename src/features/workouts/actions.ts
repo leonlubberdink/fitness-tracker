@@ -36,6 +36,7 @@ import {
   workoutSessionIdSchema,
   workoutSetMutationSchema,
 } from "./validation";
+import { getActiveAndPlannedWorkoutEntries } from "./reorder";
 
 function getStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -717,12 +718,9 @@ export async function reorderWorkoutEntriesAction(formData: FormData) {
     });
   }
 
-  const fallbackSortOrder = entries.at(-1)?.sortOrder ?? entries[0].sortOrder;
-  const activeSortOrder =
-    entries.find((entry) => entry.sortOrder === session.activeEntrySortOrder)
-      ?.sortOrder ?? fallbackSortOrder;
-  const activeAndPlannedEntries = entries.filter(
-    (entry) => entry.sortOrder >= activeSortOrder,
+  const activeAndPlannedEntries = getActiveAndPlannedWorkoutEntries(
+    entries,
+    session.activeEntrySortOrder,
   );
 
   if (activeAndPlannedEntries.length === 0) {
