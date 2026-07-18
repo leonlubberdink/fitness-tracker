@@ -203,7 +203,7 @@ export function StatisticsPageClient({
             ]}
             yAxis={[
               {
-                min: 0,
+                min: 70,
                 valueFormatter: (value: number) =>
                   `${formatDecimalValue(value)} kg`,
               },
