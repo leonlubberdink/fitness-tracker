@@ -721,36 +721,38 @@ export async function reorderWorkoutEntriesAction(formData: FormData) {
   const activeSortOrder =
     entries.find((entry) => entry.sortOrder === session.activeEntrySortOrder)
       ?.sortOrder ?? fallbackSortOrder;
-  const plannedEntries = entries.filter(
-    (entry) => entry.sortOrder > activeSortOrder,
+  const activeAndPlannedEntries = entries.filter(
+    (entry) => entry.sortOrder >= activeSortOrder,
   );
 
-  if (plannedEntries.length === 0) {
+  if (activeAndPlannedEntries.length === 0) {
     redirectToWorkoutSession(sessionId);
   }
 
-  if (plannedEntries.length !== entryIds.length) {
+  if (activeAndPlannedEntries.length !== entryIds.length) {
     redirectToWorkoutSession(sessionId, {
       error: "Refresh the page and try reordering again.",
     });
   }
 
-  const plannedEntryIdSet = new Set(plannedEntries.map((entry) => entry.id));
+  const activeAndPlannedEntryIdSet = new Set(
+    activeAndPlannedEntries.map((entry) => entry.id),
+  );
 
-  if (entryIds.some((entryId) => !plannedEntryIdSet.has(entryId))) {
+  if (entryIds.some((entryId) => !activeAndPlannedEntryIdSet.has(entryId))) {
     redirectToWorkoutSession(sessionId, {
       error: "Refresh the page and try reordering again.",
     });
   }
 
-  const firstPlannedSortOrder = plannedEntries[0]?.sortOrder;
+  const firstActiveAndPlannedSortOrder = activeAndPlannedEntries[0]?.sortOrder;
 
-  if (firstPlannedSortOrder === undefined) {
+  if (firstActiveAndPlannedSortOrder === undefined) {
     redirectToWorkoutSession(sessionId);
   }
 
   await db.transaction(async (tx) => {
-    for (const entry of plannedEntries) {
+    for (const entry of activeAndPlannedEntries) {
       await tx
         .update(workoutExerciseEntries)
         .set({ sortOrder: -entry.sortOrder })
@@ -760,13 +762,16 @@ export async function reorderWorkoutEntriesAction(formData: FormData) {
     for (const [index, entryId] of entryIds.entries()) {
       await tx
         .update(workoutExerciseEntries)
-        .set({ sortOrder: firstPlannedSortOrder + index })
+        .set({ sortOrder: firstActiveAndPlannedSortOrder + index })
         .where(eq(workoutExerciseEntries.id, entryId));
     }
 
     await tx
       .update(workoutSessions)
-      .set({ updatedAt: new Date() })
+      .set({
+        activeEntrySortOrder: firstActiveAndPlannedSortOrder,
+        updatedAt: new Date(),
+      })
       .where(eq(workoutSessions.id, sessionId));
   });
 
