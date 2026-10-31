@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SET_TYPES, REPS_BASES } from "@/lib/training-metadata";
 
 import type { ExerciseUnit } from "@/lib/exercise-units";
 import {
@@ -35,8 +36,12 @@ function getMetricSchema(unit: ExerciseUnit) {
     .trim()
     .min(1, unit === "bodyweight" ? "Load is required." : "Weight is required.")
     .refine(
-      (value) => Number.isFinite(Number.parseFloat(value)),
-      unit === "bodyweight" ? "Load must be a number." : "Weight must be a number.",
+      (value) =>
+        /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value) &&
+        Number.isFinite(Number(value)),
+      unit === "bodyweight"
+        ? "Load must be a number."
+        : "Weight must be a number.",
     )
     .transform((value) => Math.round(Number.parseFloat(value) * 100) / 100);
 }
@@ -84,15 +89,41 @@ export function parseLoadRecommendation(value: string) {
 
 export function parseWorkoutSetFields(
   unit: ExerciseUnit,
-  values: {
-    reps: string;
-    weight: string;
-  },
+  values: { reps: string; weight: string },
 ) {
   return z
-    .object({
-      reps: positiveIntegerString,
-      weight: getMetricSchema(unit),
-    })
+    .object({ reps: positiveIntegerString, weight: getMetricSchema(unit) })
     .safeParse(values);
+}
+
+const optionalEnum = <T extends readonly [string, ...string[]]>(values: T) =>
+  z.union([z.literal("").transform(() => null), z.enum(values)]);
+
+export function parseSetObservations(form: FormData) {
+  const read = (name: string) => {
+    const value = form.get(name);
+    return typeof value === "string" ? value.trim() : "";
+  };
+  return z
+    .object({
+      // No server defaults: classifications must be submitted by the visible UI.
+      setType: optionalEnum(SET_TYPES),
+      repsBasis: optionalEnum(REPS_BASES),
+      rir: z.union([
+        z.literal("").transform(() => null),
+        z
+          .string()
+          .regex(/^\d+$/, "RIR must be an exact nonnegative integer.")
+          .transform(Number)
+          .pipe(z.number().int().min(0).max(2147483647)),
+      ]),
+    })
+    .refine((value) => value.rir === null || value.setType === "working", {
+      message: "RIR is only recorded for performed working sets.",
+    })
+    .safeParse({
+      setType: read("setType"),
+      repsBasis: read("repsBasis"),
+      rir: read("rir"),
+    });
 }

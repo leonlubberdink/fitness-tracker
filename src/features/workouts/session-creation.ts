@@ -3,11 +3,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
-import {
-  users,
-  workoutExerciseEntries,
-  workoutSessions,
-} from "@/db/schema";
+import { users, workoutExerciseEntries, workoutSessions } from "@/db/schema";
 import type { ExerciseUnit } from "@/lib/exercise-units";
 
 export type WorkoutSessionEntrySeed = {
@@ -50,6 +46,7 @@ export async function createWorkoutSessionWithEntries({
       activeEntrySortOrder: entries[0].sortOrder,
       bodyweightKg,
       completedAt: null,
+      status: "in_progress",
       id: sessionId,
       performedOn,
       planId,
@@ -73,6 +70,7 @@ export async function createWorkoutSessionWithEntries({
       entries.map((entry) => ({
         exerciseCategorySnapshot: entry.exerciseCategorySnapshot,
         exerciseId: entry.exerciseId,
+        exerciseIdSnapshot: entry.exerciseId,
         exerciseNameSnapshot: entry.exerciseNameSnapshot,
         id: randomUUID(),
         notesSnapshot: entry.notesSnapshot,

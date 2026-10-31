@@ -33,11 +33,11 @@ describe("ExerciseCompletionActions", () => {
     expect(finishButton).toBeEnabled();
 
     const forms = container.querySelectorAll("form");
-    expect(forms).toHaveLength(2);
+    expect(forms).toHaveLength(5);
 
-    const nextRecommendationInput = within(forms[0] as HTMLFormElement).getByDisplayValue(
-      "keep",
-    );
+    const nextRecommendationInput = within(
+      forms[0] as HTMLFormElement,
+    ).getByDisplayValue("keep");
     const finishRecommendationInput = within(
       forms[1] as HTMLFormElement,
     ).getByDisplayValue("keep");
@@ -67,7 +67,9 @@ describe("ExerciseCompletionActions", () => {
     expect(
       screen.queryByRole("button", { name: "Next exercise" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Finish workout" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Finish workout" }),
+    ).toBeEnabled();
     expect(screen.getByRole("button", { name: "Decrease" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -90,6 +92,8 @@ describe("ExerciseCompletionActions", () => {
       screen.queryByText("Next-time recommendation"),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Next exercise" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Finish workout" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Finish workout" }),
+    ).toBeEnabled();
   });
 });

@@ -1,8 +1,14 @@
 "use server";
 
+import {
+  closedSessionPredicate,
+  recordedWorkSetPredicate,
+  openSessionPredicate,
+} from "@/features/workouts/predicates";
+
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, gt, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -25,11 +31,14 @@ import {
   parseRequiredBodyweightKg,
 } from "./bodyweight";
 
+import { resolveSessionOutcome, type SessionOutcome } from "./completion";
+import type { LoadRecommendation } from "./load-recommendations";
 import { getOpenWorkoutSessionForUser } from "./queries";
 import {
   addExerciseEntrySchema,
   parseLoadRecommendation,
   parseWorkoutSetFields,
+  parseSetObservations,
   reorderWorkoutEntriesSchema,
   startWorkoutSessionSchema,
   workoutEntrySchema,
@@ -125,12 +134,34 @@ async function requireOpenSession(userId: string, sessionId: string) {
       and(
         eq(workoutSessions.id, sessionId),
         eq(workoutSessions.userId, userId),
-        isNull(workoutSessions.completedAt),
+        openSessionPredicate(),
       ),
     )
     .limit(1);
 
   return session ?? null;
+}
+
+async function lockOpenSessionForMutation(
+  tx: Pick<typeof db, "select">,
+  userId: string,
+  sessionId: string,
+) {
+  const [session] = await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.id, sessionId),
+        eq(workoutSessions.userId, userId),
+        openSessionPredicate(),
+      ),
+    )
+    .for("update");
+  if (!session)
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout session is already closed.",
+    });
 }
 
 async function getActiveEntryForSession(sessionId: string) {
@@ -160,7 +191,9 @@ async function getActiveEntryForSession(sessionId: string) {
 
   const fallbackSortOrder = entries.at(-1)?.sortOrder ?? entries[0].sortOrder;
   const currentEntry =
-    entries.find((entry) => entry.sortOrder === session?.activeEntrySortOrder) ??
+    entries.find(
+      (entry) => entry.sortOrder === session?.activeEntrySortOrder,
+    ) ??
     entries.find((entry) => entry.sortOrder === fallbackSortOrder) ??
     null;
 
@@ -168,26 +201,6 @@ async function getActiveEntryForSession(sessionId: string) {
     currentEntry,
     entries,
   };
-}
-
-async function saveNextLoadRecommendationForEntry(
-  entryId: string,
-  recommendation: string,
-) {
-  const parsedRecommendation = parseLoadRecommendation(recommendation);
-
-  if (!parsedRecommendation.success) {
-    return parsedRecommendation;
-  }
-
-  await db
-    .update(workoutExerciseEntries)
-    .set({
-      nextLoadRecommendation: parsedRecommendation.data,
-    })
-    .where(eq(workoutExerciseEntries.id, entryId));
-
-  return parsedRecommendation;
 }
 
 async function requireCompletedSession(userId: string, sessionId: string) {
@@ -203,7 +216,7 @@ async function requireCompletedSession(userId: string, sessionId: string) {
       and(
         eq(workoutSessions.id, sessionId),
         eq(workoutSessions.userId, userId),
-        isNotNull(workoutSessions.completedAt),
+        closedSessionPredicate(),
       ),
     )
     .limit(1);
@@ -230,7 +243,7 @@ async function requireEntryForOpenSession(userId: string, entryId: string) {
       and(
         eq(workoutExerciseEntries.id, entryId),
         eq(workoutSessions.userId, userId),
-        isNull(workoutSessions.completedAt),
+        openSessionPredicate(),
       ),
     )
     .limit(1);
@@ -261,7 +274,7 @@ async function requireSetForOpenSession(userId: string, setId: string) {
       and(
         eq(workoutSets.id, setId),
         eq(workoutSessions.userId, userId),
-        isNull(workoutSessions.completedAt),
+        openSessionPredicate(),
       ),
     )
     .limit(1);
@@ -327,27 +340,31 @@ export async function addExerciseEntryAction(formData: FormData) {
     });
   }
 
-  const [lastEntry] = await db
-    .select({
-      sortOrder: workoutExerciseEntries.sortOrder,
-    })
-    .from(workoutExerciseEntries)
-    .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
-    .orderBy(desc(workoutExerciseEntries.sortOrder))
-    .limit(1);
-
-  const nextSortOrder = (lastEntry?.sortOrder ?? 0) + 1;
-  const nextActiveSortOrder =
-    session.activeEntrySortOrder ?? lastEntry?.sortOrder ?? nextSortOrder;
   const entryId = randomUUID();
 
   await db.transaction(async (tx) => {
+    await lockOpenSessionForMutation(tx, user.id, sessionId);
+    const [lastEntry] = await tx
+      .select({
+        sortOrder: workoutExerciseEntries.sortOrder,
+      })
+      .from(workoutExerciseEntries)
+      .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
+      .orderBy(desc(workoutExerciseEntries.sortOrder))
+      .limit(1);
+
+    const nextSortOrder = (lastEntry?.sortOrder ?? 0) + 1;
+    const nextActiveSortOrder =
+      session.activeEntrySortOrder ?? lastEntry?.sortOrder ?? nextSortOrder;
     await tx.insert(workoutExerciseEntries).values({
       id: entryId,
       workoutSessionId: sessionId,
       exerciseId: exercise.id,
+      exerciseIdSnapshot: exercise.id,
       exerciseNameSnapshot: exercise.name,
-      exerciseCategorySnapshot: formatStoredExerciseCategories(exercise.category),
+      exerciseCategorySnapshot: formatStoredExerciseCategories(
+        exercise.category,
+      ),
       notesSnapshot: null,
       restTimeSnapshot: null,
       unitSnapshot: exercise.defaultUnit,
@@ -406,6 +423,7 @@ export async function updateWorkoutSessionBodyweightAction(formData: FormData) {
   }
 
   await db.transaction(async (tx) => {
+    await lockOpenSessionForMutation(tx, user.id, sessionId);
     await tx
       .update(workoutSessions)
       .set({
@@ -451,11 +469,22 @@ export async function createSetAction(formData: FormData) {
   const { sessionId, entryId } = parsedInput.data;
   const entry = await requireEntryForOpenSession(user.id, entryId);
 
-  if (!entry) {
+  if (!entry || entry.sessionId !== sessionId) {
     redirectToWorkoutSession(sessionId, {
-      error: "Workout exercise entry no longer exists or the session is closed.",
+      error:
+        "Workout exercise entry no longer exists or the session is closed.",
     });
   }
+
+  const observations = parseSetObservations(formData);
+  if (!observations.success)
+    redirectToWorkoutSession(sessionId, {
+      error: getValidationMessage(observations.error),
+    });
+  if (observations.data.setType === null)
+    redirectToWorkoutSession(sessionId, {
+      error: "Choose a set type.",
+    });
 
   const metricInput = parseWorkoutSetFields(entry.unit, {
     reps: getStringValue(formData, "reps"),
@@ -471,7 +500,7 @@ export async function createSetAction(formData: FormData) {
   const { reps, weight } = metricInput.data;
 
   const bodyweightError =
-    entry.unit === "bodyweight"
+    entry.unit === "bodyweight" && weight !== null
       ? getBodyweightSetError(entry.sessionBodyweightKg, weight)
       : null;
 
@@ -482,24 +511,26 @@ export async function createSetAction(formData: FormData) {
     });
   }
 
-  const [lastSet] = await db
-    .select({
-      setNumber: workoutSets.setNumber,
-    })
-    .from(workoutSets)
-    .where(eq(workoutSets.workoutExerciseEntryId, entryId))
-    .orderBy(desc(workoutSets.setNumber))
-    .limit(1);
-
   const setId = randomUUID();
 
   await db.transaction(async (tx) => {
+    await lockOpenSessionForMutation(tx, user.id, sessionId);
+    const [lastSet] = await tx
+      .select({
+        setNumber: workoutSets.setNumber,
+      })
+      .from(workoutSets)
+      .where(eq(workoutSets.workoutExerciseEntryId, entryId))
+      .orderBy(desc(workoutSets.setNumber))
+      .limit(1);
+
     await tx.insert(workoutSets).values({
       id: setId,
       workoutExerciseEntryId: entryId,
       setNumber: (lastSet?.setNumber ?? 0) + 1,
       reps,
       weight,
+      ...observations.data,
     });
 
     await tx
@@ -516,75 +547,6 @@ export async function createSetAction(formData: FormData) {
     scrollTo: "current-exercise",
     focusSet: setId,
   });
-}
-
-export async function addSetAction(formData: FormData) {
-  const user = await requireUser();
-  const parsedInput = workoutEntrySchema.safeParse({
-    sessionId: getStringValue(formData, "sessionId"),
-    entryId: getStringValue(formData, "entryId"),
-  });
-
-  if (!parsedInput.success) {
-    const sessionId = getStringValue(formData, "sessionId");
-
-    if (sessionId) {
-      redirectToWorkoutSession(sessionId, {
-        error: getValidationMessage(parsedInput.error),
-      });
-    }
-
-    redirect("/");
-  }
-
-  const { sessionId, entryId } = parsedInput.data;
-  const entry = await requireEntryForOpenSession(user.id, entryId);
-
-  if (!entry) {
-    redirectToWorkoutSession(sessionId, {
-      error: "Workout exercise entry no longer exists or the session is closed.",
-    });
-  }
-
-  const [lastSet] = await db
-    .select({
-      setNumber: workoutSets.setNumber,
-      reps: workoutSets.reps,
-      weight: workoutSets.weight,
-    })
-    .from(workoutSets)
-    .where(eq(workoutSets.workoutExerciseEntryId, entryId))
-    .orderBy(desc(workoutSets.setNumber))
-    .limit(1);
-
-  if (!lastSet) {
-    redirectToWorkoutSession(entry.sessionId, {
-      error: "Log the first set before adding another one.",
-    });
-  }
-
-  const bodyweightError =
-    entry.unit === "bodyweight"
-      ? getBodyweightSetError(entry.sessionBodyweightKg, lastSet.weight)
-      : null;
-
-  if (bodyweightError) {
-    redirectToWorkoutSession(entry.sessionId, {
-      error: bodyweightError,
-      scrollTo: "current-exercise",
-    });
-  }
-
-  await db.insert(workoutSets).values({
-    id: randomUUID(),
-    workoutExerciseEntryId: entryId,
-    setNumber: lastSet.setNumber + 1,
-    reps: lastSet.reps,
-    weight: lastSet.weight,
-  });
-
-  revalidatePath(`/workouts/${entry.sessionId}`);
-  redirectToWorkoutSession(entry.sessionId);
 }
 
 export async function advanceWorkoutExerciseAction(formData: FormData) {
@@ -619,18 +581,23 @@ export async function advanceWorkoutExerciseAction(formData: FormData) {
     entries.at(-1)?.sortOrder ??
     entries[0].sortOrder;
 
+  let recommendationToSave: LoadRecommendation | null = null;
   if (currentEntry) {
     const [currentSet] = await db
       .select({
         id: workoutSets.id,
       })
       .from(workoutSets)
-      .where(eq(workoutSets.workoutExerciseEntryId, currentEntry.id))
+      .where(
+        and(
+          eq(workoutSets.workoutExerciseEntryId, currentEntry.id),
+          recordedWorkSetPredicate(),
+        ),
+      )
       .limit(1);
 
     if (currentSet) {
-      const recommendationResult = await saveNextLoadRecommendationForEntry(
-        currentEntry.id,
+      const recommendationResult = parseLoadRecommendation(
         getStringValue(formData, "nextLoadRecommendation"),
       );
 
@@ -640,6 +607,7 @@ export async function advanceWorkoutExerciseAction(formData: FormData) {
           scrollTo: "current-exercise",
         });
       }
+      recommendationToSave = recommendationResult.data;
     }
   }
 
@@ -661,14 +629,22 @@ export async function advanceWorkoutExerciseAction(formData: FormData) {
     redirectToWorkoutSession(sessionId);
   }
 
-  await db
-    .update(workoutSessions)
-    .set({
-      activeEntrySortOrder: nextEntry.sortOrder,
-      updatedAt: new Date(),
-    })
-    .where(eq(workoutSessions.id, sessionId));
-
+  await db.transaction(async (tx) => {
+    await lockOpenSessionForMutation(tx, user.id, sessionId);
+    if (currentEntry && recommendationToSave) {
+      await tx
+        .update(workoutExerciseEntries)
+        .set({ nextLoadRecommendation: recommendationToSave })
+        .where(eq(workoutExerciseEntries.id, currentEntry.id));
+    }
+    await tx
+      .update(workoutSessions)
+      .set({
+        activeEntrySortOrder: nextEntry.sortOrder,
+        updatedAt: new Date(),
+      })
+      .where(eq(workoutSessions.id, sessionId));
+  });
   revalidatePath(`/workouts/${sessionId}`);
   redirectToWorkoutSession(sessionId, {
     scrollTo: "current-exercise",
@@ -750,6 +726,7 @@ export async function reorderWorkoutEntriesAction(formData: FormData) {
   }
 
   await db.transaction(async (tx) => {
+    await lockOpenSessionForMutation(tx, user.id, sessionId);
     for (const entry of activeAndPlannedEntries) {
       await tx
         .update(workoutExerciseEntries)
@@ -799,11 +776,17 @@ export async function updateSetAction(formData: FormData) {
   const { sessionId, setId } = parsedInput.data;
   const setRecord = await requireSetForOpenSession(user.id, setId);
 
-  if (!setRecord) {
+  if (!setRecord || setRecord.sessionId !== sessionId) {
     redirectToWorkoutSession(sessionId, {
       error: "Workout set no longer exists or the session is closed.",
     });
   }
+
+  const observations = parseSetObservations(formData);
+  if (!observations.success)
+    redirectToWorkoutSession(sessionId, {
+      error: getValidationMessage(observations.error),
+    });
 
   const metricInput = parseWorkoutSetFields(setRecord.unit, {
     reps: getStringValue(formData, "reps"),
@@ -819,7 +802,7 @@ export async function updateSetAction(formData: FormData) {
   const { reps, weight } = metricInput.data;
 
   const bodyweightError =
-    setRecord.unit === "bodyweight"
+    setRecord.unit === "bodyweight" && weight !== null
       ? getBodyweightSetError(setRecord.sessionBodyweightKg, weight)
       : null;
 
@@ -830,14 +813,22 @@ export async function updateSetAction(formData: FormData) {
     });
   }
 
-  await db
-    .update(workoutSets)
-    .set({
-      reps,
-      weight,
-    })
-    .where(eq(workoutSets.id, setId));
+  await db.transaction(async (tx) => {
+    await lockOpenSessionForMutation(tx, user.id, sessionId);
+    await tx
+      .update(workoutSets)
+      .set({
+        reps,
+        weight,
+        ...observations.data,
+      })
+      .where(eq(workoutSets.id, setId));
 
+    await tx
+      .update(workoutSessions)
+      .set({ updatedAt: new Date() })
+      .where(eq(workoutSessions.id, setRecord.sessionId));
+  });
   revalidatePath(`/workouts/${setRecord.sessionId}`);
   redirectToWorkoutSession(setRecord.sessionId);
 }
@@ -847,108 +838,106 @@ export async function completeWorkoutSessionAction(formData: FormData) {
   const parsedInput = workoutSessionIdSchema.safeParse({
     sessionId: getStringValue(formData, "sessionId"),
   });
-
-  if (!parsedInput.success) {
-    redirect("/");
-  }
-
+  if (!parsedInput.success) redirect("/");
   const { sessionId } = parsedInput.data;
-  const session = await requireOpenSession(user.id, sessionId);
-
-  if (!session) {
+  const requested = getStringValue(formData, "outcome") || "completed";
+  if (!["completed", "partial", "aborted", "skipped"].includes(requested))
     redirectToWorkoutSession(sessionId, {
-      error: "Workout session no longer exists or is already completed.",
+      error: "Choose a valid workout outcome.",
     });
-  }
-
+  const session = await requireOpenSession(user.id, sessionId);
+  if (!session)
+    redirectToWorkoutSession(sessionId, {
+      error: "Workout session is already closed.",
+    });
   const { currentEntry } = await getActiveEntryForSession(sessionId);
-  const [entryRows, setRows] = await Promise.all([
-    db
-      .select({
-        id: workoutExerciseEntries.id,
-        sortOrder: workoutExerciseEntries.sortOrder,
-      })
+  const recommendation = getStringValue(formData, "nextLoadRecommendation");
+  if (recommendation && !parseLoadRecommendation(recommendation).success)
+    redirectToWorkoutSession(sessionId, {
+      error: "Choose a valid next-time recommendation.",
+    });
+
+  const outcome = await db.transaction(async (tx) => {
+    const [lockedSession] = await tx
+      .select()
+      .from(workoutSessions)
+      .where(
+        and(
+          eq(workoutSessions.id, sessionId),
+          eq(workoutSessions.userId, user.id),
+          openSessionPredicate(),
+        ),
+      )
+      .for("update");
+    if (!lockedSession) return { error: "Workout session is already closed." };
+    const entries = await tx
+      .select()
       .from(workoutExerciseEntries)
-      .where(eq(workoutExerciseEntries.workoutSessionId, sessionId))
-      .orderBy(asc(workoutExerciseEntries.sortOrder)),
-    db
-      .select({
-        entryId: workoutExerciseEntries.id,
-      })
+      .where(eq(workoutExerciseEntries.workoutSessionId, sessionId));
+    const setRows = await tx
+      .select({ set: workoutSets })
       .from(workoutSets)
       .innerJoin(
         workoutExerciseEntries,
         eq(workoutSets.workoutExerciseEntryId, workoutExerciseEntries.id),
       )
-      .where(eq(workoutExerciseEntries.workoutSessionId, sessionId)),
-  ]);
-
-  if (setRows.length === 0) {
-    redirectToWorkoutSession(sessionId, {
-      error: "Log at least one set before finishing this workout.",
-    });
-  }
-
-  const entryIdsWithSets = new Set(setRows.map((set) => set.entryId));
-  const untouchedEntries = entryRows.filter(
-    (entry) => !entryIdsWithSets.has(entry.id),
-  );
-  const remainingEntries = entryRows.filter((entry) =>
-    entryIdsWithSets.has(entry.id),
-  );
-
-  if (currentEntry && entryIdsWithSets.has(currentEntry.id)) {
-    const recommendationResult = await saveNextLoadRecommendationForEntry(
-      currentEntry.id,
-      getStringValue(formData, "nextLoadRecommendation"),
-    );
-
-    if (!recommendationResult.success) {
-      redirectToWorkoutSession(sessionId, {
-        error: getValidationMessage(recommendationResult.error),
-        scrollTo: "current-exercise",
-      });
+      .where(eq(workoutExerciseEntries.workoutSessionId, sessionId));
+    const completionEntries = entries.map((entry) => ({
+      id: entry.id,
+      sets: setRows
+        .filter((row) => row.set.workoutExerciseEntryId === entry.id)
+        .map((row) => row.set),
+    }));
+    let status: SessionOutcome;
+    try {
+      status = resolveSessionOutcome(
+        requested as SessionOutcome,
+        completionEntries,
+      );
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to finish this workout.",
+      };
     }
-  }
-
-  await db.transaction(async (tx) => {
-    for (const entry of untouchedEntries) {
-      await tx
-        .delete(workoutExerciseEntries)
-        .where(eq(workoutExerciseEntries.id, entry.id));
-    }
-
-    for (const [index, entry] of remainingEntries.entries()) {
-      const nextSortOrder = index + 1;
-
-      if (entry.sortOrder === nextSortOrder) {
-        continue;
+    const now = new Date();
+    for (const entry of completionEntries) {
+      if (!entry.sets.some((set) => set.reps !== null && set.weight !== null)) {
+        await tx
+          .update(workoutExerciseEntries)
+          .set({ status: "skipped" })
+          .where(eq(workoutExerciseEntries.id, entry.id));
       }
-
+    }
+    if (currentEntry && recommendation) {
       await tx
         .update(workoutExerciseEntries)
-        .set({ sortOrder: nextSortOrder })
-        .where(eq(workoutExerciseEntries.id, entry.id));
+        .set({
+          nextLoadRecommendation: parseLoadRecommendation(recommendation).data,
+        })
+        .where(eq(workoutExerciseEntries.id, currentEntry.id));
     }
-
     await tx
       .update(workoutSessions)
       .set({
         activeEntrySortOrder: null,
-        completedAt: new Date(),
-        updatedAt: new Date(),
+        status,
+        endedAt: now,
+        completedAt: status === "completed" ? now : null,
+        updatedAt: now,
       })
       .where(eq(workoutSessions.id, sessionId));
-
     if (session.planId && session.planWorkoutId) {
       await tx
         .update(planWorkouts)
         .set({
-          completedAt: new Date(),
+          state: status,
+          completedAt: status === "completed" ? now : null,
+          skippedAt: status === "skipped" ? now : null,
           linkedWorkoutSessionId: sessionId,
-          skippedAt: null,
-          state: "completed",
-          updatedAt: new Date(),
+          updatedAt: now,
         })
         .where(
           and(
@@ -957,28 +946,29 @@ export async function completeWorkoutSessionAction(formData: FormData) {
           ),
         );
     }
+    return { status };
   });
-
-  if (session.planId) {
+  if (outcome.error)
+    redirectToWorkoutSession(sessionId, { error: outcome.error });
+  if (session.planId)
     await syncPlanCompletionState(db, {
       planId: session.planId,
       timeZone: user.timeZone,
     });
-  }
-
-  logInfo("workout.session.completed", {
+  logInfo("workout.session.ended", {
     userId: user.id,
     sessionId,
+    status: outcome.status,
   });
-
-  revalidatePath("/");
-  revalidatePath("/history");
-  revalidatePath("/plans");
-  if (session.planId) {
-    revalidatePath(`/plans/${session.planId}`);
-  }
-  revalidatePath("/statistics");
-  revalidatePath(`/workouts/${sessionId}`);
+  for (const path of [
+    "/",
+    "/history",
+    "/plans",
+    "/statistics",
+    `/workouts/${sessionId}`,
+  ])
+    revalidatePath(path);
+  if (session.planId) revalidatePath(`/plans/${session.planId}`);
   redirect("/history");
 }
 
@@ -1018,7 +1008,11 @@ export async function deleteCompletedWorkoutSessionAction(formData: FormData) {
         })
         .from(plans)
         .where(
-          and(eq(plans.userId, user.id), eq(plans.status, "active"), ne(plans.id, linkedPlan.id)),
+          and(
+            eq(plans.userId, user.id),
+            eq(plans.status, "active"),
+            ne(plans.id, linkedPlan.id),
+          ),
         )
         .limit(1);
 
@@ -1101,13 +1095,14 @@ export async function removeSetAction(formData: FormData) {
   const { sessionId, setId } = parsedInput.data;
   const setRecord = await requireSetForOpenSession(user.id, setId);
 
-  if (!setRecord) {
+  if (!setRecord || setRecord.sessionId !== sessionId) {
     redirectToWorkoutSession(sessionId, {
       error: "Workout set no longer exists or the session is closed.",
     });
   }
 
   await db.transaction(async (tx) => {
+    await lockOpenSessionForMutation(tx, user.id, sessionId);
     const entrySets = await tx
       .select({
         id: workoutSets.id,
@@ -1143,6 +1138,10 @@ export async function removeSetAction(formData: FormData) {
     }
   });
 
+  await db
+    .update(workoutSessions)
+    .set({ updatedAt: new Date() })
+    .where(eq(workoutSessions.id, setRecord.sessionId));
   revalidatePath(`/workouts/${setRecord.sessionId}`);
   redirectToWorkoutSession(setRecord.sessionId);
 }
@@ -1169,13 +1168,15 @@ export async function removeExerciseEntryAction(formData: FormData) {
   const { sessionId, entryId } = parsedInput.data;
   const entry = await requireEntryForOpenSession(user.id, entryId);
 
-  if (!entry) {
+  if (!entry || entry.sessionId !== sessionId) {
     redirectToWorkoutSession(sessionId, {
-      error: "Workout exercise entry no longer exists or the session is closed.",
+      error:
+        "Workout exercise entry no longer exists or the session is closed.",
     });
   }
 
   await db.transaction(async (tx) => {
+    await lockOpenSessionForMutation(tx, user.id, sessionId);
     const sessionEntries = await tx
       .select({
         id: workoutExerciseEntries.id,

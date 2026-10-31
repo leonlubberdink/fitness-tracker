@@ -119,6 +119,7 @@ export function ExerciseCompletionActions({
 
         <form action={completeWorkoutSessionAction}>
           <input type="hidden" name="sessionId" value={sessionId} />
+          <input type="hidden" name="outcome" value="completed" />
           <input
             type="hidden"
             name="nextLoadRecommendation"
@@ -136,6 +137,33 @@ export function ExerciseCompletionActions({
             Finish workout
           </FormStatusButton>
         </form>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+          {(
+            [
+              ["partial", "Finish partial workout"],
+              ["aborted", "Abort workout"],
+              ["skipped", "Skip workout"],
+            ] as const
+          ).map(([outcome, label]) => (
+            <form
+              key={outcome}
+              action={completeWorkoutSessionAction}
+              style={{ flex: 1 }}
+            >
+              <input type="hidden" name="sessionId" value={sessionId} />
+              <input type="hidden" name="outcome" value={outcome} />
+              <FormStatusButton
+                type="submit"
+                variant="text"
+                color="inherit"
+                loadingLabel="Ending..."
+                fullWidth
+              >
+                {label}
+              </FormStatusButton>
+            </form>
+          ))}
+        </Stack>
       </Stack>
     </Stack>
   );

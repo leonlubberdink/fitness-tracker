@@ -1,20 +1,13 @@
 "use server";
 
+import {
+  closedSessionPredicate,
+  openSessionPredicate,
+} from "@/features/workouts/predicates";
+
 import { randomUUID } from "node:crypto";
 
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gt,
-  inArray,
-  isNotNull,
-  isNull,
-  lt,
-  ne,
-  sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -34,12 +27,8 @@ import {
   hasIncompleteExercisePrescriptions,
   normalizeOptionalTextValue,
 } from "@/features/workout-prescriptions";
-import {
-  parseOptionalBodyweightKg,
-} from "@/features/workouts/bodyweight";
-import {
-  createWorkoutSessionWithEntries,
-} from "@/features/workouts/session-creation";
+import { parseOptionalBodyweightKg } from "@/features/workouts/bodyweight";
+import { createWorkoutSessionWithEntries } from "@/features/workouts/session-creation";
 import { logInfo } from "@/lib/logger";
 
 import {
@@ -550,7 +539,9 @@ export async function addTemplateExerciseAction(formData: FormData) {
   redirectToTemplateEditor(templateId);
 }
 
-export async function updateTemplateExercisePrescriptionAction(formData: FormData) {
+export async function updateTemplateExercisePrescriptionAction(
+  formData: FormData,
+) {
   const user = await requireUser();
   const templateIdValue = getStringValue(formData, "templateId");
   const parsedInput = updateTemplateExercisePrescriptionSchema.safeParse({
@@ -872,9 +863,7 @@ export async function startWorkoutFromTemplateAction(formData: FormData) {
       id: workoutSessions.id,
     })
     .from(workoutSessions)
-    .where(
-      and(eq(workoutSessions.userId, user.id), isNull(workoutSessions.completedAt)),
-    )
+    .where(and(eq(workoutSessions.userId, user.id), openSessionPredicate()))
     .limit(1);
 
   if (existingOpenSession[0]) {
@@ -899,10 +888,7 @@ export async function startWorkoutFromTemplateAction(formData: FormData) {
       setsReps: workoutTemplateExercises.setsReps,
     })
     .from(workoutTemplateExercises)
-    .innerJoin(
-      exercises,
-      eq(workoutTemplateExercises.exerciseId, exercises.id),
-    )
+    .innerJoin(exercises, eq(workoutTemplateExercises.exerciseId, exercises.id))
     .where(eq(workoutTemplateExercises.workoutTemplateId, templateId))
     .orderBy(asc(workoutTemplateExercises.sortOrder));
 
@@ -981,9 +967,7 @@ async function getSessionExerciseSourcesForTemplate({
       and(
         eq(workoutSessions.id, sessionId),
         eq(workoutSessions.userId, userId),
-        completed
-          ? isNotNull(workoutSessions.completedAt)
-          : isNull(workoutSessions.completedAt),
+        completed ? closedSessionPredicate() : openSessionPredicate(),
       ),
     )
     .limit(1);
@@ -1084,7 +1068,7 @@ export async function saveCompletedWorkoutAsTemplateAction(formData: FormData) {
   });
 
   if (!exerciseSources) {
-    redirectToHistory({ error: "Completed workout no longer exists." });
+    redirectToHistory({ error: "Finished workout no longer exists." });
   }
 
   const sourceError = validateTemplateExerciseSources(exerciseSources);

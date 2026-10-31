@@ -37,7 +37,7 @@ type PlanWorkoutRow = {
   id: string;
   linkedWorkoutSessionId: string | null;
   planId: string;
-  state: "completed" | "planned" | "skipped";
+  state: "completed" | "planned" | "skipped" | "partial" | "aborted";
   templateName: string;
   weekNumber: number;
   weekday: number;
@@ -56,10 +56,19 @@ function createWeekShell(durationWeeks: number) {
       canStart: boolean;
       completedAt: Date | null;
       displayDateLabel: string | null;
-      effectiveState: "completed" | "missed" | "planned" | "skipped" | "today" | "upcoming";
+      effectiveState:
+        | "completed"
+        | "missed"
+        | "planned"
+        | "skipped"
+        | "today"
+        | "upcoming"
+        | "partial"
+        | "aborted";
       id: string;
       linkedWorkoutSessionId: string | null;
-      persistedState: "completed" | "planned" | "skipped";
+      persistedState:
+        "completed" | "planned" | "skipped" | "partial" | "aborted";
       scheduledDate: string | null;
       templateName: string;
       weekNumber: number;
@@ -79,7 +88,7 @@ function buildPlanRecord(
   const weeks = createWeekShell(plan.durationWeeks);
   const progressWorkouts: Array<{
     scheduledDate: string;
-    state: "completed" | "planned" | "skipped";
+    state: "completed" | "planned" | "skipped" | "partial" | "aborted";
   }> = [];
   const scheduledWorkouts = workouts
     .map((workout) => {
@@ -146,7 +155,9 @@ function buildPlanRecord(
       week.resolvedCount += 1;
     } else if (
       workout.effectiveState === "missed" ||
-      workout.effectiveState === "skipped"
+      workout.effectiveState === "skipped" ||
+      workout.effectiveState === "partial" ||
+      workout.effectiveState === "aborted"
     ) {
       week.resolvedCount += 1;
 
@@ -173,8 +184,9 @@ function buildPlanRecord(
       ? getPlanCurrentWeek(plan.startDate, todayDateKey, plan.durationWeeks)
       : 1;
   const todayWorkout =
-    scheduledWorkouts.find((workout) => workout.scheduledDate === todayDateKey) ??
-    null;
+    scheduledWorkouts.find(
+      (workout) => workout.scheduledDate === todayDateKey,
+    ) ?? null;
   const nextWorkout =
     scheduledWorkouts.find(
       (workout) =>
@@ -216,11 +228,7 @@ async function getPlanRowsForUser(userId: string) {
     })
     .from(plans)
     .where(eq(plans.userId, userId))
-    .orderBy(
-      desc(plans.updatedAt),
-      desc(plans.createdAt),
-      asc(plans.name),
-    );
+    .orderBy(desc(plans.updatedAt), desc(plans.createdAt), asc(plans.name));
 }
 
 async function getPlanWorkoutRows(planIds: string[]) {
@@ -289,8 +297,7 @@ export async function getPlansPageData(userId: string, timeZoneInput: string) {
   );
 
   return {
-    activePlan:
-      planRecords.find((plan) => plan.status === "active") ?? null,
+    activePlan: planRecords.find((plan) => plan.status === "active") ?? null,
     draftPlans: planRecords.filter((plan) => plan.status === "draft"),
     pastPlans: planRecords.filter(
       (plan) => plan.status === "completed" || plan.status === "archived",

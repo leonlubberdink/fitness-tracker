@@ -42,7 +42,9 @@ test.describe("workout and history flow", () => {
       name: "Start workout",
     });
     await expect(startWorkoutDialog).toBeVisible();
-    await startWorkoutDialog.getByRole("button", { name: "Start workout" }).click();
+    await startWorkoutDialog
+      .getByRole("button", { name: "Start workout" })
+      .click();
 
     const firstSetForm = page.locator("form").filter({
       has: page.getByRole("button", { name: "Log first set" }),
@@ -62,10 +64,16 @@ test.describe("workout and history flow", () => {
     });
 
     await nextTimeRecommendation.getByRole("button", { name: "Keep" }).click();
-    await expect(page.getByRole("button", { name: "Next exercise" })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Next exercise" }),
+    ).toBeEnabled();
     await page.getByRole("button", { name: "Next exercise" }).click();
-    await expect(page.getByRole("button", { name: "Next exercise" })).toHaveCount(0);
-    await expect(page.getByText(secondExercise, { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Next exercise" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(secondExercise, { exact: true }).first(),
+    ).toBeVisible();
 
     const nextExerciseFirstSetForm = page.locator("form").filter({
       has: page.getByRole("button", { name: "Log first set" }),
@@ -79,15 +87,21 @@ test.describe("workout and history flow", () => {
       .click();
 
     await nextTimeRecommendation.getByRole("button", { name: "Keep" }).click();
-    await expect(page.getByRole("button", { name: "Finish workout" })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Finish workout" }),
+    ).toBeEnabled();
     await page.getByRole("button", { name: "Finish workout" }).click();
     await expect(page).toHaveURL("/history");
     await expect(
       page.getByRole("heading", { name: "History", exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: /2 exercises 3 sets/i }).click();
-    await expect(page.getByText(firstExercise, { exact: true }).first()).toBeVisible();
-    await expect(page.getByText(secondExercise, { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByText(firstExercise, { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText(secondExercise, { exact: true }).first(),
+    ).toBeVisible();
 
     await page.getByLabel("Template name").fill(savedTemplateName);
     await page.getByRole("button", { name: "Save template" }).click();
@@ -97,7 +111,10 @@ test.describe("workout and history flow", () => {
       .getByRole("button", { name: "Delete workout from history", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: "No completed workouts yet.", exact: true }),
+      page.getByRole("heading", {
+        name: "No finished workouts yet.",
+        exact: true,
+      }),
     ).toBeVisible();
   });
 });

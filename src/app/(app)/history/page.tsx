@@ -22,12 +22,10 @@ import {
   type ExerciseUnit,
 } from "@/lib/exercise-units";
 import { formatBodyweightExerciseLoad } from "@/features/workouts/bodyweight";
-import {
-  formatDateForDisplay,
-  formatInstantForDisplay,
-} from "@/lib/date";
+import { formatDateForDisplay, formatInstantForDisplay } from "@/lib/date";
 
 import { HistorySessionDeleteButton } from "./history-session-delete-button";
+import { HistoryExport } from "./history-export";
 
 function formatPerformedOn(performedOn: string, timeZone: string) {
   return formatDateForDisplay(performedOn, timeZone, {
@@ -96,13 +94,14 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
       <Paper elevation={0} sx={{ borderRadius: "12px", px: 2.75, py: 3.25 }}>
         <Stack spacing={1}>
           <Typography variant="h1">History</Typography>
+          <HistoryExport />
         </Stack>
       </Paper>
 
       {historyGroups.length === 0 ? (
         <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.5 }}>
           <Stack spacing={1.25}>
-            <Typography variant="h3">No completed workouts yet.</Typography>
+            <Typography variant="h3">No finished workouts yet.</Typography>
             <Typography color="text.secondary">
               Finish a session and it will appear here with the exercises and
               sets you logged.
@@ -148,10 +147,10 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                       >
                         <HistorySessionDeleteButton sessionId={session.id} />
                         <Stack
-                          direction="row"
-                          alignItems="center"
+                          direction={{ xs: "column", md: "row" }}
+                          alignItems={{ xs: "flex-start", md: "center" }}
                           justifyContent="flex-start"
-                          spacing={5}
+                          spacing={1.25}
                           width="100%"
                           sx={{ minWidth: 0 }}
                         >
@@ -162,14 +161,22 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                             sx={{ minWidth: 0 }}
                           >
                             {formatTime(session.startedAt, user.timeZone)} to{" "}
-                            {formatTime(session.completedAt, user.timeZone)}
+                            {formatTime(
+                              session.endedAt ?? session.completedAt,
+                              user.timeZone,
+                            )}
                           </Typography>
                           <Stack
                             direction="row"
                             spacing={1}
-                            flexShrink={0}
+                            flexWrap="wrap"
                             useFlexGap
                           >
+                            <Chip
+                              label={session.status ?? "completed"}
+                              size="small"
+                              variant="outlined"
+                            />
                             <Chip
                               label={`${session.exerciseCount} exercises`}
                               size="small"
@@ -178,6 +185,25 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                               label={`${session.totalSets} sets`}
                               size="small"
                             />
+                            <Chip
+                              label={`${session.workingSets} completed working`}
+                              size="small"
+                              variant="outlined"
+                            />
+                            {session.warmupSets > 0 ? (
+                              <Chip
+                                label={`${session.warmupSets} warm-up`}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ) : null}
+                            {session.unclassifiedSets > 0 ? (
+                              <Chip
+                                label={`${session.unclassifiedSets} unclassified`}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ) : null}
                           </Stack>
                         </Stack>
                       </Stack>
@@ -244,6 +270,14 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                                 <Typography variant="body1" fontWeight={700}>
                                   {entry.exerciseNameSnapshot}
                                 </Typography>
+                                {entry.status === "skipped" ? (
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
+                                    Skipped, prescription retained.
+                                  </Typography>
+                                ) : null}
                                 <Typography
                                   variant="body2"
                                   color="text.secondary"
@@ -281,19 +315,35 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
                                         variant="body2"
                                         color="text.secondary"
                                       >
-                                        {set.reps} reps
+                                        {set.reps === null
+                                          ? "Reps unrecorded"
+                                          : `${set.reps} reps`}
                                       </Typography>
                                       <Typography
                                         variant="body2"
                                         fontWeight={700}
                                       >
-                                        {formatSetWeight(
-                                          entry.unitSnapshot,
-                                          set.weight,
-                                          session.bodyweightKg,
-                                        )}
+                                        {set.weight === null
+                                          ? "Load unrecorded"
+                                          : formatSetWeight(
+                                              entry.unitSnapshot,
+                                              set.weight,
+                                              session.bodyweightKg,
+                                            )}
                                       </Typography>
                                     </Stack>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
+                                      {set.setType ?? "Type unrecorded"}
+                                      {set.rir !== null
+                                        ? ` · RIR ${set.rir}`
+                                        : ""}
+                                      {set.repsBasis
+                                        ? ` · reps ${set.repsBasis.replaceAll("_", " ")}`
+                                        : ""}
+                                    </Typography>
                                   </Paper>
                                 ))}
                               </Stack>

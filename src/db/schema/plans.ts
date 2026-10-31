@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -12,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "./users";
+import type { PlannedExerciseSnapshot } from "@/lib/training-metadata";
 import { workoutTemplates } from "./workout-templates";
 
 export const planStatusEnum = pgEnum("plan_status", [
@@ -25,6 +27,8 @@ export const planWorkoutStateEnum = pgEnum("plan_workout_state", [
   "planned",
   "skipped",
   "completed",
+  "partial",
+  "aborted",
 ]);
 
 export const plans = pgTable(
@@ -91,6 +95,9 @@ export const planWorkouts = pgTable(
       withTimezone: true,
       mode: "date",
     }),
+    skippedPrescriptionSnapshot: jsonb("skipped_prescription_snapshot").$type<
+      PlannedExerciseSnapshot[]
+    >(),
     completedAt: timestamp("completed_at", {
       withTimezone: true,
       mode: "date",
@@ -109,7 +116,11 @@ export const planWorkouts = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index("plan_workouts_plan_idx").on(table.planId, table.weekNumber, table.weekday),
+    index("plan_workouts_plan_idx").on(
+      table.planId,
+      table.weekNumber,
+      table.weekday,
+    ),
     uniqueIndex("plan_workouts_plan_weekday_unique_idx").on(
       table.planId,
       table.weekNumber,

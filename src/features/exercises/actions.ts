@@ -1,8 +1,10 @@
 "use server";
 
+import { openSessionPredicate } from "@/features/workouts/predicates";
+
 import { randomUUID } from "node:crypto";
 
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -297,7 +299,7 @@ export async function deleteExerciseAction(formData: FormData) {
       and(
         eq(workoutExerciseEntries.exerciseId, exercise.id),
         eq(workoutSessions.userId, user.id),
-        isNull(workoutSessions.completedAt),
+        openSessionPredicate(),
       ),
     )
     .limit(1);

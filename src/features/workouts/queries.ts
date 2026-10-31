@@ -1,4 +1,9 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import {
+  closedSessionPredicate,
+  recordedWorkSetPredicate,
+  openSessionPredicate,
+} from "@/features/workouts/predicates";
+import { getTableColumns, and, asc, desc, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { db } from "@/db/client";
@@ -13,29 +18,8 @@ import { searchExercisesForUser } from "@/features/exercises/queries";
 import type { ExerciseUnit } from "@/lib/exercise-units";
 import type { LoadRecommendation } from "./load-recommendations";
 
-type WorkoutEntryRow = {
-  id: string;
-  workoutSessionId: string;
-  exerciseId: string | null;
-  exerciseNameSnapshot: string;
-  exerciseCategorySnapshot: string;
-  notesSnapshot: string | null;
-  restTimeSnapshot: string | null;
-  unitSnapshot: ExerciseUnit;
-  setsRepsSnapshot: string | null;
-  nextLoadRecommendation: LoadRecommendation | null;
-  sortOrder: number;
-  createdAt: Date;
-};
-
-type WorkoutSetRow = {
-  id: string;
-  workoutExerciseEntryId: string;
-  setNumber: number;
-  reps: number;
-  weight: number;
-  createdAt: Date;
-};
+type WorkoutEntryRow = typeof workoutExerciseEntries.$inferSelect;
+type WorkoutSetRow = typeof workoutSets.$inferSelect;
 
 type PreviousExerciseSet = {
   performedOn: string;
@@ -58,7 +42,7 @@ function groupEntriesWithSets(
       entry.exerciseCategorySnapshot,
     ),
     previousSet: entry.exerciseId
-      ? previousSetsByExerciseId.get(entry.exerciseId) ?? null
+      ? (previousSetsByExerciseId.get(entry.exerciseId) ?? null)
       : null,
     sets: sets.filter((set) => set.workoutExerciseEntryId === entry.id),
   }));
@@ -72,12 +56,12 @@ export async function getOpenWorkoutSessionForUser(userId: string) {
       bodyweightKg: workoutSessions.bodyweightKg,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      endedAt: workoutSessions.endedAt,
+      status: workoutSessions.status,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
     })
     .from(workoutSessions)
-    .where(
-      and(eq(workoutSessions.userId, userId), isNull(workoutSessions.completedAt)),
-    )
+    .where(and(eq(workoutSessions.userId, userId), openSessionPredicate()))
     .orderBy(desc(workoutSessions.startedAt))
     .limit(1);
 
@@ -99,6 +83,8 @@ export async function getWorkoutSessionForLogging(
       bodyweightKg: workoutSessions.bodyweightKg,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      endedAt: workoutSessions.endedAt,
+      status: workoutSessions.status,
       activeEntrySortOrder: workoutSessions.activeEntrySortOrder,
       workoutTemplateDescription: workoutTemplates.description,
     })
@@ -111,7 +97,7 @@ export async function getWorkoutSessionForLogging(
       and(
         eq(workoutSessions.id, sessionId),
         eq(workoutSessions.userId, userId),
-        isNull(workoutSessions.completedAt),
+        openSessionPredicate(),
       ),
     )
     .limit(1);
@@ -122,40 +108,22 @@ export async function getWorkoutSessionForLogging(
 
   const [entryRows, setRows, exerciseOptions] = await Promise.all([
     db
-      .select({
-        id: workoutExerciseEntries.id,
-        workoutSessionId: workoutExerciseEntries.workoutSessionId,
-        exerciseId: workoutExerciseEntries.exerciseId,
-        exerciseNameSnapshot: workoutExerciseEntries.exerciseNameSnapshot,
-        exerciseCategorySnapshot:
-          workoutExerciseEntries.exerciseCategorySnapshot,
-        notesSnapshot: workoutExerciseEntries.notesSnapshot,
-        restTimeSnapshot: workoutExerciseEntries.restTimeSnapshot,
-        unitSnapshot: workoutExerciseEntries.unitSnapshot,
-        setsRepsSnapshot: workoutExerciseEntries.setsRepsSnapshot,
-        nextLoadRecommendation: workoutExerciseEntries.nextLoadRecommendation,
-        sortOrder: workoutExerciseEntries.sortOrder,
-        createdAt: workoutExerciseEntries.createdAt,
-      })
+      .select(getTableColumns(workoutExerciseEntries))
       .from(workoutExerciseEntries)
       .where(eq(workoutExerciseEntries.workoutSessionId, session.id))
       .orderBy(asc(workoutExerciseEntries.sortOrder)),
     db
-      .select({
-        id: workoutSets.id,
-        workoutExerciseEntryId: workoutSets.workoutExerciseEntryId,
-        setNumber: workoutSets.setNumber,
-        reps: workoutSets.reps,
-        weight: workoutSets.weight,
-        createdAt: workoutSets.createdAt,
-      })
+      .select(getTableColumns(workoutSets))
       .from(workoutSets)
       .innerJoin(
         workoutExerciseEntries,
         eq(workoutSets.workoutExerciseEntryId, workoutExerciseEntries.id),
       )
       .where(eq(workoutExerciseEntries.workoutSessionId, session.id))
-      .orderBy(asc(workoutExerciseEntries.sortOrder), asc(workoutSets.setNumber)),
+      .orderBy(
+        asc(workoutExerciseEntries.sortOrder),
+        asc(workoutSets.setNumber),
+      ),
     getExerciseOptionsForUser(userId),
   ]);
 
@@ -193,7 +161,8 @@ export async function getWorkoutSessionForLogging(
         and(
           eq(workoutSessions.userId, userId),
           inArray(workoutExerciseEntries.exerciseId, exerciseIds),
-          isNotNull(workoutSessions.completedAt),
+          closedSessionPredicate(),
+          recordedWorkSetPredicate(),
         ),
       )
       .orderBy(
@@ -206,12 +175,18 @@ export async function getWorkoutSessionForLogging(
     for (const previousSet of previousSetRows) {
       if (
         previousSet.exerciseId === null ||
+        previousSet.reps === null ||
+        previousSet.weight === null ||
         previousSetsByExerciseId.has(previousSet.exerciseId)
       ) {
         continue;
       }
 
-      previousSetsByExerciseId.set(previousSet.exerciseId, previousSet);
+      previousSetsByExerciseId.set(previousSet.exerciseId, {
+        ...previousSet,
+        reps: previousSet.reps,
+        weight: previousSet.weight,
+      });
     }
   }
 
@@ -241,6 +216,8 @@ type CompletedWorkoutSessionRow = {
   bodyweightKg: number | null;
   startedAt: Date;
   completedAt: Date | null;
+  endedAt: Date | null;
+  status: typeof workoutSessions.$inferSelect.status;
 };
 
 type CompletedWorkoutEntry = ReturnType<typeof groupEntriesWithSets>[number];
@@ -248,6 +225,9 @@ type CompletedWorkoutEntry = ReturnType<typeof groupEntriesWithSets>[number];
 type CompletedWorkoutSession = CompletedWorkoutSessionRow & {
   exerciseCount: number;
   totalSets: number;
+  workingSets: number;
+  warmupSets: number;
+  unclassifiedSets: number;
   entries: CompletedWorkoutEntry[];
 };
 
@@ -262,14 +242,11 @@ export async function getCompletedWorkoutHistoryForUser(
       bodyweightKg: workoutSessions.bodyweightKg,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      endedAt: workoutSessions.endedAt,
+      status: workoutSessions.status,
     })
     .from(workoutSessions)
-    .where(
-      and(
-        eq(workoutSessions.userId, userId),
-        isNotNull(workoutSessions.completedAt),
-      ),
-    )
+    .where(and(eq(workoutSessions.userId, userId), closedSessionPredicate()))
     .orderBy(
       desc(workoutSessions.performedOn),
       desc(workoutSessions.startedAt),
@@ -285,21 +262,7 @@ export async function getCompletedWorkoutHistoryForUser(
 
   const [entryRows, setRows] = await Promise.all([
     db
-      .select({
-        id: workoutExerciseEntries.id,
-        workoutSessionId: workoutExerciseEntries.workoutSessionId,
-        exerciseId: workoutExerciseEntries.exerciseId,
-        exerciseNameSnapshot: workoutExerciseEntries.exerciseNameSnapshot,
-        exerciseCategorySnapshot:
-          workoutExerciseEntries.exerciseCategorySnapshot,
-        notesSnapshot: workoutExerciseEntries.notesSnapshot,
-        restTimeSnapshot: workoutExerciseEntries.restTimeSnapshot,
-        unitSnapshot: workoutExerciseEntries.unitSnapshot,
-        setsRepsSnapshot: workoutExerciseEntries.setsRepsSnapshot,
-        nextLoadRecommendation: workoutExerciseEntries.nextLoadRecommendation,
-        sortOrder: workoutExerciseEntries.sortOrder,
-        createdAt: workoutExerciseEntries.createdAt,
-      })
+      .select(getTableColumns(workoutExerciseEntries))
       .from(workoutExerciseEntries)
       .where(inArray(workoutExerciseEntries.workoutSessionId, sessionIds))
       .orderBy(
@@ -307,14 +270,7 @@ export async function getCompletedWorkoutHistoryForUser(
         asc(workoutExerciseEntries.sortOrder),
       ),
     db
-      .select({
-        id: workoutSets.id,
-        workoutExerciseEntryId: workoutSets.workoutExerciseEntryId,
-        setNumber: workoutSets.setNumber,
-        reps: workoutSets.reps,
-        weight: workoutSets.weight,
-        createdAt: workoutSets.createdAt,
-      })
+      .select(getTableColumns(workoutSets))
       .from(workoutSets)
       .innerJoin(
         workoutExerciseEntries,
@@ -332,8 +288,7 @@ export async function getCompletedWorkoutHistoryForUser(
   const entriesBySessionId = new Map<string, CompletedWorkoutEntry[]>();
 
   for (const entry of entriesWithSets) {
-    const sessionEntries =
-      entriesBySessionId.get(entry.workoutSessionId) ?? [];
+    const sessionEntries = entriesBySessionId.get(entry.workoutSessionId) ?? [];
     sessionEntries.push(entry);
     entriesBySessionId.set(entry.workoutSessionId, sessionEntries);
   }
@@ -351,6 +306,25 @@ export async function getCompletedWorkoutHistoryForUser(
         entries,
         exerciseCount: entries.length,
         totalSets,
+        workingSets: entries
+          .flatMap((entry) => entry.sets)
+          .filter(
+            (set) =>
+              set.setType === "working" &&
+              set.reps !== null &&
+              set.weight !== null,
+          ).length,
+        warmupSets: entries
+          .flatMap((entry) => entry.sets)
+          .filter(
+            (set) =>
+              set.setType === "warmup" &&
+              set.reps !== null &&
+              set.weight !== null,
+          ).length,
+        unclassifiedSets: entries
+          .flatMap((entry) => entry.sets)
+          .filter((set) => set.setType === null).length,
       };
     },
   );

@@ -15,7 +15,8 @@ export type StatisticsRow = {
   sessionId: string;
   performedOn: string;
   startedAt: Date;
-  completedAt: Date;
+  completedAt: Date | null;
+  setType?: string | null;
   sessionBodyweightKg: number | null;
   entryId: string;
   exerciseId: string | null;
@@ -34,7 +35,7 @@ export type StatisticsSession = {
   sessionId: string;
   performedOn: string;
   startedAt: Date;
-  completedAt: Date;
+  completedAt: Date | null;
   records: StatisticsRow[];
 };
 
@@ -60,6 +61,8 @@ export type StatisticsSummaryMetric = {
 export type StatisticsRangeSummary = {
   label: string;
   sets: StatisticsSummaryMetric;
+  workingSets?: StatisticsSummaryMetric;
+  unclassifiedSets?: StatisticsSummaryMetric;
   volumeKg: StatisticsSummaryMetric;
   workouts: StatisticsSummaryMetric;
 };
@@ -325,6 +328,32 @@ export function buildSummary(
   return {
     label: window.label,
     sets: createMetric(currentSets, previousSets, window.comparisonLabel),
+    workingSets: createMetric(
+      currentSessions.reduce(
+        (n, session) =>
+          n + session.records.filter((set) => set.setType === "working").length,
+        0,
+      ),
+      previousSessions.reduce(
+        (n, session) =>
+          n + session.records.filter((set) => set.setType === "working").length,
+        0,
+      ),
+      window.comparisonLabel,
+    ),
+    unclassifiedSets: createMetric(
+      currentSessions.reduce(
+        (n, session) =>
+          n + session.records.filter((set) => set.setType == null).length,
+        0,
+      ),
+      previousSessions.reduce(
+        (n, session) =>
+          n + session.records.filter((set) => set.setType == null).length,
+        0,
+      ),
+      window.comparisonLabel,
+    ),
     volumeKg: createMetric(
       currentVolumeKg,
       previousVolumeKg,
@@ -403,7 +432,10 @@ export function buildExerciseOptions(currentSessions: StatisticsSession[]) {
     const seenKeys = new Set<string>();
 
     for (const record of session.records) {
-      if (record.unitSnapshot === "bodyweight" && session.bodyweightKg === null) {
+      if (
+        record.unitSnapshot === "bodyweight" &&
+        session.bodyweightKg === null
+      ) {
         continue;
       }
 
@@ -465,7 +497,10 @@ export function buildExerciseProgression(
   const matchingSessions = currentSessions
     .map((session) => {
       const matchingRecords = session.records.filter((record) => {
-        if (record.unitSnapshot === "bodyweight" && session.bodyweightKg === null) {
+        if (
+          record.unitSnapshot === "bodyweight" &&
+          session.bodyweightKg === null
+        ) {
           return false;
         }
 
@@ -535,7 +570,7 @@ export function buildExerciseProgression(
                       ),
                   0,
                 )
-            : null,
+              : null,
       };
     })
     .filter(
@@ -570,10 +605,10 @@ export function buildExerciseProgression(
     category: latestSession.category,
     chartHelpText:
       latestSession.unit === "kg"
-        ? "Line shows the heaviest logged set in each completed workout."
+        ? "Line shows the heaviest logged set in each finished workout."
         : latestSession.unit === "time"
-          ? "Line shows the longest logged set in each completed workout."
-          : "Line shows the highest effective load in each completed workout.",
+          ? "Line shows the longest logged set in each finished workout."
+          : "Line shows the highest effective load in each finished workout.",
     chartMetric,
     chartMetricLabel:
       latestSession.unit === "kg"
@@ -620,9 +655,7 @@ export function buildBodyweightTrend(
 ): StatisticsBodyweightTrendPoint[] {
   return currentSessions
     .map((session) => buildBodyweightTrendPoint(session))
-    .filter(
-      (point): point is StatisticsBodyweightTrendPoint => point !== null,
-    );
+    .filter((point): point is StatisticsBodyweightTrendPoint => point !== null);
 }
 
 export function getStatisticsPageDataFromSessions(
@@ -635,13 +668,21 @@ export function getStatisticsPageDataFromSessions(
     range: StatisticsRangeKey;
   },
 ): StatisticsPageData {
+  const recordedSessions = sessions
+    .map((session) => ({
+      ...session,
+      records: session.records.filter(
+        (record) => record.setType == null || record.setType === "working",
+      ),
+    }))
+    .filter((session) => session.records.length > 0);
   const window = getStatisticsWindow(range);
-  const currentSessions = sessions.filter((session) =>
+  const currentSessions = recordedSessions.filter((session) =>
     isWithinWindow(session.performedOn, window.start, window.end),
   );
   const previousSessions =
     window.previousStart && window.previousEnd
-      ? sessions.filter((session) =>
+      ? recordedSessions.filter((session) =>
           isWithinWindow(
             session.performedOn,
             window.previousStart,
@@ -659,7 +700,7 @@ export function getStatisticsPageDataFromSessions(
   return {
     bodyweightTrend: buildBodyweightTrend(currentSessions),
     exerciseOptions,
-    hasCompletedWorkouts: sessions.length > 0,
+    hasCompletedWorkouts: recordedSessions.length > 0,
     selectedExercise: buildExerciseProgression(
       currentSessions,
       safeExerciseKey,

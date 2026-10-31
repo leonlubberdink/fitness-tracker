@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseLoadRecommendation,
+  parseSetObservations,
   parseWorkoutSetFields,
   reorderWorkoutEntriesSchema,
 } from "@/features/workouts/validation";
@@ -10,6 +11,41 @@ const sessionId = "11111111-1111-4111-8111-111111111111";
 const entryId = "22222222-2222-4222-8222-222222222222";
 
 describe("workout validation", () => {
+  it("distinguishes optional RIR 0, 3 and unrecorded without requiring it for warm-ups", () => {
+    for (const value of ["", "0", "3"]) {
+      const form = new FormData();
+      form.set("setType", "working");
+      form.set("rir", value);
+      const result = parseSetObservations(form);
+      expect(result.success).toBe(true);
+      if (result.success)
+        expect(result.data.rir).toBe(value === "" ? null : Number(value));
+    }
+    const warmup = new FormData();
+    warmup.set("setType", "warmup");
+    expect(parseSetObservations(warmup).success).toBe(true);
+    warmup.set("rir", "3");
+    expect(parseSetObservations(warmup).success).toBe(false);
+  });
+
+  it("rejects RIR buckets, fractional RIR, and partially numeric loads", () => {
+    for (const value of ["5+", "2.5", "-1"]) {
+      const form = new FormData();
+      form.set("setType", "working");
+      form.set("rir", value);
+      expect(parseSetObservations(form).success).toBe(false);
+    }
+    expect(
+      parseWorkoutSetFields("kg", { reps: "8", weight: "20kg" }).success,
+    ).toBe(false);
+  });
+
+  it("requires reps and load when logging a set", () => {
+    expect(parseWorkoutSetFields("kg", { reps: "", weight: "" }).success).toBe(
+      false,
+    );
+  });
+
   it("parses kg-based workout sets and rounds metric values", () => {
     const result = parseWorkoutSetFields("kg", {
       reps: "8",

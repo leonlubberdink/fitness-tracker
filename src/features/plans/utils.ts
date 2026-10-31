@@ -24,12 +24,10 @@ export const PLAN_WEEKDAY_OPTIONS = [
   { value: 7, label: "Sun" },
 ] as const;
 
-export type PersistedPlanWorkoutState = "completed" | "planned" | "skipped";
+export type PersistedPlanWorkoutState =
+  "completed" | "planned" | "skipped" | "partial" | "aborted";
 export type DerivedPlanWorkoutState =
-  | PersistedPlanWorkoutState
-  | "missed"
-  | "today"
-  | "upcoming";
+  PersistedPlanWorkoutState | "missed" | "today" | "upcoming";
 
 export type PlanWorkoutScheduleInput = {
   completedAt: Date | null;
@@ -50,9 +48,13 @@ export function getPlanWeekdayLabel(weekday: number) {
 }
 
 export function getPlanWeekLongLabel(weekday: number) {
-  return formatDateForDisplay(getScheduledDateKey("2025-01-06", 1, weekday), "UTC", {
-    weekday: "long",
-  });
+  return formatDateForDisplay(
+    getScheduledDateKey("2025-01-06", 1, weekday),
+    "UTC",
+    {
+      weekday: "long",
+    },
+  );
 }
 
 export function getPlanWorkoutScheduledDate(
@@ -68,7 +70,7 @@ export function getDerivedPlanWorkoutState(
   scheduledDate: string,
   todayDateKey: string,
 ): DerivedPlanWorkoutState {
-  if (persistedState === "completed" || persistedState === "skipped") {
+  if (persistedState !== "planned") {
     return persistedState;
   }
 
@@ -114,7 +116,9 @@ export function getPlanCurrentWeek(
 ) {
   const startWeek = getStartOfWeekDateKey(startDate);
   const todayWeek = getStartOfWeekDateKey(todayDateKey);
-  const weekOffset = Math.floor(getDateKeyDifferenceInDays(todayWeek, startWeek) / 7);
+  const weekOffset = Math.floor(
+    getDateKeyDifferenceInDays(todayWeek, startWeek) / 7,
+  );
   return Math.min(durationWeeks, Math.max(1, weekOffset + 1));
 }
 
@@ -146,6 +150,8 @@ export function buildPlanProgress(
   let skipped = 0;
   let missed = 0;
   let remaining = 0;
+  let partial = 0;
+  let aborted = 0;
 
   for (const workout of workouts) {
     const derivedState = getDerivedPlanWorkoutState(
@@ -168,6 +174,14 @@ export function buildPlanProgress(
       missed += 1;
       continue;
     }
+    if (derivedState === "partial") {
+      partial += 1;
+      continue;
+    }
+    if (derivedState === "aborted") {
+      aborted += 1;
+      continue;
+    }
 
     remaining += 1;
   }
@@ -176,7 +190,9 @@ export function buildPlanProgress(
     completed,
     missed,
     remaining,
-    resolved: completed + skipped + missed,
+    resolved: completed + skipped + missed + partial + aborted,
+    partial,
+    aborted,
     skipped,
     total: workouts.length,
   };

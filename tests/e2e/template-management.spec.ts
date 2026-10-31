@@ -50,10 +50,16 @@ test.describe("template management", () => {
       name: "Start workout",
     });
     await expect(startWorkoutDialog).toBeVisible();
-    await startWorkoutDialog.getByRole("button", { name: "Start workout" }).click();
+    await startWorkoutDialog
+      .getByRole("button", { name: "Start workout" })
+      .click();
     await expect(page).toHaveURL(/\/workouts\/(?!templates\/)[^/?#]+/);
-    await expect(page.getByRole("heading", { name: "Current workout." })).toBeVisible();
-    await expect(page.getByText(pushExercise, { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Current workout." }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(pushExercise, { exact: true }).first(),
+    ).toBeVisible();
   });
 
   test("shows live workout notes and prescription from the template on an active workout", async ({
@@ -87,7 +93,9 @@ test.describe("template management", () => {
       name: "Start workout",
     });
     await expect(startWorkoutDialog).toBeVisible();
-    await startWorkoutDialog.getByRole("button", { name: "Start workout" }).click();
+    await startWorkoutDialog
+      .getByRole("button", { name: "Start workout" })
+      .click();
 
     await expect(page).toHaveURL(/\/workouts\/(?!templates\/)[^/?#]+$/);
     const workoutUrl = page.url();
@@ -95,19 +103,35 @@ test.describe("template management", () => {
     await expect(page.getByText("Workout notes")).toBeVisible();
     await expect(page.getByText(initialNotes)).toBeVisible();
     await expect(page.getByText("Prescription")).toBeVisible();
-    await expect(page.getByText(prescription.setsReps, { exact: true })).toBeVisible();
-    await expect(page.getByText(prescription.restTime, { exact: true })).toBeVisible();
-    await expect(page.getByText(prescription.notes, { exact: true })).toBeVisible();
+    await expect(
+      page.getByText(prescription.setsReps, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(prescription.restTime, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(prescription.notes, { exact: true }),
+    ).toBeVisible();
 
     await page.goto(templateUrl);
-    await page.getByLabel("Workout description").fill(updatedNotes);
+    const description = page.getByRole("textbox", {
+      name: "Workout description",
+    });
+    await description.fill(updatedNotes);
+    await expect(description).toHaveValue(updatedNotes);
+    const saveResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname === new URL(templateUrl).pathname,
+    );
     await page.getByRole("button", { name: "Save details" }).click();
+    await (await saveResponse).finished();
     await expect(page.getByText("Template details saved.")).toBeVisible();
 
     await page.goto(workoutUrl);
     await expect(page).toHaveURL(workoutUrl);
     await expect(page.getByText("Workout notes")).toBeVisible();
-    await expect(page.getByText(updatedNotes)).toBeVisible();
+    await expect(page.getByText(updatedNotes, { exact: true })).toBeVisible();
     await expect(page.getByText(initialNotes)).toHaveCount(0);
   });
 });
