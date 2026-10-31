@@ -1,8 +1,10 @@
 "use server";
 
+import { openSessionPredicate } from "@/features/workouts/predicates";
+
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, isNull, ne } from "drizzle-orm";
+import { and, asc, desc, eq, ne } from "drizzle-orm";
 import { refresh, revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -132,7 +134,9 @@ function redirectToPlan(
   }
 
   const queryString = searchParams.toString();
-  redirect(queryString ? `/plans/${planId}?${queryString}` : `/plans/${planId}`);
+  redirect(
+    queryString ? `/plans/${planId}?${queryString}` : `/plans/${planId}`,
+  );
 }
 
 async function requirePlanRecord(userId: string, planId: string) {
@@ -166,10 +170,7 @@ async function requirePlanWorkoutRecord(planId: string, planWorkoutId: string) {
     })
     .from(planWorkouts)
     .where(
-      and(
-        eq(planWorkouts.id, planWorkoutId),
-        eq(planWorkouts.planId, planId),
-      ),
+      and(eq(planWorkouts.id, planWorkoutId), eq(planWorkouts.planId, planId)),
     )
     .limit(1);
 
@@ -264,7 +265,9 @@ export async function createPlanAction(formData: FormData) {
     });
 
   revalidatePath("/plans");
-  redirectToPlan(plan.id, { success: "Plan created. Add workouts week by week." });
+  redirectToPlan(plan.id, {
+    success: "Plan created. Add workouts week by week.",
+  });
 }
 
 export async function updatePlanDetailsAction(formData: FormData) {
@@ -288,7 +291,10 @@ export async function updatePlanDetailsAction(formData: FormData) {
   }
 
   if (plan.status === "completed" || plan.status === "archived") {
-    redirectToPlan(plan.id, { error: "This plan is read-only.", week: returnWeek });
+    redirectToPlan(plan.id, {
+      error: "This plan is read-only.",
+      week: returnWeek,
+    });
   }
 
   const highestWeek = await db
@@ -302,7 +308,8 @@ export async function updatePlanDetailsAction(formData: FormData) {
 
   if ((highestWeek[0]?.weekNumber ?? 0) > parsedInput.data.durationWeeks) {
     redirectToPlan(plan.id, {
-      error: "Remove workouts from the later weeks before shortening this plan.",
+      error:
+        "Remove workouts from the later weeks before shortening this plan.",
       week: returnWeek,
     });
   }
@@ -319,7 +326,10 @@ export async function updatePlanDetailsAction(formData: FormData) {
 
   revalidatePath("/plans");
   revalidatePath(`/plans/${plan.id}`);
-  redirectToPlan(plan.id, { success: "Plan details updated.", week: returnWeek });
+  redirectToPlan(plan.id, {
+    success: "Plan details updated.",
+    week: returnWeek,
+  });
 }
 
 export async function deletePlanAction(formData: FormData) {
@@ -429,11 +439,17 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
   }
 
   if (plan.status === "completed" || plan.status === "archived") {
-    redirectToPlan(plan.id, { error: "This plan is read-only.", week: returnWeek });
+    redirectToPlan(plan.id, {
+      error: "This plan is read-only.",
+      week: returnWeek,
+    });
   }
 
   if (parsedInput.data.weekNumber > plan.durationWeeks) {
-    redirectToPlan(plan.id, { error: "Choose a week inside this plan.", week: returnWeek });
+    redirectToPlan(plan.id, {
+      error: "Choose a week inside this plan.",
+      week: returnWeek,
+    });
   }
 
   const template = await requireTemplateRecord(
@@ -454,7 +470,10 @@ export async function upsertPlanWorkoutAction(formData: FormData) {
     eq(planWorkouts.weekday, parsedInput.data.weekday),
   ];
   const scopedConflictConditions = parsedInput.data.existingPlanWorkoutId
-    ? [...conflictConditions, ne(planWorkouts.id, parsedInput.data.existingPlanWorkoutId)]
+    ? [
+        ...conflictConditions,
+        ne(planWorkouts.id, parsedInput.data.existingPlanWorkoutId),
+      ]
     : conflictConditions;
   const conflictingWorkout = await db
     .select({
@@ -718,7 +737,9 @@ export async function removePlanWorkoutAction(formData: FormData) {
       planWorkout.weekday,
     );
 
-    if (!isPlanWorkoutEditable(planWorkout.state, scheduledDate, todayDateKey)) {
+    if (
+      !isPlanWorkoutEditable(planWorkout.state, scheduledDate, todayDateKey)
+    ) {
       redirectToPlan(plan.id, {
         error: "That workout can no longer be removed.",
         week: returnWeek ?? planWorkout.weekNumber,
@@ -763,7 +784,8 @@ export async function startPlanAction(formData: FormData) {
 
   if (activePlan) {
     redirectToPlan(plan.id, {
-      error: "Finish or archive your current active plan before starting another one.",
+      error:
+        "Finish or archive your current active plan before starting another one.",
       week: returnWeek,
     });
   }
@@ -794,7 +816,8 @@ export async function startPlanAction(formData: FormData) {
 
   if (weekOneWorkoutIdsToDelete.length === workouts.length) {
     redirectToPlan(plan.id, {
-      error: "This start date would remove every scheduled workout in week one. Add a later week or choose an earlier start date.",
+      error:
+        "This start date would remove every scheduled workout in week one. Add a later week or choose an earlier start date.",
       week: returnWeek,
     });
   }
@@ -842,7 +865,9 @@ export async function archivePlanAction(formData: FormData) {
   }
 
   if (plan.status !== "active" && plan.status !== "completed") {
-    redirectToPlan(plan.id, { error: "Only active or completed plans can be archived." });
+    redirectToPlan(plan.id, {
+      error: "Only active or completed plans can be archived.",
+    });
   }
 
   await db
@@ -906,15 +931,68 @@ export async function skipPlanWorkoutAction(formData: FormData) {
     });
   }
 
-  await db
-    .update(planWorkouts)
-    .set({
-      linkedWorkoutSessionId: null,
-      skippedAt: new Date(),
-      state: "skipped",
-      updatedAt: new Date(),
-    })
-    .where(eq(planWorkouts.id, planWorkout.id));
+  const [openLinkedSession] = await db
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.planWorkoutId, planWorkout.id),
+        eq(workoutSessions.userId, user.id),
+        openSessionPredicate(),
+      ),
+    )
+    .limit(1);
+  if (openLinkedSession)
+    redirectToPlan(plan.id, {
+      error:
+        "End the current workout as skipped, partial or aborted from the workout screen.",
+      resumeSessionId: openLinkedSession.id,
+      week: returnWeek,
+    });
+  await db.transaction(async (tx) => {
+    const prescription = await tx
+      .select({
+        id: workoutTemplateExercises.id,
+        exercise_id: exercises.id,
+        exercise_name_snapshot: exercises.name,
+        exercise_category_snapshot: exercises.category,
+        unit: exercises.defaultUnit,
+        order: workoutTemplateExercises.sortOrder,
+        sets_reps: workoutTemplateExercises.setsReps,
+        rest_time: workoutTemplateExercises.restTime,
+        notes: workoutTemplateExercises.notes,
+      })
+      .from(workoutTemplateExercises)
+      .innerJoin(
+        exercises,
+        eq(workoutTemplateExercises.exerciseId, exercises.id),
+      )
+      .where(
+        and(
+          eq(
+            workoutTemplateExercises.workoutTemplateId,
+            planWorkout.workoutTemplateId,
+          ),
+          eq(exercises.userId, user.id),
+        ),
+      )
+      .orderBy(asc(workoutTemplateExercises.sortOrder));
+    await tx
+      .update(planWorkouts)
+      .set({
+        linkedWorkoutSessionId: null,
+        skippedAt: new Date(),
+        state: "skipped",
+        skippedPrescriptionSnapshot: prescription,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(planWorkouts.id, planWorkout.id),
+          eq(planWorkouts.state, "planned"),
+        ),
+      );
+  });
 
   await syncPlanCompletionState(db, {
     planId: plan.id,
@@ -1041,18 +1119,14 @@ export async function startPlannedWorkoutAction(formData: FormData) {
       id: workoutSessions.id,
     })
     .from(workoutSessions)
-    .where(
-      and(
-        eq(workoutSessions.userId, user.id),
-        isNull(workoutSessions.completedAt),
-      ),
-    )
+    .where(and(eq(workoutSessions.userId, user.id), openSessionPredicate()))
     .limit(1);
 
   if (existingOpenSession) {
     redirectToPlan(plan.id, {
       conflictPlanWorkoutId: planWorkout.id,
-      error: "Finish or resume your current workout before starting this plan day.",
+      error:
+        "Finish or resume your current workout before starting this plan day.",
       resumeSessionId: existingOpenSession.id,
       week: returnWeek ?? planWorkout.weekNumber,
     });
@@ -1070,11 +1144,13 @@ export async function startPlannedWorkoutAction(formData: FormData) {
       setsReps: workoutTemplateExercises.setsReps,
     })
     .from(workoutTemplateExercises)
-    .innerJoin(
-      exercises,
-      eq(workoutTemplateExercises.exerciseId, exercises.id),
+    .innerJoin(exercises, eq(workoutTemplateExercises.exerciseId, exercises.id))
+    .where(
+      eq(
+        workoutTemplateExercises.workoutTemplateId,
+        planWorkout.workoutTemplateId,
+      ),
     )
-    .where(eq(workoutTemplateExercises.workoutTemplateId, planWorkout.workoutTemplateId))
     .orderBy(asc(workoutTemplateExercises.sortOrder));
 
   if (templateExercises.length === 0) {

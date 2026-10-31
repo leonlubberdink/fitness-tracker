@@ -1,10 +1,8 @@
-import AddBoxRounded from "@mui/icons-material/AddBoxRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
 import HorizontalRuleRounded from "@mui/icons-material/HorizontalRuleRounded";
 import InsightsRounded from "@mui/icons-material/InsightsRounded";
 import PlaylistAddRounded from "@mui/icons-material/PlaylistAddRounded";
-import RepeatRounded from "@mui/icons-material/RepeatRounded";
 import TrendingDownRounded from "@mui/icons-material/TrendingDownRounded";
 import TrendingUpRounded from "@mui/icons-material/TrendingUpRounded";
 import Accordion from "@mui/material/Accordion";
@@ -25,7 +23,6 @@ import { requireUser } from "@/features/auth/session";
 import { saveActiveWorkoutAsTemplateAction } from "@/features/workout-templates/actions";
 import {
   addExerciseEntryAction,
-  addSetAction,
   advanceWorkoutExerciseAction,
   completeWorkoutSessionAction,
   createSetAction,
@@ -118,7 +115,8 @@ function formatPreviousSet(
   });
 
   const setLoad =
-    previousSet.unit === "bodyweight" && previousSet.sessionBodyweightKg !== null
+    previousSet.unit === "bodyweight" &&
+    previousSet.sessionBodyweightKg !== null
       ? formatBodyweightExerciseLoadWithReps(
           previousSet.sessionBodyweightKg,
           previousSet.weight,
@@ -305,6 +303,11 @@ function SetEditor({
       setNumber={set.setNumber}
       initialReps={set.reps}
       initialMetricValue={set.weight}
+      initialObservations={{
+        setType: set.setType,
+        repsBasis: set.repsBasis,
+        rir: set.rir,
+      }}
       metricHelperText={metricHelperText}
       metricLabel={getExerciseMetricLabel(entry.unitSnapshot)}
       metricInputProps={getMetricInputProps(entry.unitSnapshot)}
@@ -360,6 +363,44 @@ function LoggedSets({
         />
       ))}
     </Stack>
+  );
+}
+
+function NextSetForm({
+  sessionId,
+  entry,
+  bodyweightKg,
+}: {
+  sessionId: string;
+  entry: WorkoutEntry;
+  bodyweightKg: number | null;
+}) {
+  const lastSet = entry.sets.findLast(
+    (set) => set.reps !== null && set.weight !== null,
+  );
+  const defaults = getFirstSetDefaults(entry);
+  return (
+    <WorkoutFirstSetForm
+      key={`${entry.id}:${entry.sets.at(-1)?.id ?? "first"}`}
+      sessionId={sessionId}
+      entryId={entry.id}
+      setNumber={(entry.sets.at(-1)?.setNumber ?? 0) + 1}
+      initialReps={lastSet?.reps ?? defaults.reps}
+      initialMetricValue={lastSet?.weight ?? defaults.weight}
+      initialObservations={{
+        setType: "working",
+        repsBasis: null,
+        rir: null,
+      }}
+      metricLabel={getExerciseMetricLabel(entry.unitSnapshot)}
+      metricInputProps={getMetricInputProps(entry.unitSnapshot)}
+      metricHelperText={
+        entry.unitSnapshot === "bodyweight" && bodyweightKg !== null
+          ? `Session bodyweight: ${bodyweightKg} kg. Positive = added kg; negative = assistance kg.`
+          : undefined
+      }
+      createSetAction={createSetAction}
+    />
   );
 }
 
@@ -530,7 +571,6 @@ export default async function WorkoutPage({
               Record bodyweight before logging this exercise.
             </Alert>
           ) : null}
-
         </Stack>
       </Paper>
 
@@ -622,24 +662,10 @@ export default async function WorkoutPage({
                   Record bodyweight above before logging this exercise.
                 </Alert>
               ) : currentEntry.sets.length === 0 && currentFirstSetDefaults ? (
-                <WorkoutFirstSetForm
+                <NextSetForm
                   sessionId={session.id}
-                  entryId={currentEntry.id}
-                  initialReps={currentFirstSetDefaults.reps}
-                  initialMetricValue={currentFirstSetDefaults.weight}
-                  metricHelperText={
-                    currentEntry.unitSnapshot === "bodyweight" &&
-                    session.bodyweightKg !== null
-                      ? `Session bodyweight: ${session.bodyweightKg} kg. Effective load is shown in history and statistics.`
-                      : undefined
-                  }
-                  metricLabel={getExerciseMetricLabel(
-                    currentEntry.unitSnapshot,
-                  )}
-                  metricInputProps={getMetricInputProps(
-                    currentEntry.unitSnapshot,
-                  )}
-                  createSetAction={createSetAction}
+                  entry={currentEntry}
+                  bodyweightKg={session.bodyweightKg}
                 />
               ) : (
                 <>
@@ -651,23 +677,11 @@ export default async function WorkoutPage({
                     focusSetId={focusSetId}
                   />
 
-                  <form action={addSetAction}>
-                    <input type="hidden" name="sessionId" value={session.id} />
-                    <input
-                      type="hidden"
-                      name="entryId"
-                      value={currentEntry.id}
-                    />
-                    <FormStatusButton
-                      type="submit"
-                      variant="outlined"
-                      startIcon={<AddBoxRounded />}
-                      loadingLabel="Logging next set..."
-                      fullWidth
-                    >
-                      Log next set
-                    </FormStatusButton>
-                  </form>
+                  <NextSetForm
+                    sessionId={session.id}
+                    entry={currentEntry}
+                    bodyweightKg={session.bodyweightKg}
+                  />
                 </>
               )}
 
@@ -675,7 +689,12 @@ export default async function WorkoutPage({
                 key={currentEntry.id}
                 sessionId={session.id}
                 canAdvance={Boolean(nextEntry)}
-                recommendationRequired={currentEntry.sets.length > 0}
+                recommendationRequired={currentEntry.sets.some(
+                  (set) =>
+                    (set.setType === null || set.setType === "working") &&
+                    set.reps !== null &&
+                    set.weight !== null,
+                )}
                 initialRecommendation={currentEntry.nextLoadRecommendation}
                 advanceWorkoutExerciseAction={advanceWorkoutExerciseAction}
                 completeWorkoutSessionAction={completeWorkoutSessionAction}
@@ -785,6 +804,14 @@ export default async function WorkoutPage({
         <Paper elevation={0} sx={{ borderRadius: "10px", px: 2, py: 2.5 }}>
           <Stack spacing={0.75}>
             <Typography variant="h3">Nothing planned yet.</Typography>
+            <ExerciseCompletionActions
+              sessionId={session.id}
+              canAdvance={false}
+              recommendationRequired={false}
+              initialRecommendation={null}
+              advanceWorkoutExerciseAction={advanceWorkoutExerciseAction}
+              completeWorkoutSessionAction={completeWorkoutSessionAction}
+            />
             <Typography color="text.secondary">
               Add an exercise above to start entering reps.
             </Typography>
@@ -833,7 +860,9 @@ export default async function WorkoutPage({
                     />
                     {entry.previousSet?.nextLoadRecommendation ? (
                       <LoadRecommendationChip
-                        recommendation={entry.previousSet.nextLoadRecommendation}
+                        recommendation={
+                          entry.previousSet.nextLoadRecommendation
+                        }
                         size="small"
                       />
                     ) : null}
@@ -893,23 +922,11 @@ export default async function WorkoutPage({
                   />
 
                   {entry.sets.length > 0 ? (
-                    <form action={addSetAction}>
-                      <input
-                        type="hidden"
-                        name="sessionId"
-                        value={session.id}
-                      />
-                      <input type="hidden" name="entryId" value={entry.id} />
-                      <FormStatusButton
-                        type="submit"
-                        variant="outlined"
-                        startIcon={<RepeatRounded />}
-                        loadingLabel="Adding set..."
-                        fullWidth
-                      >
-                        Add set
-                      </FormStatusButton>
-                    </form>
+                    <NextSetForm
+                      sessionId={session.id}
+                      entry={entry}
+                      bodyweightKg={session.bodyweightKg}
+                    />
                   ) : null}
                 </Stack>
               </AccordionDetails>

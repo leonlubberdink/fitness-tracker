@@ -9,6 +9,10 @@ import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import {
+  SetObservationFields,
+  type SetObservationValues,
+} from "./set-observation-fields";
 
 import {
   getWorkoutInputHtmlProps,
@@ -26,6 +30,8 @@ type WorkoutFirstSetFormProps = {
   metricLabel: string;
   metricInputProps: WorkoutNumericInputProps;
   createSetAction: (formData: FormData) => Promise<void>;
+  setNumber?: number;
+  initialObservations?: SetObservationValues;
 };
 
 export function WorkoutFirstSetForm({
@@ -37,6 +43,12 @@ export function WorkoutFirstSetForm({
   metricLabel,
   metricInputProps,
   createSetAction,
+  setNumber = 1,
+  initialObservations = {
+    setType: "working",
+    repsBasis: null,
+    rir: null,
+  },
 }: WorkoutFirstSetFormProps) {
   const [reps, setReps] = useState(String(initialReps));
   const [weight, setWeight] = useState(String(initialMetricValue));
@@ -71,7 +83,7 @@ export function WorkoutFirstSetForm({
             sx={{ columnGap: 1.75 }}
           >
             <Chip
-              label="Set 1"
+              label={`Set ${setNumber}`}
               color="primary"
               variant="outlined"
               sx={{ mt: 1, flexShrink: 0 }}
@@ -117,6 +129,8 @@ export function WorkoutFirstSetForm({
             </Grid>
           </Stack>
 
+          <SetObservationFields initial={initialObservations} />
+
           <Button
             type="submit"
             variant="contained"
@@ -125,7 +139,7 @@ export function WorkoutFirstSetForm({
             startIcon={<AddRounded />}
             fullWidth
           >
-            Log first set
+            {setNumber === 1 ? "Log first set" : "Log next set"}
           </Button>
         </Stack>
       </form>

@@ -8,6 +8,10 @@ import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import {
+  SetObservationFields,
+  type SetObservationValues,
+} from "./set-observation-fields";
 
 import {
   getWorkoutInputHtmlProps,
@@ -20,8 +24,9 @@ type WorkoutSetEditorFormProps = {
   sessionId: string;
   setId: string;
   setNumber: number;
-  initialReps: number;
-  initialMetricValue: number;
+  initialReps: number | null;
+  initialMetricValue: number | null;
+  initialObservations?: SetObservationValues;
   metricHelperText?: string;
   metricLabel: string;
   metricInputProps: WorkoutNumericInputProps;
@@ -47,6 +52,11 @@ export function WorkoutSetEditorForm({
   setNumber,
   initialReps,
   initialMetricValue,
+  initialObservations = {
+    setType: null,
+    repsBasis: null,
+    rir: null,
+  },
   metricHelperText,
   metricLabel,
   metricInputProps,
@@ -56,24 +66,24 @@ export function WorkoutSetEditorForm({
   updateSetAction,
   removeSetAction,
 }: WorkoutSetEditorFormProps) {
-  const initialRepsValue = String(initialReps);
-  const initialWeightValue = String(initialMetricValue);
+  const initialRepsValue = initialReps === null ? "" : String(initialReps);
+  const initialWeightValue =
+    initialMetricValue === null ? "" : String(initialMetricValue);
   const [reps, setReps] = useState(initialRepsValue);
   const [weight, setWeight] = useState(initialWeightValue);
+  const [metadataChanged, setMetadataChanged] = useState(false);
   const [isSaving, startSavingTransition] = useTransition();
   const [isDeleting, startDeletingTransition] = useTransition();
   const allowsSignedMetricValue = metricInputProps.inputMode === "decimal";
-  const isDirty = areValuesChanged(
-    initialRepsValue,
-    initialWeightValue,
-    reps,
-    weight,
-  );
+  const isDirty =
+    metadataChanged ||
+    areValuesChanged(initialRepsValue, initialWeightValue, reps, weight);
   const updateFormId = `update-set-${setId}`;
 
   async function handleUpdateAction(formData: FormData) {
     startSavingTransition(async () => {
       await updateSetAction(formData);
+      setMetadataChanged(false);
     });
   }
 
@@ -153,6 +163,10 @@ export function WorkoutSetEditorForm({
               </Grid>
             </Grid>
           </Stack>
+          <SetObservationFields
+            initial={initialObservations}
+            onChange={() => setMetadataChanged(true)}
+          />
         </form>
 
         <Stack direction="row" spacing={1}>

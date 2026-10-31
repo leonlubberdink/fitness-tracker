@@ -1,4 +1,8 @@
-import { and, asc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
+import {
+  closedSessionPredicate,
+  recordedWorkSetPredicate,
+} from "@/features/workouts/predicates";
 
 import { db } from "@/db/client";
 import {
@@ -25,18 +29,20 @@ async function getCompletedStatisticsSessionsForUser(userId: string) {
       performedOn: workoutSessions.performedOn,
       startedAt: workoutSessions.startedAt,
       completedAt: workoutSessions.completedAt,
+      endedAt: workoutSessions.endedAt,
       sessionBodyweightKg: workoutSessions.bodyweightKg,
       entryId: workoutExerciseEntries.id,
       exerciseId: workoutExerciseEntries.exerciseId,
       exerciseNameSnapshot: workoutExerciseEntries.exerciseNameSnapshot,
-      exerciseCategorySnapshot:
-        workoutExerciseEntries.exerciseCategorySnapshot,
+      exerciseCategorySnapshot: workoutExerciseEntries.exerciseCategorySnapshot,
       sortOrder: workoutExerciseEntries.sortOrder,
       unitSnapshot: workoutExerciseEntries.unitSnapshot,
       setId: workoutSets.id,
       setNumber: workoutSets.setNumber,
       reps: workoutSets.reps,
       weight: workoutSets.weight,
+
+      setType: workoutSets.setType,
     })
     .from(workoutSets)
     .innerJoin(
@@ -50,7 +56,8 @@ async function getCompletedStatisticsSessionsForUser(userId: string) {
     .where(
       and(
         eq(workoutSessions.userId, userId),
-        isNotNull(workoutSessions.completedAt),
+        closedSessionPredicate(),
+        recordedWorkSetPredicate(),
       ),
     )
     .orderBy(
@@ -63,13 +70,15 @@ async function getCompletedStatisticsSessionsForUser(userId: string) {
   const sessions = new Map<string, StatisticsSession>();
 
   for (const row of rows) {
-    if (row.completedAt === null) {
+    if (row.reps === null || row.weight === null) {
       continue;
     }
 
     const statisticsRow: StatisticsRow = {
       ...row,
       completedAt: row.completedAt,
+      reps: row.reps,
+      weight: row.weight,
       exerciseCategorySnapshot: formatStoredExerciseCategories(
         row.exerciseCategorySnapshot,
       ),

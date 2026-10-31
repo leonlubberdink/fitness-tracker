@@ -14,6 +14,11 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { LOAD_RECOMMENDATIONS } from "@/features/workouts/load-recommendations";
+import {
+  SESSION_STATUSES,
+  SET_TYPES,
+  REPS_BASES,
+} from "@/lib/training-metadata";
 
 import { exerciseUnitEnum, exercises } from "./exercises";
 import { plans, planWorkouts } from "./plans";
@@ -24,6 +29,12 @@ export const workoutLoadRecommendationEnum = pgEnum(
   "workout_load_recommendation",
   LOAD_RECOMMENDATIONS,
 );
+export const workoutSessionStatusEnum = pgEnum(
+  "workout_session_status",
+  SESSION_STATUSES,
+);
+export const workoutSetTypeEnum = pgEnum("workout_set_type", SET_TYPES);
+export const workoutRepsBasisEnum = pgEnum("workout_reps_basis", REPS_BASES);
 
 export const workoutSessions = pgTable(
   "workout_sessions",
@@ -60,6 +71,8 @@ export const workoutSessions = pgTable(
       withTimezone: true,
       mode: "date",
     }),
+    endedAt: timestamp("ended_at", { withTimezone: true, mode: "date" }),
+    status: workoutSessionStatusEnum("status"),
     activeEntrySortOrder: integer("active_entry_sort_order"),
     createdAt: timestamp("created_at", {
       withTimezone: true,
@@ -84,7 +97,7 @@ export const workoutSessions = pgTable(
     index("workout_sessions_template_idx").on(table.workoutTemplateId),
     uniqueIndex("workout_sessions_user_open_unique_idx")
       .on(table.userId)
-      .where(sql`${table.completedAt} is null`),
+      .where(sql`${table.completedAt} is null and ${table.endedAt} is null`),
     uniqueIndex("workout_sessions_plan_workout_unique_idx")
       .on(table.planWorkoutId)
       .where(sql`${table.planWorkoutId} is not null`),
@@ -101,12 +114,14 @@ export const workoutExerciseEntries = pgTable(
     exerciseId: uuid("exercise_id").references(() => exercises.id, {
       onDelete: "set null",
     }),
+    exerciseIdSnapshot: uuid("exercise_id_snapshot"),
     exerciseNameSnapshot: text("exercise_name_snapshot").notNull(),
     exerciseCategorySnapshot: text("exercise_category_snapshot").notNull(),
     unitSnapshot: exerciseUnitEnum("unit_snapshot").notNull(),
     setsRepsSnapshot: text("sets_reps_snapshot"),
     restTimeSnapshot: text("rest_time_snapshot"),
     notesSnapshot: text("notes_snapshot"),
+    status: text("status").$type<"skipped" | null>(),
     nextLoadRecommendation: workoutLoadRecommendationEnum(
       "next_load_recommendation",
     ),
@@ -135,10 +150,11 @@ export const workoutSets = pgTable(
       .notNull()
       .references(() => workoutExerciseEntries.id, { onDelete: "cascade" }),
     setNumber: integer("set_number").notNull(),
-    reps: integer("reps").notNull(),
-    weight: numeric("weight", { precision: 6, scale: 2, mode: "number" })
-      .notNull()
-      .default(0),
+    reps: integer("reps"),
+    weight: numeric("weight", { precision: 6, scale: 2, mode: "number" }),
+    rir: integer("rir"),
+    setType: workoutSetTypeEnum("set_type"),
+    repsBasis: workoutRepsBasisEnum("reps_basis"),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -153,5 +169,9 @@ export const workoutSets = pgTable(
     ),
     index("workout_sets_entry_idx").on(table.workoutExerciseEntryId),
     check("workout_sets_reps_check", sql`${table.reps} > 0`),
+    check(
+      "workout_sets_rir_check",
+      sql`${table.rir} is null or ${table.rir} >= 0`,
+    ),
   ],
 );

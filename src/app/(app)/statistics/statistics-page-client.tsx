@@ -169,13 +169,13 @@ export function StatisticsPageClient({
               },
             ]}
           />
-          </ChartCard>
+        </ChartCard>
       ) : null}
 
       {bodyweightTrend.length > 0 ? (
         <ChartCard
           title="Bodyweight over time"
-          description="Each point shows the bodyweight recorded for a completed workout."
+          description="Each point shows the bodyweight recorded for a finished workout."
         >
           <LineChart
             axisHighlight={{ x: "line" }}

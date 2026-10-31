@@ -75,6 +75,34 @@ function createSession(
 }
 
 describe("statistics core", () => {
+  it("counts recorded working sets separately and excludes warm-ups", () => {
+    const base = createRecord("session-1", {
+      entryId: "entry-1",
+      exerciseId: benchExerciseId,
+      exerciseNameSnapshot: "Press",
+      exerciseCategorySnapshot: "Push",
+      performedOn: "2025-03-01",
+      reps: 10,
+      setId: "set-1",
+      setNumber: 1,
+      unitSnapshot: "kg",
+      weight: 20,
+    });
+    const session = createSession("session-1", "2025-03-01", [
+      { ...base, setId: "working", setType: "working" },
+      { ...base, setId: "warmup", setType: "warmup" },
+      { ...base, setId: "legacy", setType: null },
+    ]);
+    const result = getStatisticsPageDataFromSessions([session], {
+      range: "all",
+      exerciseKey: benchExerciseId,
+    });
+    expect(result.summary.sets.value).toBe(2);
+    expect(result.summary.workingSets?.value).toBe(1);
+    expect(result.summary.unclassifiedSets?.value).toBe(1);
+    expect(result.summary.volumeKg.value).toBe(400);
+  });
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2025-03-15T12:00:00.000Z"));
@@ -153,33 +181,38 @@ describe("statistics core", () => {
           weight: 100,
         }),
       ]),
-      createSession("session-current-2", "2025-03-01", [
-        createRecord("session-current-2", {
-          entryId: "entry-3",
-          exerciseId: benchExerciseId,
-          exerciseNameSnapshot: "Bench Press",
-          exerciseCategorySnapshot: "Push",
-          performedOn: "2025-03-01",
-          reps: 6,
-          setId: "set-4",
-          setNumber: 1,
-          unitSnapshot: "kg",
-          weight: 95,
-        }),
-        createRecord("session-current-2", {
-          entryId: "entry-4",
-          exerciseId: pullExerciseId,
-          exerciseNameSnapshot: "Pull Up",
-          exerciseCategorySnapshot: "Pull",
-          performedOn: "2025-03-01",
-          reps: 10,
-          setId: "set-5",
-          setNumber: 1,
-          sessionBodyweightKg: 80,
-          unitSnapshot: "bodyweight",
-          weight: 5,
-        }),
-      ], 80),
+      createSession(
+        "session-current-2",
+        "2025-03-01",
+        [
+          createRecord("session-current-2", {
+            entryId: "entry-3",
+            exerciseId: benchExerciseId,
+            exerciseNameSnapshot: "Bench Press",
+            exerciseCategorySnapshot: "Push",
+            performedOn: "2025-03-01",
+            reps: 6,
+            setId: "set-4",
+            setNumber: 1,
+            unitSnapshot: "kg",
+            weight: 95,
+          }),
+          createRecord("session-current-2", {
+            entryId: "entry-4",
+            exerciseId: pullExerciseId,
+            exerciseNameSnapshot: "Pull Up",
+            exerciseCategorySnapshot: "Pull",
+            performedOn: "2025-03-01",
+            reps: 10,
+            setId: "set-5",
+            setNumber: 1,
+            sessionBodyweightKg: 80,
+            unitSnapshot: "bodyweight",
+            weight: 5,
+          }),
+        ],
+        80,
+      ),
     ];
 
     const result = getStatisticsPageDataFromSessions(sessions, {
@@ -219,7 +252,7 @@ describe("statistics core", () => {
     expect(result.selectedExercise).toEqual({
       category: "Push",
       chartHelpText:
-        "Line shows the heaviest logged set in each completed workout.",
+        "Line shows the heaviest logged set in each finished workout.",
       chartMetric: "load",
       chartMetricLabel: "Best load",
       details: [
@@ -373,6 +406,14 @@ describe("statistics core", () => {
           delta: null,
           value: 0,
         },
+        workingSets: {
+          delta: null,
+          value: 0,
+        },
+        unclassifiedSets: {
+          delta: null,
+          value: 0,
+        },
         volumeKg: {
           delta: null,
           value: 0,
@@ -411,25 +452,32 @@ describe("statistics core", () => {
   });
 
   it("keeps legacy bodyweight sessions out of new load metrics", () => {
-    const legacyBodyweightSession = createSession("session-legacy", "2025-03-10", [
-      createRecord("session-legacy", {
-        entryId: "entry-legacy",
-        exerciseId: null,
-        exerciseNameSnapshot: "Pull Up",
-        exerciseCategorySnapshot: "Pull",
-        performedOn: "2025-03-10",
-        reps: 10,
-        setId: "set-legacy",
-        setNumber: 1,
-        unitSnapshot: "bodyweight",
-        weight: 5,
-      }),
-    ]);
+    const legacyBodyweightSession = createSession(
+      "session-legacy",
+      "2025-03-10",
+      [
+        createRecord("session-legacy", {
+          entryId: "entry-legacy",
+          exerciseId: null,
+          exerciseNameSnapshot: "Pull Up",
+          exerciseCategorySnapshot: "Pull",
+          performedOn: "2025-03-10",
+          reps: 10,
+          setId: "set-legacy",
+          setNumber: 1,
+          unitSnapshot: "bodyweight",
+          weight: 5,
+        }),
+      ],
+    );
 
-    const result = getStatisticsPageDataFromSessions([legacyBodyweightSession], {
-      exerciseKey: null,
-      range: "all",
-    });
+    const result = getStatisticsPageDataFromSessions(
+      [legacyBodyweightSession],
+      {
+        exerciseKey: null,
+        range: "all",
+      },
+    );
 
     expect(result.hasCompletedWorkouts).toBe(true);
     expect(result.summary.volumeKg.value).toBe(0);

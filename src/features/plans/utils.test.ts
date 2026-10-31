@@ -15,6 +15,23 @@ import {
 } from "@/features/plans/utils";
 
 describe("plan utilities", () => {
+  it("resolves partial and aborted plan days without calling them completed", () => {
+    const workouts = [
+      { scheduledDate: "2026-10-29", state: "partial" as const },
+      { scheduledDate: "2026-10-29", state: "aborted" as const },
+    ];
+    expect(buildPlanProgress(workouts, "2026-10-29")).toMatchObject({
+      completed: 0,
+      partial: 1,
+      aborted: 1,
+      resolved: 2,
+      remaining: 0,
+    });
+    expect(
+      getDerivedPlanWorkoutState("partial", "2026-10-29", "2026-10-29"),
+    ).toBe("partial");
+    expect(getPlanCompletionState(workouts, "2026-10-29")).toBe(true);
+  });
   it("returns weekday labels and schedule-derived labels", () => {
     expect(getPlanWeekdayLabel(3)).toBe("Wed");
     expect(getPlanWeekdayLabel(9)).toBe("Day 9");
@@ -24,32 +41,46 @@ describe("plan utilities", () => {
   });
 
   it("derives workout state from the persisted state and schedule", () => {
-    expect(getDerivedPlanWorkoutState("completed", "2025-01-05", "2025-01-06")).toBe(
-      "completed",
-    );
-    expect(getDerivedPlanWorkoutState("skipped", "2025-01-05", "2025-01-06")).toBe(
-      "skipped",
-    );
-    expect(getDerivedPlanWorkoutState("planned", "2025-01-05", "2025-01-06")).toBe(
-      "missed",
-    );
-    expect(getDerivedPlanWorkoutState("planned", "2025-01-06", "2025-01-06")).toBe(
-      "today",
-    );
-    expect(getDerivedPlanWorkoutState("planned", "2025-01-07", "2025-01-06")).toBe(
-      "upcoming",
-    );
+    expect(
+      getDerivedPlanWorkoutState("completed", "2025-01-05", "2025-01-06"),
+    ).toBe("completed");
+    expect(
+      getDerivedPlanWorkoutState("skipped", "2025-01-05", "2025-01-06"),
+    ).toBe("skipped");
+    expect(
+      getDerivedPlanWorkoutState("planned", "2025-01-05", "2025-01-06"),
+    ).toBe("missed");
+    expect(
+      getDerivedPlanWorkoutState("planned", "2025-01-06", "2025-01-06"),
+    ).toBe("today");
+    expect(
+      getDerivedPlanWorkoutState("planned", "2025-01-07", "2025-01-06"),
+    ).toBe("upcoming");
   });
 
   it("computes editability and resolution consistently", () => {
-    expect(isPlanWorkoutEditable("planned", "2025-01-06", "2025-01-06")).toBe(true);
-    expect(isPlanWorkoutEditable("planned", "2025-01-05", "2025-01-06")).toBe(false);
-    expect(isPlanWorkoutEditable("completed", "2025-01-06", "2025-01-06")).toBe(false);
+    expect(isPlanWorkoutEditable("planned", "2025-01-06", "2025-01-06")).toBe(
+      true,
+    );
+    expect(isPlanWorkoutEditable("planned", "2025-01-05", "2025-01-06")).toBe(
+      false,
+    );
+    expect(isPlanWorkoutEditable("completed", "2025-01-06", "2025-01-06")).toBe(
+      false,
+    );
 
-    expect(isPlanWorkoutResolved("completed", "2025-01-07", "2025-01-06")).toBe(true);
-    expect(isPlanWorkoutResolved("skipped", "2025-01-07", "2025-01-06")).toBe(true);
-    expect(isPlanWorkoutResolved("planned", "2025-01-05", "2025-01-06")).toBe(true);
-    expect(isPlanWorkoutResolved("planned", "2025-01-07", "2025-01-06")).toBe(false);
+    expect(isPlanWorkoutResolved("completed", "2025-01-07", "2025-01-06")).toBe(
+      true,
+    );
+    expect(isPlanWorkoutResolved("skipped", "2025-01-07", "2025-01-06")).toBe(
+      true,
+    );
+    expect(isPlanWorkoutResolved("planned", "2025-01-05", "2025-01-06")).toBe(
+      true,
+    );
+    expect(isPlanWorkoutResolved("planned", "2025-01-07", "2025-01-06")).toBe(
+      false,
+    );
   });
 
   it("clamps the current plan week within the plan duration", () => {
@@ -69,6 +100,8 @@ describe("plan utilities", () => {
 
     expect(buildPlanProgress(workouts, "2025-01-06")).toEqual({
       completed: 1,
+      partial: 0,
+      aborted: 0,
       missed: 1,
       remaining: 2,
       resolved: 3,
@@ -89,6 +122,8 @@ describe("plan utilities", () => {
   });
 
   it("formats short plan dates in a stable UTC-safe way", () => {
-    expect(formatPlanDateLabel("2025-01-06", "America/Los_Angeles")).toBe("6 Jan");
+    expect(formatPlanDateLabel("2025-01-06", "America/Los_Angeles")).toBe(
+      "6 Jan",
+    );
   });
 });
